@@ -1,0 +1,52 @@
+# ---------- 密钥 ----------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ---------- Python ----------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# ---------- Flutter / Dart ----------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+**/build/
+*.iml
+# 生成物不入库，靠 make gen 重建
+*.g.dart
+*.freezed.dart
+# Android 本地路径
+apps/app/android/local.properties
+apps/app/android/.gradle/
+apps/app/android/app/debug/
+apps/app/android/app/release/
+*.jks
+key.properties
+
+# ---------- 本地降级产物 ----------
+uploads/
+
+# ---------- IDE ----------
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+*.swp
+
+# ---------- Windows / macOS ----------
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,826 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "natsu": {
+    "meta": {
+      "name": "夏の手紙 Visual System v2",
+      "concept": "Summer Epistolary · 光在纸上 — 环境是夏日天空，纸只在「信」的时候出现",
+      "format": "W3C Design Tokens Community Group (DTCG)",
+      "generated": "2026-08-20",
+      "generator": "test/tool/export_design_tokens_test.dart（单一事实来源：lib/src/tokens/）",
+      "layers": {
+        "structure": "克制现代网格（UI sans、严格对齐、无阴影）",
+        "medium": "纸是内容物（白纸浮于天空、极轻墨蓝阴影、手写内容）",
+        "atmosphere": "夏日自然光（天空渐变、sunlight 高光、冷暖冲突即夏天）"
+      },
+      "disciplines": [
+        "Controlled Imperfection：不完美只属于内容物、确定性种子（±1.5–2° / ±4–6px）",
+        "coralStamp 配给制：邮戳/邮票/旅行标记，装饰图形不承载正文",
+        "sunlightYellow 永不作文字色",
+        "衬线只活一处（quoteSerif：歌词引用/AI 短诗）",
+        "字体回落链中文优先（SC 主 JP 回退）"
+      ]
+    },
+    "color": {
+      "sky-top": {
+        "$type": "color",
+        "$value": "#C9E2F2",
+        "$description": "天空顶 — 清透天青（渐变上端）"
+      },
+      "sky-horizon": {
+        "$type": "color",
+        "$value": "#FAF8F1",
+        "$description": "地平线 — 暖白（渐变下端，stops 0.72）"
+      },
+      "sunlight": {
+        "$type": "color",
+        "$value": "#FFF6DF",
+        "$description": "阳光 — 纸面顶部高光"
+      },
+      "leaf": {
+        "$type": "color",
+        "$value": "#7FA88B",
+        "$description": "叶绿 — 低频辅助（自然/旅行语义）"
+      },
+      "paper-white": {
+        "$type": "color",
+        "$value": "#FFFFFF",
+        "$description": "白纸 — 内容表面"
+      },
+      "envelope": {
+        "$type": "color",
+        "$value": "#FCF9F2",
+        "$description": "封筒 — 暖白（引用底/禁用底）"
+      },
+      "paper-edge": {
+        "$type": "color",
+        "$value": "#E8E4DA",
+        "$description": "纸缘 — 纸面描边"
+      },
+      "ink-blue": {
+        "$type": "color",
+        "$value": "#2B3A55",
+        "$description": "墨蓝 — 正文/标题/主按钮"
+      },
+      "ink-soft": {
+        "$type": "color",
+        "$value": "#55617D",
+        "$description": "次级墨 — 说明文字"
+      },
+      "ink-faint": {
+        "$type": "color",
+        "$value": "#8A93A8",
+        "$description": "淡墨 — caption（仅非关键小字）"
+      },
+      "sky-blue": {
+        "$type": "color",
+        "$value": "#1F6FA8",
+        "$description": "夏空蓝 — 交互主色（链接/选中/聚焦）"
+      },
+      "sunlight-yellow": {
+        "$type": "color",
+        "$value": "#E8B84B",
+        "$description": "阳光黄 — 稀有高光；永不作文字色"
+      },
+      "coral-stamp": {
+        "$type": "color",
+        "$value": "#E07A5F",
+        "$description": "珊瑚 — 邮戳/邮票/旅行标记（配给色）"
+      },
+      "hover-overlay": {
+        "$type": "color",
+        "$value": "#0A2B3A55",
+        "$description": "悬停 — 墨蓝 4%"
+      },
+      "pressed-overlay": {
+        "$type": "color",
+        "$value": "#142B3A55",
+        "$description": "按压 — 墨蓝 8%"
+      },
+      "disabled-content": {
+        "$type": "color",
+        "$value": "#522B3A55",
+        "$description": "禁用内容 — 32%"
+      },
+      "focus-ring": {
+        "$type": "color",
+        "$value": "#1F6FA8",
+        "$description": "聚焦环 — 夏空蓝"
+      },
+      "error": {
+        "$type": "color",
+        "$value": "#C0392B",
+        "$description": "错误 — 仅错误语义"
+      },
+      "on-ink": {
+        "$type": "color",
+        "$value": "#FFFFFF",
+        "$description": "墨蓝底上的文字"
+      },
+      "on-coral": {
+        "$type": "color",
+        "$value": "#FFFFFF",
+        "$description": "珊瑚底上的文字"
+      }
+    },
+    "gradient": {
+      "sky": {
+        "$type": "gradient",
+        "$value": {
+          "type": "linear",
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#C9E2F2",
+              "position": 0
+            },
+            {
+              "color": "#FAF8F1",
+              "position": 0.72
+            }
+          ]
+        },
+        "$description": "页面天空 — 暖色只占底部 28%，防全页泛黄"
+      },
+      "paper-toplight": {
+        "$type": "gradient",
+        "$value": {
+          "type": "linear",
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#FFF6DF",
+              "position": 0
+            },
+            {
+              "color": "#FFF6DF00",
+              "position": 0.35
+            }
+          ]
+        },
+        "$description": "信纸顶光 — sunlight → transparent（光落在纸上）"
+      }
+    },
+    "fontFamily": {
+      "ui": {
+        "$type": "fontFamily",
+        "$value": [
+          "NotoSansSC",
+          "NotoSansJP"
+        ],
+        "$description": "UI sans — 结构层（现代克制）"
+      },
+      "ui-en": {
+        "$type": "fontFamily",
+        "$value": [
+          "Inter"
+        ],
+        "$description": "欧文/标签/元数据"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": [
+          "RobotoMono"
+        ],
+        "$description": "等宽 — 色值/代码"
+      },
+      "hw": {
+        "$type": "fontFamily",
+        "$value": [
+          "LXGWWenKai",
+          "KleeOne"
+        ],
+        "$description": "手写 — 内容物的声音"
+      },
+      "quote": {
+        "$type": "fontFamily",
+        "$value": [
+          "NotoSerifSC",
+          "NotoSerifJP"
+        ],
+        "$description": "引用 — 铅字（系统中唯一衬线场景）"
+      },
+      "seal": {
+        "$type": "fontFamily",
+        "$value": [
+          "MaShanZheng",
+          "ZenKurenaido"
+        ],
+        "$description": "刻印 — 品牌位"
+      }
+    },
+    "fontWeight": {
+      "regular": {
+        "$type": "fontWeight",
+        "$value": "400"
+      },
+      "medium": {
+        "$type": "fontWeight",
+        "$value": "500"
+      },
+      "semibold": {
+        "$type": "fontWeight",
+        "$value": "600"
+      },
+      "bold": {
+        "$type": "fontWeight",
+        "$value": "700"
+      }
+    },
+    "fontSize": {
+      "display": {
+        "$type": "dimension",
+        "$value": "48px",
+        "$description": "大标题"
+      },
+      "heading": {
+        "$type": "dimension",
+        "$value": "32px",
+        "$description": "章节标题"
+      },
+      "subheading": {
+        "$type": "dimension",
+        "$value": "22px",
+        "$description": "欧文副标题"
+      },
+      "hw-letter": {
+        "$type": "dimension",
+        "$value": "36px",
+        "$description": "手写信标题"
+      },
+      "hw-address": {
+        "$type": "dimension",
+        "$value": "28px",
+        "$description": "宛名/署名"
+      },
+      "hw-ps": {
+        "$type": "dimension",
+        "$value": "24px",
+        "$description": "追筆"
+      },
+      "hw-body": {
+        "$type": "dimension",
+        "$value": "20px",
+        "$description": "手写信正文"
+      },
+      "quote": {
+        "$type": "dimension",
+        "$value": "18px",
+        "$description": "引用（歌词/AI 短诗）"
+      },
+      "body": {
+        "$type": "dimension",
+        "$value": "16px",
+        "$description": "正文"
+      },
+      "button": {
+        "$type": "dimension",
+        "$value": "15px",
+        "$description": "按钮"
+      },
+      "caption": {
+        "$type": "dimension",
+        "$value": "13px",
+        "$description": "小字/眉标/元数据"
+      }
+    },
+    "lineHeight": {
+      "display": {
+        "$type": "dimension",
+        "$value": "60px"
+      },
+      "heading": {
+        "$type": "dimension",
+        "$value": "42px"
+      },
+      "subheading": {
+        "$type": "dimension",
+        "$value": "32px"
+      },
+      "hw-letter": {
+        "$type": "dimension",
+        "$value": "54px"
+      },
+      "hw-address": {
+        "$type": "dimension",
+        "$value": "44px"
+      },
+      "hw-ps": {
+        "$type": "dimension",
+        "$value": "38px"
+      },
+      "hw-body": {
+        "$type": "dimension",
+        "$value": "38px"
+      },
+      "quote": {
+        "$type": "dimension",
+        "$value": "32px"
+      },
+      "body": {
+        "$type": "dimension",
+        "$value": "28px",
+        "$description": "1.75 行距 — 慢媒介的呼吸"
+      },
+      "button": {
+        "$type": "dimension",
+        "$value": "22px"
+      },
+      "caption": {
+        "$type": "dimension",
+        "$value": "20px"
+      }
+    },
+    "letterSpacing": {
+      "kicker": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "章节眉标"
+      },
+      "label": {
+        "$type": "dimension",
+        "$value": "1.5px",
+        "$description": "分组标签"
+      },
+      "relaxed": {
+        "$type": "dimension",
+        "$value": "1.2px",
+        "$description": "元数据行"
+      }
+    },
+    "typography": {
+      "display": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "600",
+          "fontSize": "48px",
+          "lineHeight": "60px",
+          "color": "#2B3A55"
+        },
+        "$description": "Display 48 — 大标题（sans SemiBold）"
+      },
+      "heading": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "700",
+          "fontSize": "32px",
+          "lineHeight": "42px",
+          "color": "#2B3A55"
+        },
+        "$description": "Heading 32 — sans Bold"
+      },
+      "subheading": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "Inter"
+          ],
+          "fontWeight": "400",
+          "fontSize": "22px",
+          "lineHeight": "32px",
+          "color": "#2B3A55"
+        },
+        "$description": "Subheading 22 — Inter"
+      },
+      "body": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "400",
+          "fontSize": "16px",
+          "lineHeight": "28px",
+          "color": "#2B3A55"
+        },
+        "$description": "Body 16 — 1.75 行距"
+      },
+      "body-strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "500",
+          "fontSize": "16px",
+          "lineHeight": "28px",
+          "color": "#2B3A55"
+        },
+        "$description": "Body Strong"
+      },
+      "body-secondary": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "400",
+          "fontSize": "16px",
+          "lineHeight": "28px",
+          "color": "#55617D"
+        },
+        "$description": "副文本"
+      },
+      "caption": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "Inter"
+          ],
+          "fontWeight": "400",
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "color": "#8A93A8"
+        },
+        "$description": "Caption 13"
+      },
+      "kicker": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "Inter"
+          ],
+          "fontWeight": "400",
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "color": "#55617D"
+        },
+        "$description": "眉标 + 2px 字距"
+      },
+      "label": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "Inter"
+          ],
+          "fontWeight": "400",
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "color": "#55617D"
+        },
+        "$description": "分组标签 + 1.5px 字距"
+      },
+      "button": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSansSC",
+            "NotoSansJP"
+          ],
+          "fontWeight": "500",
+          "fontSize": "15px",
+          "lineHeight": "22px",
+          "color": "#2B3A55"
+        },
+        "$description": "按钮文字"
+      },
+      "meta": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "Inter"
+          ],
+          "fontWeight": "400",
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "color": "#55617D"
+        },
+        "$description": "元数据行 + 1.2px 字距"
+      },
+      "hw-letter": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "LXGWWenKai",
+            "KleeOne"
+          ],
+          "fontWeight": "400",
+          "fontSize": "36px",
+          "lineHeight": "54px",
+          "color": "#2B3A55"
+        },
+        "$description": "手写信标题 — LXGW WenKai"
+      },
+      "hw-body": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "LXGWWenKai",
+            "KleeOne"
+          ],
+          "fontWeight": "400",
+          "fontSize": "20px",
+          "lineHeight": "38px",
+          "color": "#2B3A55"
+        },
+        "$description": "手写信正文 — LXGW WenKai"
+      },
+      "hw-address": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "LXGWWenKai",
+            "KleeOne"
+          ],
+          "fontWeight": "400",
+          "fontSize": "28px",
+          "lineHeight": "44px",
+          "color": "#2B3A55"
+        },
+        "$description": "宛名/署名 — LXGW WenKai"
+      },
+      "hw-postscript": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "LXGWWenKai",
+            "KleeOne"
+          ],
+          "fontWeight": "400",
+          "fontSize": "24px",
+          "lineHeight": "38px",
+          "color": "#55617D"
+        },
+        "$description": "追筆 — 同宛名栈，灰而退后"
+      },
+      "hw-note": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "LXGWWenKai",
+            "KleeOne"
+          ],
+          "fontWeight": "400",
+          "fontSize": "16px",
+          "lineHeight": "26px",
+          "color": "#55617D"
+        },
+        "$description": "手写小注 — 照片手记/邮戳手写"
+      },
+      "hw-seal": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "MaShanZheng",
+            "ZenKurenaido"
+          ],
+          "fontWeight": "400",
+          "fontSize": "56px",
+          "lineHeight": "72px",
+          "color": "#E07A5F"
+        },
+        "$description": "刻印 — MaShanZheng 珊瑚"
+      },
+      "quote": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": [
+            "NotoSerifSC",
+            "NotoSerifJP"
+          ],
+          "fontWeight": "400",
+          "fontSize": "18px",
+          "lineHeight": "32px",
+          "color": "#55617D"
+        },
+        "$description": "引用 — 系统中唯一衬线（歌词引用/AI 短诗）"
+      }
+    },
+    "spacing": {
+      "xs": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "sm": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "xl": {
+        "$type": "dimension",
+        "$value": "32px"
+      },
+      "xxl": {
+        "$type": "dimension",
+        "$value": "48px"
+      },
+      "card-padding": {
+        "$type": "dimension",
+        "$value": "28px",
+        "$description": "卡片内边距"
+      },
+      "card-gap": {
+        "$type": "dimension",
+        "$value": "16px",
+        "$description": "卡片内要素间"
+      },
+      "btn-padding-y": {
+        "$type": "dimension",
+        "$value": "12px"
+      },
+      "btn-padding-x": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "btn-sm-padding-y": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "btn-sm-padding-x": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "tag-padding-y": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "tag-padding-x": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "input-height": {
+        "$type": "dimension",
+        "$value": "48px",
+        "$description": "输入框高度"
+      },
+      "swatch-gap": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "page-padding": {
+        "$type": "dimension",
+        "$value": "120px",
+        "$description": "页面左右余白"
+      },
+      "section-gap": {
+        "$type": "dimension",
+        "$value": "160px",
+        "$description": "大章节间（間）"
+      },
+      "block-gap": {
+        "$type": "dimension",
+        "$value": "40px",
+        "$description": "章节内块间"
+      }
+    },
+    "radius": {
+      "card": {
+        "$type": "dimension",
+        "$value": "6px",
+        "$description": "卡片·按钮·输入框（纸浮起后稍柔）"
+      },
+      "letter": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "信纸（近直角）"
+      },
+      "tag": {
+        "$type": "dimension",
+        "$value": "16px",
+        "$description": "标签药丸"
+      },
+      "tag-sm": {
+        "$type": "dimension",
+        "$value": "14px",
+        "$description": "小标签"
+      },
+      "stamp": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "印枠"
+      }
+    },
+    "border": {
+      "hairline": {
+        "$type": "border",
+        "$value": {
+          "style": "solid",
+          "width": "1px",
+          "color": "{color.paper-edge}"
+        },
+        "$description": "纸缘线"
+      },
+      "input": {
+        "$type": "border",
+        "$value": {
+          "style": "solid",
+          "width": "1px",
+          "color": "#D5D0C4"
+        },
+        "$description": "输入线（稍深）"
+      }
+    },
+    "shadow": {
+      "paper-resting": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "x": "0px",
+            "y": "6px",
+            "blur": "24px",
+            "spread": "-8px",
+            "color": "#22436B14"
+          }
+        ],
+        "$description": "纸面静置 — 纸从天空浮起"
+      },
+      "paper-hover": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "x": "0px",
+            "y": "10px",
+            "blur": "32px",
+            "spread": "-10px",
+            "color": "#22436B1F"
+          }
+        ],
+        "$description": "纸面被拈起"
+      },
+      "letter-resting": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "x": "0px",
+            "y": "12px",
+            "blur": "40px",
+            "spread": "-12px",
+            "color": "#22436B14"
+          }
+        ],
+        "$description": "大纸面（信纸）"
+      }
+    },
+    "motion": {
+      "short": {
+        "$type": "duration",
+        "$value": "120ms",
+        "$description": "指尖按压 / hover 光"
+      },
+      "medium": {
+        "$type": "duration",
+        "$value": "200ms",
+        "$description": "纸被拈起"
+      },
+      "long": {
+        "$type": "duration",
+        "$value": "320ms",
+        "$description": "纸落桌 / 卡片入场"
+      },
+      "drift": {
+        "$type": "duration",
+        "$value": "480ms",
+        "$description": "漂流到位 — 信件抵达 / 首屏落桌"
+      },
+      "easing": {
+        "$type": "cubicBezier",
+        "$value": "0.2, 0, 0, 1",
+        "$description": "纸感缓动（decelerate 系）"
+      },
+      "drift-easing": {
+        "$type": "cubicBezier",
+        "$value": "0.3, 0, 0.2, 1",
+        "$description": "漂流缓动 — 风送来的"
+      }
+    },
+    "imperfection": {
+      "tilt-min": {
+        "$type": "dimension",
+        "$value": "1.5px",
+        "$description": "最小倾斜（度）— 低于此等于假对齐"
+      },
+      "tilt-max": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "最大倾斜（度）"
+      },
+      "offset-min": {
+        "$type": "dimension",
+        "$value": "4px",
+        "$description": "最小偏移"
+      },
+      "offset-max": {
+        "$type": "dimension",
+        "$value": "6px",
+        "$description": "最大偏移"
+      }
+    }
+  }
+}
