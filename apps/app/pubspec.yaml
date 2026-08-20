@@ -30,7 +30,11 @@ dependencies:
 
   # 定位：就地发掘与埋信的落点
   geolocator: ^14.0.3
-  permission_handler: ^13.0.1
+  # 12.x 而非 13/14.x：14.0.0 的 Java 源码用了 API 37 独有符号（ACCESS_LOCAL_NETWORK /
+  # CINNAMON_BUN），而 API 37 平台包在 SDK 仓库里只有 android-37.0（坏元数据，AGP 找
+  # android-37 永远找不到）。12.0.3 → permission_handler_android ^13（compileSdk 35）。
+  # 本项目 lib/ 未直接调用 permission_handler（geolocator 自管权限），降级无功能影响。
+  permission_handler: ^12.0.3
 
   # 写信附图（1–3 张，明信片式）
   image_picker: ^1.2.3
