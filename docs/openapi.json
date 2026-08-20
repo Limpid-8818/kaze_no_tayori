@@ -1,0 +1,1969 @@
+{
+  "components": {
+    "schemas": {
+      "Body_upload_image_v1_uploads_images_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_image_v1_uploads_images_post",
+        "type": "object"
+      },
+      "DeliveryMode": {
+        "description": "投递方式（PRD 6.1：必选其一，两者都是一等公民）。",
+        "enum": [
+          "stay",
+          "drift"
+        ],
+        "title": "DeliveryMode",
+        "type": "string"
+      },
+      "DeviceAuthRequest": {
+        "description": "设备绑定：无密码、无强制注册。",
+        "properties": {
+          "device_id": {
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Device Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "DeviceAuthRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LetterCounts": {
+        "description": "叙事计数（PRD §7.4）：替代空间轨迹，且不跨信排行。\n\n共鸣呈现为「已被 N 个陌生人接住」，不是点赞数。",
+        "properties": {
+          "read": {
+            "default": 0,
+            "title": "Read",
+            "type": "integer"
+          },
+          "reply": {
+            "default": 0,
+            "title": "Reply",
+            "type": "integer"
+          },
+          "resonance": {
+            "default": 0,
+            "title": "Resonance",
+            "type": "integer"
+          },
+          "saved": {
+            "default": 0,
+            "title": "Saved",
+            "type": "integer"
+          },
+          "voice": {
+            "default": 0,
+            "title": "Voice",
+            "type": "integer"
+          }
+        },
+        "title": "LetterCounts",
+        "type": "object"
+      },
+      "LetterCreate": {
+        "additionalProperties": false,
+        "description": "写信（PRD 6.1）。",
+        "properties": {
+          "content": {
+            "maxLength": 800,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Images",
+            "type": "array"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Tags",
+            "type": "array"
+          },
+          "theme": {
+            "default": "natsu",
+            "maxLength": 32,
+            "title": "Theme",
+            "type": "string"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "content",
+          "delivery_mode"
+        ],
+        "title": "LetterCreate",
+        "type": "object"
+      },
+      "LetterOwned": {
+        "description": "本人视角，仅 /v1/me/* 路径返回。\n\n比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——\n自己不需要看自己的 id。",
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/LetterCounts"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_letter_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Letter Id"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LetterStatus"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "theme",
+          "delivery_mode",
+          "counts",
+          "created_at",
+          "status"
+        ],
+        "title": "LetterOwned",
+        "type": "object"
+      },
+      "LetterPublic": {
+        "description": "对外信件响应——**唯一允许返回给读者的信件形状**。\n\n刻意缺席的字段：\n- owner_user_id / 任何作者标识（匿名铁律）\n- lat / lon 精确坐标（只给 place_label，避免反查作者活动位置，PRD §8.1）\n- status（读者只会看到 public 的信）",
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/LetterCounts"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_letter_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Letter Id"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "theme",
+          "delivery_mode",
+          "counts",
+          "created_at"
+        ],
+        "title": "LetterPublic",
+        "type": "object"
+      },
+      "LetterStatus": {
+        "description": "信件状态（见 docs/ARCHITECTURE.md §3 状态机）。\n\n只有 PUBLIC 参与漂流抽取与就地发掘。\n机审失效时默认停在 PENDING —— 降级方向永远更保守（PRD §8.2）。",
+        "enum": [
+          "pending",
+          "public",
+          "rejected",
+          "taken_down"
+        ],
+        "title": "LetterStatus",
+        "type": "string"
+      },
+      "MusicRef": {
+        "description": "引用式音乐（PRD 6.7）：只有三个字符串。\n\n不生成音频、不上传音频、不贴外部链接——**不许新增 url / audio 字段**。",
+        "properties": {
+          "album": {
+            "maxLength": 128,
+            "title": "Album",
+            "type": "string"
+          },
+          "lyrics": {
+            "description": "一句歌词",
+            "maxLength": 200,
+            "title": "Lyrics",
+            "type": "string"
+          },
+          "song": {
+            "maxLength": 128,
+            "title": "Song",
+            "type": "string"
+          }
+        },
+        "required": [
+          "album",
+          "song",
+          "lyrics"
+        ],
+        "title": "MusicRef",
+        "type": "object"
+      },
+      "NotificationPublic": {
+        "description": "回信告知。原作者不是回信的收件人，这只是「获知」。",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_read": {
+            "title": "Is Read",
+            "type": "boolean"
+          },
+          "letter_id": {
+            "format": "uuid",
+            "title": "Letter Id",
+            "type": "string"
+          },
+          "parent_letter_id": {
+            "format": "uuid",
+            "title": "Parent Letter Id",
+            "type": "string"
+          },
+          "parent_place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Place Label"
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "letter_id",
+          "parent_letter_id",
+          "is_read",
+          "created_at"
+        ],
+        "title": "NotificationPublic",
+        "type": "object"
+      },
+      "NotificationType": {
+        "description": "通知类型。P0 只有回信告知（PRD 6.5），且它不是私信。",
+        "enum": [
+          "reply"
+        ],
+        "title": "NotificationType",
+        "type": "string"
+      },
+      "Page_LetterOwned_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LetterOwned"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[LetterOwned]",
+        "type": "object"
+      },
+      "Page_LetterPublic_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LetterPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[LetterPublic]",
+        "type": "object"
+      },
+      "Page_NotificationPublic_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[NotificationPublic]",
+        "type": "object"
+      },
+      "PoemResponse": {
+        "properties": {
+          "poem": {
+            "description": "从正文提取意象生成，≤4 行",
+            "title": "Poem",
+            "type": "string"
+          }
+        },
+        "required": [
+          "poem"
+        ],
+        "title": "PoemResponse",
+        "type": "object"
+      },
+      "PolishRequest": {
+        "properties": {
+          "content": {
+            "maxLength": 800,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "PolishRequest",
+        "type": "object"
+      },
+      "PolishResponse": {
+        "description": "AI 是桥不是枪手：润色保留原意，用户可选采纳。",
+        "properties": {
+          "polished": {
+            "title": "Polished",
+            "type": "string"
+          }
+        },
+        "required": [
+          "polished"
+        ],
+        "title": "PolishResponse",
+        "type": "object"
+      },
+      "ReportRequest": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "reason": {
+            "maxLength": 32,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReportRequest",
+        "type": "object"
+      },
+      "ResonanceRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "可选匿名短句",
+            "title": "Note"
+          }
+        },
+        "title": "ResonanceRequest",
+        "type": "object"
+      },
+      "ResonanceResponse": {
+        "description": "只回计数。**不返回共鸣者**，也不存在共鸣者列表接口。",
+        "properties": {
+          "resonance_count": {
+            "title": "Resonance Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "resonance_count"
+        ],
+        "title": "ResonanceResponse",
+        "type": "object"
+      },
+      "ScripbookAddRequest": {
+        "properties": {
+          "letter_id": {
+            "format": "uuid",
+            "title": "Letter Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "letter_id"
+        ],
+        "title": "ScripbookAddRequest",
+        "type": "object"
+      },
+      "TagPublic": {
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color"
+        ],
+        "title": "TagPublic",
+        "type": "object"
+      },
+      "ThemePublic": {
+        "properties": {
+          "assets": {
+            "additionalProperties": true,
+            "title": "Assets",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_default"
+        ],
+        "title": "ThemePublic",
+        "type": "object"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "user_id"
+        ],
+        "title": "TokenResponse",
+        "type": "object"
+      },
+      "UploadResponse": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "UploadResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "Weather": {
+        "description": "落点天气，「此情此景」的锚点之一。",
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp C"
+          },
+          "text": {
+            "maxLength": 32,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Weather",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "匿名漂流信系统。信可随机漂向远方（drift），也可埋在某地等后来者发掘（stay）。\n\n**匿名铁律**：一切信件响应使用 LetterPublic，不含任何作者标识。",
+    "title": "风信 Kaze no tayori API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "进程存活。不连数据库。",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/db": {
+      "get": {
+        "description": "连库 + 确认 PostGIS 可用。",
+        "operationId": "health_db_health_db_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Db Health Db Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Db",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/ai/poem": {
+      "post": {
+        "description": "从正文提取意象生成 ≤4 行短诗，与正文同屏展示。",
+        "operationId": "poem_v1_ai_poem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PoemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Poem",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/polish": {
+      "post": {
+        "description": "润色正文，保留原意。用户可选采纳。",
+        "operationId": "polish_v1_ai_polish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolishResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Polish",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/auth/device": {
+      "post": {
+        "description": "用客户端生成的 device_id 换取长效 JWT。无密码。\n\n首次调用时 upsert 一个 users 行。",
+        "operationId": "bind_device_v1_auth_device_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bind Device",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/discover": {
+      "get": {
+        "description": "检索附近「留在这里」的公开信。\n\n走 ST_DWithin + GiST 索引；radius_m 缺省取 DISCOVER_RADIUS_M（默认 1000 米）。\n按 created_at DESC 排序——**不按热度**。",
+        "operationId": "discover_nearby_v1_discover_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lon",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Radius M"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LetterPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discover Nearby",
+        "tags": [
+          "discover"
+        ]
+      }
+    },
+    "/v1/drift/next": {
+      "get": {
+        "description": "抽一封非自己发、未读过的公开漂流信。\n\n副作用：写 letter_reads + read_count+1。\n池空时返回 404 drift_pool_empty。",
+        "operationId": "next_letter_v1_drift_next_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LetterPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Next Letter",
+        "tags": [
+          "drift"
+        ]
+      }
+    },
+    "/v1/letters": {
+      "post": {
+        "description": "写一封信并投放。\n\ndelivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。\n提交后入审，默认 status=pending。",
+        "operationId": "create_letter_v1_letters_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LetterCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LetterOwned"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Letter",
+        "tags": [
+          "letters"
+        ]
+      }
+    },
+    "/v1/letters/{letter_id}": {
+      "get": {
+        "description": "读单封公开信（回信溯源用）。非 public 一律 404。",
+        "operationId": "read_letter_v1_letters__letter_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LetterPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Letter",
+        "tags": [
+          "letters"
+        ]
+      }
+    },
+    "/v1/letters/{letter_id}/replies": {
+      "get": {
+        "description": "该信的公开回信列表，形成弱链接作品链。",
+        "operationId": "list_replies_v1_letters__letter_id__replies_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LetterPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Replies",
+        "tags": [
+          "replies"
+        ]
+      },
+      "post": {
+        "description": "回以一封信：新建独立信件，parent_letter_id = letter_id。\n\n副作用：\n- 原信 reply_count + 1\n- 原信 owner_user_id 非空 → 插入 Notification(type=reply)\n- 原信无 owner（纯过客所写）→ 静默跳过通知，回信照样公开",
+        "operationId": "create_reply_v1_letters__letter_id__replies_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LetterCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LetterOwned"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Reply",
+        "tags": [
+          "replies"
+        ]
+      }
+    },
+    "/v1/letters/{letter_id}/report": {
+      "post": {
+        "description": "举报（PRD §8.2）。入库待人工处理。",
+        "operationId": "report_letter_v1_letters__letter_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Letter",
+        "tags": [
+          "letters"
+        ]
+      }
+    },
+    "/v1/letters/{letter_id}/resonance": {
+      "post": {
+        "description": "一键 ✦：信获「已被 N 个陌生人接住」。\n\n幂等：同一人重复调用返回 200 且不重复计数（uq_resonance_once 保证）。\n可选附 ≤30 字匿名短句。",
+        "operationId": "resonate_v1_letters__letter_id__resonance_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResonanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResonanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resonate",
+        "tags": [
+          "resonance"
+        ]
+      }
+    },
+    "/v1/me/letters": {
+      "get": {
+        "description": "我写下的信，含审核中（pending）的。",
+        "operationId": "my_letters_v1_me_letters_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LetterOwned_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Letters",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/letters/{letter_id}": {
+      "delete": {
+        "description": "下架自己的信（→ taken_down）。非硬删，保留回信链完整性（PRD §8.1 可删除）。",
+        "operationId": "take_down_letter_v1_me_letters__letter_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Take Down Letter",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/notifications": {
+      "get": {
+        "description": "回信告知列表。P0 只做拉取，不做推送。",
+        "operationId": "my_notifications_v1_me_notifications_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "unread_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Unread Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_NotificationPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Notifications",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/notifications/{notification_id}/read": {
+      "post": {
+        "operationId": "mark_notification_read_v1_me_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Notification Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Notification Read",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/scripbook": {
+      "get": {
+        "description": "我的抄本。个人行为，不计入公开互动。",
+        "operationId": "my_scripbook_v1_me_scripbook_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LetterPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Scripbook",
+        "tags": [
+          "me"
+        ]
+      },
+      "post": {
+        "operationId": "add_to_scripbook_v1_me_scripbook_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScripbookAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add To Scripbook",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/scripbook/{letter_id}": {
+      "delete": {
+        "operationId": "remove_from_scripbook_v1_me_scripbook__letter_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove From Scripbook",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/tags": {
+      "get": {
+        "description": "预置思绪标签，写信时可选 1–3 个。",
+        "operationId": "list_tags_v1_tags_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TagPublic"
+                  },
+                  "title": "Response List Tags V1 Tags Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tags",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/v1/themes": {
+      "get": {
+        "description": "主题皮肤列表。P0 只有「夏」natsu。\n\n皮肤一旦被信件选定即永久绑定，此接口只提供可选项，不影响历史信件。",
+        "operationId": "list_themes_v1_themes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ThemePublic"
+                  },
+                  "title": "Response List Themes V1 Themes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Themes",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/v1/uploads/images": {
+      "post": {
+        "description": "上传单张图片，返回可公开访问的 URL。\n\n存储不可用时降级为本地磁盘——图片失败不应阻断写信主流程。",
+        "operationId": "upload_image_v1_uploads_images_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_image_v1_uploads_images_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Image",
+        "tags": [
+          "uploads"
+        ]
+      }
+    }
+  }
+}

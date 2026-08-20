@@ -1,0 +1,74 @@
+"""本人视角：我的信、抄本、通知（PRD 6.10 / 6.5 / 8.1）。
+
+这是唯一允许返回 LetterOwned 的路径前缀，且必须带 JWT。
+"""
+
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Query
+
+from app.core.deps import CurrentUser, Session
+from app.schemas.common import NotificationPublic, Page, ScripbookAddRequest
+from app.schemas.letter import LetterOwned, LetterPublic
+
+router = APIRouter(prefix="/me", tags=["me"])
+
+
+# ---------- 我的信 ----------
+@router.get("/letters", response_model=Page[LetterOwned])
+async def my_letters(
+    session: Session,
+    user_id: CurrentUser,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> Page[LetterOwned]:
+    """我写下的信，含审核中（pending）的。"""
+    raise NotImplementedError
+
+
+@router.delete("/letters/{letter_id}", status_code=204)
+async def take_down_letter(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
+    """下架自己的信（→ taken_down）。非硬删，保留回信链完整性（PRD §8.1 可删除）。"""
+    raise NotImplementedError
+
+
+# ---------- 抄本 ----------
+@router.get("/scripbook", response_model=Page[LetterPublic])
+async def my_scripbook(
+    session: Session,
+    user_id: CurrentUser,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> Page[LetterPublic]:
+    """我的抄本。个人行为，不计入公开互动。"""
+    raise NotImplementedError
+
+
+@router.post("/scripbook", status_code=204)
+async def add_to_scripbook(
+    payload: ScripbookAddRequest, session: Session, user_id: CurrentUser
+) -> None:
+    raise NotImplementedError
+
+
+@router.delete("/scripbook/{letter_id}", status_code=204)
+async def remove_from_scripbook(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
+    raise NotImplementedError
+
+
+# ---------- 通知 ----------
+@router.get("/notifications", response_model=Page[NotificationPublic])
+async def my_notifications(
+    session: Session,
+    user_id: CurrentUser,
+    unread_only: bool = False,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> Page[NotificationPublic]:
+    """回信告知列表。P0 只做拉取，不做推送。"""
+    raise NotImplementedError
+
+
+@router.post("/notifications/{notification_id}/read", status_code=204)
+async def mark_notification_read(
+    notification_id: UUID, session: Session, user_id: CurrentUser
+) -> None:
+    raise NotImplementedError
