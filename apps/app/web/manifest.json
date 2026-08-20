@@ -1,0 +1,35 @@
+{
+    "name": "风信 · Kaze no tayori",
+    "short_name": "风信",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FAF8F1",
+    "theme_color": "#2B3A55",
+    "description": "让作品先于作者抵达。匿名漂流信：信可随机漂向远方，也可埋在某地等后来者发掘。",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

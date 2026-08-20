@@ -1,0 +1,74 @@
+name: kazenotayori
+description: >-
+  风信 Kaze no tayori — 让作品先于作者抵达。
+  匿名漂流信：信可随机漂向远方（drift），也可埋在某地等后来者发掘（stay）。
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理：@riverpod codegen 让「一个异步数据源 = 一个 provider」样板最少
+  flutter_riverpod: ^3.4.2
+  riverpod_annotation: ^4.0.6
+
+  # 路由
+  go_router: ^17.5.0
+
+  # 网络。所有请求只经 lib/data/api/api_client.dart
+  dio: ^5.11.0
+
+  # JSON 序列化（music_ref / weather / images 有嵌套，手写 fromJson 易静默出错）
+  json_annotation: ^4.12.0
+
+  # device_id 与 JWT 的安全存储（PRD 6.13 设备绑定）
+  flutter_secure_storage: ^11.0.0
+
+  # 定位：就地发掘与埋信的落点
+  geolocator: ^14.0.3
+  permission_handler: ^13.0.1
+
+  # 写信附图（1–3 张，明信片式）
+  image_picker: ^1.2.3
+  cached_network_image: ^3.4.1
+
+  # 信件导出为图片（PRD 6.11，前端 RepaintBoundary，不走后端）
+  screenshot: ^3.0.0
+
+  intl: ^0.20.3
+
+  # 设计系统。当前是空壳，见 packages/natsu_no_tegami/COPY_IN.md
+  natsu_no_tegami:
+    path: ../../packages/natsu_no_tegami
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  build_runner: ^2.16.0
+  json_serializable: ^6.14.1
+  riverpod_generator: ^4.0.8
+
+  # ---------------------------------------------------------------------------
+  # 两个「本该有、但当前装不上」的包（2026-08-20 实测，非本项目配置问题）：
+  #
+  # 1) freezed —— 生态版本错配。freezed 3.2.5（当前稳定版）钉 analyzer >=9 <11，
+  #    而 riverpod_generator 4.0.8 要 analyzer ^13、flutter_riverpod 3.4.2 又
+  #    要 riverpod 3.4.2。三者无可解交集；pub 给的出路只有「用 freezed 4.0.0-dev
+  #    预览版」或「把 Riverpod 降到 3.3.2」——十天赛期里两条都不划算。
+  #    结论：**API model 用 json_serializable 手写 + @JsonSerializable 即可**，
+  #    不可变性靠 final 字段与构造器自律，不靠 codegen。
+  #    freezed 4.x 稳定后可考虑加回来。
+  #
+  # 2) custom_lint / riverpod_lint —— riverpod_lint 3.1.8 要 analyzer_plugin
+  #    ^0.14.0，而截至 custom_lint 0.8.1 都还钉在 ^0.13.0。
+  #    provider 误用检查是加分项，flutter_lints 仍覆盖基本规则。
+  # ---------------------------------------------------------------------------
+
+flutter:
+  uses-material-design: true
