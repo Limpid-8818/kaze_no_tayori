@@ -1,0 +1,22 @@
+# 统一换行：仓库内一律 LF，签出时不转换（Windows + git bash 混用下最稳）
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.dart text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+
+Makefile text eol=lf
+
+# 二进制
+*.ttf  binary
+*.otf  binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+
+# 设计令牌是上游导出产物，不参与语言统计
+docs/natsu-tokens-v2.json linguist-generated=true

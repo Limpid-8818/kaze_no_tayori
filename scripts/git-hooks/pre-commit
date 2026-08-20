@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# 风信 · pre-commit：只做三件事，跑不动就 git commit --no-verify 逃生，不阻塞比赛。
+# 安装：make hooks
+# 注意：终端输出一律 ASCII —— Windows 控制台默认 GBK 代码页，中文会乱码。
+
+set -uo pipefail
+fail=0
+
+# 拦 .env / .env.local / *.pem / *.key，但放行模板 .env.example
+SECRET_RE='(^|/)\.env$|(^|/)\.env\.|\.pem$|\.key$|key\.properties$'
+ALLOW_RE='(^|/)\.env\.example$'
+staged() { git diff --cached --name-only --diff-filter=ACM; }
+secrets() { staged | grep -E "$SECRET_RE" | grep -vE "$ALLOW_RE" || true; }
+
+# ---------- 1. block secret files ----------
+if [ -n "$(secrets)" ]; then
+  echo "[x] Secret file staged - commit blocked:"
+  secrets | sed 's/^/    /'
+  echo "    Unstage with: git restore --staged <file>"
+  fail=1
+fi
+
+# ---------- 2. Python: ruff ----------
+if staged | grep -qE '\.py$' && command -v uv >/dev/null 2>&1 && [ -d services/api ]; then
+  if ! ( cd services/api && uv run ruff format --check . && uv run ruff check . ); then
+    echo "[x] ruff failed. Fix: cd services/api && uv run ruff format . && uv run ruff check --fix ."
+    fail=1
+  fi
+fi
+
+# ---------- 3. Dart: format ----------
+if command -v dart >/dev/null 2>&1; then
+  bad=""
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    [ -f "$f" ] || continue
+    dart format --set-exit-if-changed "$f" >/dev/null 2>&1 || bad="$bad $f"
+  done < <(staged | grep -E '\.dart$' || true)
+  if [ -n "$bad" ]; then
+    echo "[x] Unformatted Dart files:$bad"
+    echo "    Fix: dart format$bad"
+    fail=1
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "Commit blocked. If you are sure, bypass with: git commit --no-verify"
+fi
+exit "$fail"
