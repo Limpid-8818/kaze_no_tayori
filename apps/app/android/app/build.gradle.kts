@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "fun.kazenotayori"
+    namespace = "com.aisquare.kazenotayori"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,9 +15,7 @@ android {
     }
 
     defaultConfig {
-        // 风信 Kaze no tayori。注意 flutter create 的 --org 会与 --project-name 拼接，
-        // 默认会得到 fun.kazenotayori.kazenotayori，已在此手工去重。
-        applicationId = "fun.kazenotayori"
+        applicationId = "com.aisquare.kazenotayori"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

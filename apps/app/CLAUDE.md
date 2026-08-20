@@ -36,7 +36,12 @@ lib/features/  write drift discover reader reply my_letters scripbook notificati
 
 - 只有 android + web。Web 用 `make app`（走 `-d edge`，**本机无 Chrome**）。
 - 真机调试：`make app-android API_BASE_URL=http://<局域网IP>:8000`，不能用 localhost。
-- applicationId 是 `fun.kazenotayori`（`flutter create` 默认会拼成 `fun.kazenotayori.kazenotayori`，已手工去重）。
+- applicationId / namespace 是 `com.aisquare.kazenotayori`。早期用过 `fun.kazenotayori`，但 `fun` 是
+  Kotlin 保留字、包声明只能写反引号畸形语法，2026-08-20 已整体迁移，别改回去。
+- Android 构建（2026-08-20 实测）：`permission_handler` 钉在 **12.x**、`flutter_secure_storage` 的 compileSdk 靠
+  `android/build.gradle.kts` 的钳制压到 36。原因：它们的 14/11+ 版本要 compileSdk 37，而 API 37 平台包在 SDK
+  仓库里只有 `android-37.0`（坏元数据），AGP 按 hash `android-37` 永远找不到；14.0.0 源码还真实调用了 API 37
+  独有符号，无法用钳制绕过。升级前先确认上游已适配。构建时 `requires Android SDK version 37` 的 Warning 可无视。
 
 ## 提交前
 
