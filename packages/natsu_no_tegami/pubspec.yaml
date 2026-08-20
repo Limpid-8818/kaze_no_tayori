@@ -1,0 +1,23 @@
+name: natsu_no_tegami
+description: >-
+  夏の手紙 — 风信的视觉设计系统（令牌 + 组件）。
+  当前是占位空壳：真实实现在上游独立仓库开发，成形后按 COPY_IN.md 整体拷入。
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# 拷入时上游 pubspec 的 fonts: 声明整段搬到这里（15 个字体文件，
+# assets/fonts/info/ 6 个信息层 + assets/fonts/warm/ 9 个手写层）。
+# 见 COPY_IN.md。
+flutter:
