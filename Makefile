@@ -8,7 +8,7 @@ APP_DIR := apps/app
 UV := uv
 API_BASE_URL ?= http://localhost:8000
 
-.PHONY: help bootstrap hooks api app app-android gen revision migrate downgrade \
+.PHONY: help bootstrap hooks api app app-android gen gen-watch revision migrate downgrade \
         seed check check-py check-dart check-db openapi sync-ds clean
 
 # 终端输出一律 ASCII：Windows 控制台默认 GBK 代码页，中文会显示成乱码。
@@ -72,8 +72,12 @@ app:
 app-android:
 	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=$(API_BASE_URL)
 
+# build_runner 2.x 已移除 --delete-conflicting-outputs（传了只会警告）
 gen:
-	cd $(APP_DIR) && dart run build_runner build --delete-conflicting-outputs
+	cd $(APP_DIR) && dart run build_runner build
+
+gen-watch:
+	cd $(APP_DIR) && dart run build_runner watch
 
 # ---------- 质量 ----------
 check: check-py check-dart
