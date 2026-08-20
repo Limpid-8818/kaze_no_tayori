@@ -1,0 +1,62 @@
+# 云服务器部署产物（PRD §8.3 / §11 DoD）。
+# 本地开发**不用**它：本机没装 Docker，开发直连云端 PostGIS（见 docs/DEV_SETUP.md）。
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kazenotayori
+      POSTGRES_USER: ${POSTGRES_USER:-kaze}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次启动自动装 PostGIS extension
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kaze} -d kazenotayori"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      # 容器内连同一 compose 网络里的 db，覆盖 .env 里的本地/远程地址
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-kaze}:${POSTGRES_PASSWORD}@db:5432/kazenotayori
+      DATABASE_URL_SYNC: postgresql+psycopg://${POSTGRES_USER:-kaze}:${POSTGRES_PASSWORD}@db:5432/kazenotayori
+      DB_SCHEMA: public
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      # STORAGE_BACKEND=local 时的图片落盘目录
+      - uploads:/app/uploads
+
+  # 对象存储（可选）。STORAGE_BACKEND=local 时不需要起它。
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    profiles: ["s3"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-kaze}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?required-when-s3-profile}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+volumes:
+  pgdata:
+  uploads:
+  miniodata:

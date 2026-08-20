@@ -1,0 +1,27 @@
+# 后端镜像。构建上下文是仓库根（见 docker-compose.yml 的 context: ..）。
+FROM python:3.13-slim
+
+# uv：与本地开发同一套依赖解析
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+WORKDIR /app
+
+# 先只拷依赖清单，让依赖层能被缓存
+COPY services/api/pyproject.toml services/api/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY services/api/ ./
+# STORAGE_BACKEND=local 时的落盘目录（compose 挂了 volume）
+RUN mkdir -p /app/uploads
+
+ENV PATH="/app/.venv/bin:$PATH"
+EXPOSE 8000
+
+# 迁移不在 CMD 里跑：迁移是需要人工审阅的一次性动作，
+# 不该在每次容器重启时自动执行（见 docs/DEV_SETUP.md §5）。
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
