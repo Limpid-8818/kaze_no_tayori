@@ -21,7 +21,7 @@ class KazeApp extends StatelessWidget {
     return MaterialApp.router(
       title: '风信',
       debugShowCheckedModeBanner: false,
-      theme: KazeTempTheme.light(),
+      theme: KazeTheme.light(),
       routerConfig: router,
     );
   }

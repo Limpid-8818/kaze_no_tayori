@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: DecoratedBox(
         // 环境是夏日天空，纸只在「信」的时候出现
-        decoration: const BoxDecoration(gradient: KazeTempTheme.skyGradient),
+        decoration: const BoxDecoration(gradient: KazeTheme.skyGradient),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(

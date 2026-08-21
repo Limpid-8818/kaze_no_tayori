@@ -4,19 +4,70 @@
 
 `LetterPublic` 刻意不含 `owner_user_id` 或任何作者标识，也不含精确坐标——
 一切对外的信件响应都必须用它。想「顺便带上作者」就得改这个类，而
-tests/test_anonymity.py 会立刻变红。
+`tests/test_anonymity.py` 会立刻变红。
 """
 
-from datetime import datetime
-from uuid import UUID
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import DeliveryMode, LetterStatus
 
+# ---------- 图文交替流（PRD 6.1 · blocks）----------
+
+_VALID_MOODS = {"none", "overexposed", "backlit", "motion"}
+
+
+class TextBlock(BaseModel):
+    """一段手写正文。"""
+
+    type: Literal["text"] = "text"
+    text: str = Field(min_length=1, max_length=800)
+
+
+class PhotoBlock(BaseModel):
+    """一张照片（带可选 mood 与手记）。"""
+
+    type: Literal["photo"] = "photo"
+    ref: str = Field(min_length=1, max_length=512, description="图片引用（URL 或资产标识）")
+    mood: str = Field(
+        default="none", description=f"拍摄瞬间 mood：{'|'.join(sorted(_VALID_MOODS))}"
+    )
+    note: str | None = Field(default=None, max_length=200, description="照片手记（hwNote）")
+
+    @model_validator(mode="after")
+    def _check_mood(self) -> "PhotoBlock":
+        if self.mood not in _VALID_MOODS:
+            raise ValueError(f"mood 必须是 {sorted(_VALID_MOODS)} 之一，got: {self.mood!r}")
+        return self
+
+
+# discriminated union — Pydantic v2 按 `type` 字段分发
+LetterBlock = Annotated[TextBlock | PhotoBlock, Field(discriminator="type")]
+
+
+def _count_photos(blocks: list) -> int:
+    return sum(1 for b in blocks if isinstance(b, PhotoBlock))
+
+
+class _BlocksMixin(BaseModel):
+    """共用的 blocks 字段 + 流校验。"""
+
+    blocks: list[LetterBlock] = Field(min_length=1, max_length=20)
+
+    @model_validator(mode="after")
+    def _check_flow(self) -> "_BlocksMixin":
+        photos = _count_photos(self.blocks)
+        if photos > 3:
+            raise ValueError("一封信最多夹三张照片")
+        return self
+
+
+# ---------- 引用式音乐（PRD 6.7）----------
+
 
 class MusicRef(BaseModel):
-    """引用式音乐（PRD 6.7）：只有三个字符串。
+    """引用式音乐：只有三个字符串。
 
     不生成音频、不上传音频、不贴外部链接——**不许新增 url / audio 字段**。
     """
@@ -47,12 +98,13 @@ class LetterCounts(BaseModel):
     saved: int = 0
 
 
-class LetterCreate(BaseModel):
+# ---------- 请求 / 响应 ----------
+
+
+class LetterCreate(_BlocksMixin):
     """写信（PRD 6.1）。"""
 
-    content: str = Field(min_length=1, max_length=800)
     poem: str | None = None
-    images: list[str] = Field(default_factory=list, max_length=3)
     theme: str = Field(default="natsu", max_length=32)
     music_ref: MusicRef | None = None
     tags: list[str] = Field(default_factory=list, max_length=3)
@@ -67,10 +119,10 @@ class LetterCreate(BaseModel):
     weather: Weather | None = None
 
     # 回信时由 service 预置，不接受客户端直传
-    model_config = ConfigDict(extra="forbid")
+    model_config = {"extra": "forbid"}
 
 
-class LetterPublic(BaseModel):
+class LetterPublic(_BlocksMixin):
     """对外信件响应——**唯一允许返回给读者的信件形状**。
 
     刻意缺席的字段：
@@ -79,19 +131,17 @@ class LetterPublic(BaseModel):
     - status（读者只会看到 public 的信）
     """
 
-    id: UUID
-    content: str
+    id: str  # UUID serialized as string
     poem: str | None = None
-    images: list[str] = Field(default_factory=list)
     theme: str
     music_ref: MusicRef | None = None
     place_label: str | None = None
     weather: Weather | None = None
     tags: list[str] = Field(default_factory=list)
     delivery_mode: DeliveryMode
-    parent_letter_id: UUID | None = None
+    parent_letter_id: str | None = None
     counts: LetterCounts
-    created_at: datetime
+    created_at: str  # ISO 8601 datetime serialized as string
 
 
 class LetterOwned(LetterPublic):

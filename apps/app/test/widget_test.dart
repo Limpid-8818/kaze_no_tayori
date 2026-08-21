@@ -40,10 +40,10 @@ void main() {
     });
   });
 
-  testWidgets('临时主题可构造并渲染', (tester) async {
+  testWidgets('主题可构造并渲染', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: KazeTempTheme.light(),
+        theme: KazeTheme.light(),
         home: const Scaffold(body: Text('风信')),
       ),
     );
