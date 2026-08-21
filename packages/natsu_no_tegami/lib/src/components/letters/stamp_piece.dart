@@ -50,9 +50,7 @@ class StampPiece extends StatelessWidget {
         baseHeight: baseHeight,
         width: width,
         child: Container(
-          decoration: BoxDecoration(
-            boxShadow: NatsuShadows.paperResting,
-          ),
+          decoration: BoxDecoration(boxShadow: NatsuShadows.paperResting),
           child: ClipPath(
             clipper: _PerforationClipper(),
             child: Container(
@@ -97,8 +95,7 @@ class _PerforationClipper extends CustomClipper<Path> {
     // 上边与下边
     for (var x = step / 2; x < size.width; x += step) {
       cut.addOval(Rect.fromCircle(center: Offset(x, 0), radius: r));
-      cut.addOval(
-          Rect.fromCircle(center: Offset(x, size.height), radius: r));
+      cut.addOval(Rect.fromCircle(center: Offset(x, size.height), radius: r));
     }
     // 左边与右边
     for (var y = step / 2; y < size.height; y += step) {
@@ -119,10 +116,7 @@ class _DefaultMotive extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _SunAndWavePainter(),
-      size: Size.infinite,
-    );
+    return CustomPaint(painter: _SunAndWavePainter(), size: Size.infinite);
   }
 }
 
@@ -158,12 +152,7 @@ class _SunAndWavePainter extends CustomPainter {
       final phase = row * 0.8;
       final path = Path()..moveTo(6, y);
       for (var x = 6.0; x < size.width - 6; x += 8) {
-        path.quadraticBezierTo(
-          x + 4 + phase,
-          y - 3 - row,
-          x + 8,
-          y,
-        );
+        path.quadraticBezierTo(x + 4 + phase, y - 3 - row, x + 8, y);
       }
       canvas.drawPath(path, paint);
     }

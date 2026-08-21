@@ -89,8 +89,9 @@ class PhotoCard extends StatelessWidget {
                     // mood 光效层（过曝白溢 / 逆光暗角）
                     if (mood == PhotoMood.overexposed)
                       const DecoratedBox(
-                        decoration:
-                            BoxDecoration(gradient: NatsuPhotoMood.overexposedWash),
+                        decoration: BoxDecoration(
+                          gradient: NatsuPhotoMood.overexposedWash,
+                        ),
                       )
                     else if (mood == PhotoMood.backlit)
                       const DecoratedBox(
@@ -119,9 +120,7 @@ class PhotoCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    CustomPaint(
-                      painter: _GrainPainter(seedId: seedId),
-                    ),
+                    CustomPaint(painter: _GrainPainter(seedId: seedId)),
                   ],
                 ),
               ),
@@ -145,11 +144,17 @@ class PhotoCard extends StatelessWidget {
     return switch (mood) {
       PhotoMood.none => img,
       PhotoMood.overexposed => ColorFiltered(
-          colorFilter: NatsuPhotoMood.overexposedFilter, child: img),
-      PhotoMood.backlit =>
-        ColorFiltered(colorFilter: NatsuPhotoMood.backlitFilter, child: img),
+        colorFilter: NatsuPhotoMood.overexposedFilter,
+        child: img,
+      ),
+      PhotoMood.backlit => ColorFiltered(
+        colorFilter: NatsuPhotoMood.backlitFilter,
+        child: img,
+      ),
       PhotoMood.motion => ImageFiltered(
-          imageFilter: NatsuPhotoMood.motionBlur(), child: img),
+        imageFilter: NatsuPhotoMood.motionBlur(),
+        child: img,
+      ),
     };
   }
 }
@@ -164,7 +169,7 @@ class _GrainPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // 颗粒：~area/600 个半透明墨蓝 1px 点
     final count = (size.width * size.height / 600).round();
-    final paint = Paint().. strokeWidth = 1;
+    final paint = Paint()..strokeWidth = 1;
     for (var i = 0; i < count; i++) {
       final dx = NatsuImperfection.seedOf('$seedId/g$i') * size.width;
       final dy = NatsuImperfection.seedOf('$seedId/g${i}y') * size.height;

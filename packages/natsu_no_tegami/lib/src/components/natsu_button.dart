@@ -106,8 +106,12 @@ class _NatsuButtonState extends State<NatsuButton> {
 
     return FocusableActionDetector(
       autofocus: widget.autofocus,
-      mouseCursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onShowHoverHighlight: enabled ? (h) => setState(() => _hovered = h) : null,
+      mouseCursor: enabled
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      onShowHoverHighlight: enabled
+          ? (h) => setState(() => _hovered = h)
+          : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,

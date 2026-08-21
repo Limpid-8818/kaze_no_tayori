@@ -15,7 +15,8 @@ sealed class LetterBlock {
 
   Map<String, Object?> toJson();
 
-  static LetterBlock fromJson(Map<String, Object?> json) => switch (json['type']) {
+  static LetterBlock fromJson(Map<String, Object?> json) =>
+      switch (json['type']) {
         'text' => TextBlock.fromJson(json),
         'photo' => PhotoBlock.fromJson(json),
         _ => throw ArgumentError('未知 LetterBlock type: ${json['type']}'),
@@ -37,7 +38,11 @@ final class TextBlock extends LetterBlock {
 
 /// 一张照片（带可选 mood 与手记）
 final class PhotoBlock extends LetterBlock {
-  const PhotoBlock({required this.imageRef, this.mood = PhotoMood.none, this.note});
+  const PhotoBlock({
+    required this.imageRef,
+    this.mood = PhotoMood.none,
+    this.note,
+  });
 
   /// 图片引用（资产名/URL 字符串）——经 photoResolver 解析为 ImageProvider
   final String imageRef;
@@ -50,20 +55,22 @@ final class PhotoBlock extends LetterBlock {
 
   @override
   Map<String, Object?> toJson() => {
-        'type': 'photo',
-        'ref': imageRef,
-        if (mood != PhotoMood.none) 'mood': mood.name,
-        if (note != null) 'note': note,
-      };
+    'type': 'photo',
+    'ref': imageRef,
+    if (mood != PhotoMood.none) 'mood': mood.name,
+    if (note != null) 'note': note,
+  };
 
   static PhotoBlock fromJson(Map<String, Object?> json) => PhotoBlock(
-        imageRef: json['ref'] as String,
-        mood: moodOf(json['mood'] as String?),
-        note: json['note'] as String?,
-      );
+    imageRef: json['ref'] as String,
+    mood: moodOf(json['mood'] as String?),
+    note: json['note'] as String?,
+  );
 
-  static PhotoMood moodOf(String? name) => PhotoMood.values
-      .firstWhere((m) => m.name == name, orElse: () => PhotoMood.none);
+  static PhotoMood moodOf(String? name) => PhotoMood.values.firstWhere(
+    (m) => m.name == name,
+    orElse: () => PhotoMood.none,
+  );
 }
 
 /// 流校验 — 信的图文约束在这里表达（写信流程调用）

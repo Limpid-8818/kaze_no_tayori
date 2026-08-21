@@ -51,11 +51,7 @@ class LetterReading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      ?place,
-      ?time,
-      ?weather,
-    ];
+    final meta = [?place, ?time, ?weather];
 
     return Container(
       width: width,
@@ -75,9 +71,9 @@ class LetterReading extends StatelessWidget {
             if (i > 0) const SizedBox(height: NatsuSpacing.lg),
             switch (block) {
               TextBlock(:final text) => Text(
-                  text,
-                  style: NatsuTypography.hwBody,
-                ),
+                text,
+                style: NatsuTypography.hwBody,
+              ),
               PhotoBlock(:final imageRef, :final mood, :final note) =>
                 _PhotoInLetter(
                   image: photoResolver(imageRef),
@@ -92,10 +88,7 @@ class LetterReading extends StatelessWidget {
             const SizedBox(height: NatsuSpacing.md),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                signature!,
-                style: NatsuTypography.hwAddress,
-              ),
+              child: Text(signature!, style: NatsuTypography.hwAddress),
             ),
           ],
           if (meta.isNotEmpty) ...[

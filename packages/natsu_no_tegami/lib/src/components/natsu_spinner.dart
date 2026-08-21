@@ -63,8 +63,9 @@ class _StampRingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final radius = size.shortestSide / 2;
     final rect = Rect.fromCircle(
-        center: Offset(size.width / 2, size.height / 2),
-        radius: radius - 1);
+      center: Offset(size.width / 2, size.height / 2),
+      radius: radius - 1,
+    );
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke

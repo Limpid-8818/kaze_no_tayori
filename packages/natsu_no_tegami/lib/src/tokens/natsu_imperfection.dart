@@ -48,11 +48,11 @@ abstract final class NatsuImperfection {
     final sx = seedOf('$id/x');
     final sy = seedOf('$id/y');
     double axis(double s, String tag) {
-      final magnitude =
-          offsetMin + s * (offsetMax - offsetMin);
+      final magnitude = offsetMin + s * (offsetMax - offsetMin);
       final sign = (tag.codeUnitAt(0) + id.length) & 1 == 0 ? 1.0 : -1.0;
       return magnitude * sign;
     }
+
     return Offset(axis(sx, '$id/x'), axis(sy, '$id/y'));
   }
 

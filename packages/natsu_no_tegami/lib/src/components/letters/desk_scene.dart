@@ -86,7 +86,8 @@ class _DeskSceneState extends State<DeskScene> {
   }
 
   (double?, double?, double?, double?, double?, double?)? _readPosition(
-      Widget w) {
+    Widget w,
+  ) {
     if (w is Positioned) {
       return (w.left, w.top, w.right, w.bottom, w.width, w.height);
     }

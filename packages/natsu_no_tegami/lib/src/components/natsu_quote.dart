@@ -56,9 +56,7 @@ class NatsuQuote extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: NatsuSpacing.sm),
-              Expanded(
-                child: Text(text, style: NatsuTypography.quoteSerif),
-              ),
+              Expanded(child: Text(text, style: NatsuTypography.quoteSerif)),
             ],
           ),
           if (source != null) ...[

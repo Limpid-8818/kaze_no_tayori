@@ -4,9 +4,9 @@ import 'package:natsu_no_tegami/src/components/components.dart';
 import 'package:natsu_no_tegami/src/tokens/natsu_tokens.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
-      theme: ThemeData(fontFamily: 'NotoSansSC'),
-      home: Scaffold(body: Center(child: child)),
-    );
+  theme: ThemeData(fontFamily: 'NotoSansSC'),
+  home: Scaffold(body: Center(child: child)),
+);
 
 void main() {
   group('NatsuResonance.sentence', () {
@@ -24,17 +24,15 @@ void main() {
   group('NatsuResonance 三态', () {
     testWidgets('未共鸣：✦ inkSoft + 行动字 + 句子，tap 触发一次', (tester) async {
       var resonated = 0;
-      await tester.pumpWidget(_wrap(NatsuResonance(
-        count: 3,
-        onResonate: () => resonated++,
-      )));
+      await tester.pumpWidget(
+        _wrap(NatsuResonance(count: 3, onResonate: () => resonated++)),
+      );
 
       expect(find.text('✦'), findsOneWidget);
       // 行动字与句子在同一个 Text.rich 段落里（基线由排版器统一）——
       // find.text 只匹配整段富文本，改用 textContaining
       expect(find.textContaining('共鸣'), findsOneWidget);
-      expect(
-          find.textContaining(NatsuResonance.sentence(3)), findsOneWidget);
+      expect(find.textContaining(NatsuResonance.sentence(3)), findsOneWidget);
       expect(_sparkleColor(tester), NatsuColors.inkSoft);
 
       await tester.tap(find.byType(NatsuResonance));
@@ -44,15 +42,18 @@ void main() {
 
     testWidgets('已共鸣：✦ coralStamp、无行动字、tap 不再触发', (tester) async {
       var resonated = 0;
-      await tester.pumpWidget(_wrap(NatsuResonance(
-        count: 13,
-        onResonate: () => resonated++,
-        resonated: true,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          NatsuResonance(
+            count: 13,
+            onResonate: () => resonated++,
+            resonated: true,
+          ),
+        ),
+      );
 
       expect(find.textContaining('共鸣'), findsNothing);
-      expect(
-          find.textContaining(NatsuResonance.sentence(13)), findsOneWidget);
+      expect(find.textContaining(NatsuResonance.sentence(13)), findsOneWidget);
       expect(_sparkleColor(tester), NatsuColors.coralStamp);
 
       // 一次性：即使回调仍在，共鸣后 tap 被忽略
@@ -62,29 +63,30 @@ void main() {
     });
 
     testWidgets('禁用（onResonate null）：✦/文字降级，句子仍显示', (tester) async {
-      await tester.pumpWidget(_wrap(const NatsuResonance(
-        count: 5,
-        onResonate: null,
-      )));
+      await tester.pumpWidget(
+        _wrap(const NatsuResonance(count: 5, onResonate: null)),
+      );
 
       expect(find.text(NatsuResonance.sentence(5)), findsOneWidget);
       expect(_sparkleColor(tester), NatsuColors.disabledContent);
-      expect(
-        _sentenceStyle(tester)!.color,
-        NatsuColors.disabledContent,
-      );
+      expect(_sentenceStyle(tester)!.color, NatsuColors.disabledContent);
     });
 
-    testWidgets('落章动效：resonated false→true 触发 scale/rotation 动画',
-        (tester) async {
+    testWidgets('落章动效：resonated false→true 触发 scale/rotation 动画', (
+      tester,
+    ) async {
       var resonated = false;
-      await tester.pumpWidget(_wrap(StatefulBuilder(
-        builder: (context, setState) => NatsuResonance(
-          count: 3,
-          resonated: resonated,
-          onResonate: () => setState(() => resonated = true),
+      await tester.pumpWidget(
+        _wrap(
+          StatefulBuilder(
+            builder: (context, setState) => NatsuResonance(
+              count: 3,
+              resonated: resonated,
+              onResonate: () => setState(() => resonated = true),
+            ),
+          ),
         ),
-      )));
+      );
 
       // 落章前 ✦ 静止（scale 1 / 0°）
       expect(_sparkleScale(tester), 1.0);
@@ -104,20 +106,16 @@ void main() {
 
     testWidgets('挂载即已共鸣/true→true 重建都不重放落章', (tester) async {
       // 挂载时已是共鸣状态（读到一封自己此前共鸣过的信）——不放动画
-      await tester.pumpWidget(_wrap(NatsuResonance(
-        count: 13,
-        onResonate: () {},
-        resonated: true,
-      )));
+      await tester.pumpWidget(
+        _wrap(NatsuResonance(count: 13, onResonate: () {}, resonated: true)),
+      );
       await tester.pump();
       expect(_sparkleScale(tester), 1.0);
 
       // 父层重建（count 变化，resonated 保持 true）——不重放
-      await tester.pumpWidget(_wrap(NatsuResonance(
-        count: 14,
-        onResonate: () {},
-        resonated: true,
-      )));
+      await tester.pumpWidget(
+        _wrap(NatsuResonance(count: 14, onResonate: () {}, resonated: true)),
+      );
       await tester.pump();
       expect(_sparkleScale(tester), 1.0);
       expect(_sparkleColor(tester), NatsuColors.coralStamp);
@@ -144,8 +142,6 @@ double _sparkleScale(WidgetTester tester) {
 }
 
 TextStyle? _sentenceStyle(WidgetTester tester) {
-  final text = tester.widget<Text>(
-    find.textContaining('陌生人也曾有过这样的时刻'),
-  );
+  final text = tester.widget<Text>(find.textContaining('陌生人也曾有过这样的时刻'));
   return text.style;
 }

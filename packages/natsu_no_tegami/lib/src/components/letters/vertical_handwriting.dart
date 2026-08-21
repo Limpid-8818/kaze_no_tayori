@@ -86,13 +86,14 @@ class VerticalHandwriting extends StatelessWidget {
     double gap,
     double maxHeight,
   ) {
-    final perColumn =
-        ((maxHeight + gap) / (fontSize + gap)).floor().clamp(1, chars.length);
+    final perColumn = ((maxHeight + gap) / (fontSize + gap)).floor().clamp(
+      1,
+      chars.length,
+    );
     if (perColumn >= chars.length) return [chars];
     return [
       for (var i = 0; i < chars.length; i += perColumn)
-        chars.sublist(
-            i, (i + perColumn).clamp(0, chars.length)),
+        chars.sublist(i, (i + perColumn).clamp(0, chars.length)),
     ];
   }
 }

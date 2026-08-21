@@ -45,8 +45,7 @@ class _NatsuSliderState extends State<NatsuSlider> {
   }
 
   void _updateFromPosition(double dx) {
-    final box =
-        _trackKey.currentContext?.findRenderObject() as RenderBox?;
+    final box = _trackKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || box.size.width <= 0) return;
     final f = (dx / box.size.width).clamp(0.0, 1.0);
     final v = widget.min + (widget.max - widget.min) * f;
@@ -63,9 +62,12 @@ class _NatsuSliderState extends State<NatsuSlider> {
       onShowHoverHighlight: active ? (h) => setState(() => _hovered = h) : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapDown: active ? (d) => _updateFromPosition(d.localPosition.dx) : null,
-        onHorizontalDragStart:
-            active ? (d) => setState(() => _dragging = true) : null,
+        onTapDown: active
+            ? (d) => _updateFromPosition(d.localPosition.dx)
+            : null,
+        onHorizontalDragStart: active
+            ? (d) => setState(() => _dragging = true)
+            : null,
         onHorizontalDragUpdate: active
             ? (d) => _updateFromPosition(d.localPosition.dx)
             : null,
@@ -84,7 +86,11 @@ class _NatsuSliderState extends State<NatsuSlider> {
                     key: _trackKey,
                     height: NatsuSpacing.controlHitTarget,
                     width: trackW > 0 ? trackW : 0,
-                    child: _Track(fraction: f, hovered: _hovered || _dragging, active: active),
+                    child: _Track(
+                      fraction: f,
+                      hovered: _hovered || _dragging,
+                      active: active,
+                    ),
                   ),
                 ),
               );
@@ -132,7 +138,9 @@ class _Track extends StatelessWidget {
               height: NatsuSpacing.sliderTrackH,
               decoration: BoxDecoration(
                 color: active ? NatsuColors.skyBlue : NatsuColors.paperEdge,
-                borderRadius: BorderRadius.circular(NatsuSpacing.sliderTrackH / 2),
+                borderRadius: BorderRadius.circular(
+                  NatsuSpacing.sliderTrackH / 2,
+                ),
               ),
             ),
           ),
@@ -152,8 +160,8 @@ class _Track extends StatelessWidget {
                 color: !active
                     ? NatsuColors.paperEdge
                     : hovered
-                        ? NatsuColors.skyBlue
-                        : NatsuBorders.inputSide.color,
+                    ? NatsuColors.skyBlue
+                    : NatsuBorders.inputSide.color,
                 width: 1,
               ),
             ),

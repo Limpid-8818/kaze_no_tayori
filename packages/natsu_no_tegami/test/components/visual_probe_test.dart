@@ -31,8 +31,7 @@ Future<void> _loadFonts() async {
   }
 }
 
-Future<void> _save(
-    WidgetTester tester, GlobalKey key, String name) async {
+Future<void> _save(WidgetTester tester, GlobalKey key, String name) async {
   // toImage/toByteData 的 PNG 编码走真实异步（平台线程），必须 runAsync
   // 放出 FakeAsync 区，否则测试永久挂起（同 letter_export_test 的坑）
   await tester.runAsync(() async {
@@ -44,20 +43,27 @@ Future<void> _save(
     final dir = Directory('build/visual_probe');
     await dir.create(recursive: true);
     await File('${dir.path}/$name.png').writeAsBytes(
-        data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+      data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    );
   });
 }
 
-Future<void> _pumpScene(WidgetTester tester, Widget child, GlobalKey key) async {
-  await tester.pumpWidget(MaterialApp(
-    theme: ThemeData(fontFamily: 'NotoSansSC'),
-    home: Scaffold(
-      backgroundColor: NatsuColors.paperWhite,
-      body: Center(
-        child: RepaintBoundary(key: key, child: child),
+Future<void> _pumpScene(
+  WidgetTester tester,
+  Widget child,
+  GlobalKey key,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: ThemeData(fontFamily: 'NotoSansSC'),
+      home: Scaffold(
+        backgroundColor: NatsuColors.paperWhite,
+        body: Center(
+          child: RepaintBoundary(key: key, child: child),
+        ),
       ),
     ),
-  ));
+  );
   await tester.pump(const Duration(milliseconds: 50));
 }
 
@@ -82,8 +88,7 @@ void main() {
           NatsuResonance(count: 3, onResonate: () {}),
           const SizedBox(height: 24),
           // 已共鸣（✦ + 句子）
-          const NatsuResonance(
-              count: 13, resonated: true, onResonate: _noop),
+          const NatsuResonance(count: 13, resonated: true, onResonate: _noop),
           const SizedBox(height: 24),
           // 禁用
           const NatsuResonance(count: 5, onResonate: null),
@@ -113,21 +118,21 @@ void main() {
         [NatsuColors.skyTop, NatsuColors.skyHorizon],
       );
       canvas.drawRect(const Rect.fromLTWH(0, 0, 560, 1400), paint);
-      final para = ui.ParagraphBuilder(ui.ParagraphStyle(
-        fontSize: 20,
-        fontFamily: 'LXGWWenKai',
-      ))
-        ..addText('给不知在何处的你：\n今天在海边坐了一下午。风把云吹得很慢，'
+      final para =
+          ui.ParagraphBuilder(
+            ui.ParagraphStyle(fontSize: 20, fontFamily: 'LXGWWenKai'),
+          )..addText(
+            '给不知在何处的你：\n今天在海边坐了一下午。风把云吹得很慢，'
             '慢到可以数清每一朵的边缘。\n\n回去的电车上，灯火像退潮一样流走。'
-            '我想，这大概就是夏天——光太多，装不下，只好溢出来。\n\n海辺にて');
+            '我想，这大概就是夏天——光太多，装不下，只好溢出来。\n\n海辺にて',
+          );
       canvas.drawParagraph(
         para.build()..layout(const ui.ParagraphConstraints(width: 480)),
         const Offset(40, 44),
       );
       final pic = recorder.endRecording();
       final image = await pic.toImage(560, 1400);
-      final data =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
       return data?.buffer.asUint8List();
     }))!;
 
@@ -148,14 +153,18 @@ void main() {
               Flexible(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(NatsuRadius.card),
-                  child: Image.memory(letterPng,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium),
+                  child: Image.memory(
+                    letterPng,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                  ),
                 ),
               ),
               const SizedBox(height: NatsuSpacing.md),
-              const Text('导出为匿名图片 · 不含作者信息 · 由你自行保存',
-                  style: NatsuTypography.bodySecondary),
+              const Text(
+                '导出为匿名图片 · 不含作者信息 · 由你自行保存',
+                style: NatsuTypography.bodySecondary,
+              ),
             ],
           ),
         ),

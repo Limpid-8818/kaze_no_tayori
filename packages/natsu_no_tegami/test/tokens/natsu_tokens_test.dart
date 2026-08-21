@@ -33,7 +33,10 @@ void main() {
   group('字体三角色（中文优先回落链）', () {
     test('UI = sans，标题不再是衬线', () {
       expect(NatsuTypography.display.fontFamily, 'NotoSansSC');
-      expect(NatsuTypography.display.fontFamilyFallback, contains('NotoSansJP'));
+      expect(
+        NatsuTypography.display.fontFamilyFallback,
+        contains('NotoSansJP'),
+      );
       expect(NatsuTypography.heading.fontFamily, 'NotoSansSC');
       expect(NatsuTypography.body.fontFamily, 'NotoSansSC');
     });
@@ -41,27 +44,43 @@ void main() {
     test('手写 = LXGW WenKai + KleeOne 回退', () {
       expect(NatsuTypography.hwBody.fontFamily, 'LXGWWenKai');
       expect(NatsuTypography.hwBody.fontFamilyFallback, contains('KleeOne'));
-      expect(NatsuTypography.hwPostscript.fontFamily,
-          NatsuTypography.hwAddress.fontFamily);
+      expect(
+        NatsuTypography.hwPostscript.fontFamily,
+        NatsuTypography.hwAddress.fontFamily,
+      );
     });
 
     test('衬线只活在 quoteSerif 一处', () {
       expect(NatsuTypography.quoteSerif.fontFamily, 'NotoSerifSC');
-      expect(NatsuTypography.quoteSerif.fontFamilyFallback,
-          contains('NotoSerifJP'));
+      expect(
+        NatsuTypography.quoteSerif.fontFamilyFallback,
+        contains('NotoSerifJP'),
+      );
       final allStyles = <TextStyle>[
-        NatsuTypography.display, NatsuTypography.heading,
-        NatsuTypography.subheading, NatsuTypography.body,
-        NatsuTypography.bodyStrong, NatsuTypography.bodySecondary,
-        NatsuTypography.caption, NatsuTypography.kicker,
-        NatsuTypography.label, NatsuTypography.button, NatsuTypography.meta,
-        NatsuTypography.hwLetter, NatsuTypography.hwBody,
-        NatsuTypography.hwAddress, NatsuTypography.hwPostscript,
-        NatsuTypography.hwNote, NatsuTypography.hwSeal,
+        NatsuTypography.display,
+        NatsuTypography.heading,
+        NatsuTypography.subheading,
+        NatsuTypography.body,
+        NatsuTypography.bodyStrong,
+        NatsuTypography.bodySecondary,
+        NatsuTypography.caption,
+        NatsuTypography.kicker,
+        NatsuTypography.label,
+        NatsuTypography.button,
+        NatsuTypography.meta,
+        NatsuTypography.hwLetter,
+        NatsuTypography.hwBody,
+        NatsuTypography.hwAddress,
+        NatsuTypography.hwPostscript,
+        NatsuTypography.hwNote,
+        NatsuTypography.hwSeal,
       ];
       for (final s in allStyles) {
-        expect(s.fontFamily, isNot('NotoSerifSC'),
-            reason: '衬线越界：${s.fontFamily}');
+        expect(
+          s.fontFamily,
+          isNot('NotoSerifSC'),
+          reason: '衬线越界：${s.fontFamily}',
+        );
       }
     });
   });
@@ -80,8 +99,10 @@ void main() {
     test('纸面三级阴影存在且向下偏移', () {
       expect(NatsuShadows.paperResting, isNotEmpty);
       expect(NatsuShadows.paperHover.first.offset.dy, greaterThan(0));
-      expect(NatsuShadows.letterResting.first.blurRadius,
-          greaterThan(NatsuShadows.paperResting.first.blurRadius));
+      expect(
+        NatsuShadows.letterResting.first.blurRadius,
+        greaterThan(NatsuShadows.paperResting.first.blurRadius),
+      );
     });
   });
 }

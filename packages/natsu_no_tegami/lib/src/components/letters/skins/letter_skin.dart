@@ -31,18 +31,18 @@ final class LetterSkin {
 
   /// 序列化（信件 JSON 的 `skin` 字段）；空槽省字段
   Map<String, Object?> toJson() => {
-        if (stampId != null) 'stamp': stampId,
-        if (postmarkEmblemId != null) 'postmarkEmblem': postmarkEmblemId,
-        if (decorIds.isNotEmpty) 'decor': decorIds,
-        if (postcardId != null) 'postcard': postcardId,
-      };
+    if (stampId != null) 'stamp': stampId,
+    if (postmarkEmblemId != null) 'postmarkEmblem': postmarkEmblemId,
+    if (decorIds.isNotEmpty) 'decor': decorIds,
+    if (postcardId != null) 'postcard': postcardId,
+  };
 
   factory LetterSkin.fromJson(Map<String, Object?> json) => LetterSkin(
-        stampId: json['stamp'] as String?,
-        postmarkEmblemId: json['postmarkEmblem'] as String?,
-        decorIds: (json['decor'] as List<Object?>? ?? const [])
-            .map((e) => e as String)
-            .toList(),
-        postcardId: json['postcard'] as String?,
-      );
+    stampId: json['stamp'] as String?,
+    postmarkEmblemId: json['postmarkEmblem'] as String?,
+    decorIds: (json['decor'] as List<Object?>? ?? const [])
+        .map((e) => e as String)
+        .toList(),
+    postcardId: json['postcard'] as String?,
+  );
 }

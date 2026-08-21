@@ -14,18 +14,18 @@ enum SkinSlot { postmark, stamp, decor, postcard }
 extension SkinSlotX on SkinSlot {
   /// 分组短名（画廊分组标题用）
   String get labelJa => switch (this) {
-        SkinSlot.postmark => '邮戳',
-        SkinSlot.stamp => '邮票',
-        SkinSlot.decor => '装饰',
-        SkinSlot.postcard => '明信片',
-      };
+    SkinSlot.postmark => '邮戳',
+    SkinSlot.stamp => '邮票',
+    SkinSlot.decor => '装饰',
+    SkinSlot.postcard => '明信片',
+  };
 
   String get labelEn => switch (this) {
-        SkinSlot.postmark => 'POSTMARK',
-        SkinSlot.stamp => 'STAMP',
-        SkinSlot.decor => 'DECOR',
-        SkinSlot.postcard => 'POSTCARD',
-      };
+    SkinSlot.postmark => 'POSTMARK',
+    SkinSlot.stamp => 'STAMP',
+    SkinSlot.decor => 'DECOR',
+    SkinSlot.postcard => 'POSTCARD',
+  };
 }
 
 /// 一个皮肤资产 — 无状态 const 数据 + painter

@@ -46,6 +46,8 @@ uploads/
 .vscode/launch.json
 *.swp
 
+.workbuddy/
+
 # ---------- Windows / macOS ----------
 Thumbs.db
 Desktop.ini

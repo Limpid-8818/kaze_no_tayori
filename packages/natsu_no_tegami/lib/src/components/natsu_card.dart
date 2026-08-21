@@ -50,8 +50,9 @@ class NatsuCard extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(NatsuRadius.card),
         border: NatsuBorders.hairline,
-        boxShadow:
-            hoverShadow ? NatsuShadows.paperHover : NatsuShadows.paperResting,
+        boxShadow: hoverShadow
+            ? NatsuShadows.paperHover
+            : NatsuShadows.paperResting,
       ),
       child: child,
     );

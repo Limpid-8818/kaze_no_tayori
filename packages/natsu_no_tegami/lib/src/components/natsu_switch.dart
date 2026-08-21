@@ -40,8 +40,8 @@ class _NatsuSwitchState extends State<NatsuSwitch> {
     final Color track = !active
         ? NatsuColors.envelope
         : widget.value
-            ? NatsuColors.skyBlue
-            : NatsuColors.paperEdge;
+        ? NatsuColors.skyBlue
+        : NatsuColors.paperEdge;
 
     final Color overlay;
     if (!active) {
@@ -74,8 +74,9 @@ class _NatsuSwitchState extends State<NatsuSwitch> {
               height: NatsuSpacing.switchTrackH,
               decoration: BoxDecoration(
                 color: Color.alphaBlend(overlay, track),
-                borderRadius:
-                    BorderRadius.circular(NatsuSpacing.switchTrackH / 2),
+                borderRadius: BorderRadius.circular(
+                  NatsuSpacing.switchTrackH / 2,
+                ),
               ),
               child: AnimatedAlign(
                 duration: NatsuMotion.short,

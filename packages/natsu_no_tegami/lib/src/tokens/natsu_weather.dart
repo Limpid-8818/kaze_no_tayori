@@ -1,7 +1,6 @@
 import 'dart:ui' show Color;
 
-import 'package:flutter/painting.dart'
-    show Alignment, LinearGradient;
+import 'package:flutter/painting.dart' show Alignment, LinearGradient;
 
 import 'natsu_colors.dart';
 
@@ -176,8 +175,7 @@ abstract final class NatsuWeatherLight {
   );
 
   /// 全矩阵 — 3 天气 × 4 时段，查表即得（无运行时色算）
-  static const Map<(NatsuWeather, NatsuTimeOfDay), NatsuSkyPreset>
-      presets = {
+  static const Map<(NatsuWeather, NatsuTimeOfDay), NatsuSkyPreset> presets = {
     (NatsuWeather.sunny, NatsuTimeOfDay.morning): morningSunny,
     (NatsuWeather.sunny, NatsuTimeOfDay.noon): noonSunny,
     (NatsuWeather.sunny, NatsuTimeOfDay.dusk): duskSunny,
