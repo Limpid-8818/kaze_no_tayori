@@ -31,12 +31,16 @@ abstract final class NatsuBorders {
   static const Border hairline = Border.fromBorderSide(side);
 
   /// 纸缘 side
-  static const BorderSide side =
-      BorderSide(color: NatsuColors.paperEdge, width: 1);
+  static const BorderSide side = BorderSide(
+    color: NatsuColors.paperEdge,
+    width: 1,
+  );
 
   /// 输入线（稍深）
-  static const BorderSide inputSide =
-      BorderSide(color: Color(0xFFD5D0C4), width: 1);
+  static const BorderSide inputSide = BorderSide(
+    color: Color(0xFFD5D0C4),
+    width: 1,
+  );
 }
 
 /// 夏の手紙 v2 · 动效令牌 — 风、纸、光、漂流

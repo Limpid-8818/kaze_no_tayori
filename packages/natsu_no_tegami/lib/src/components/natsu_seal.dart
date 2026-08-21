@@ -7,11 +7,7 @@ import '../tokens/natsu_tokens.dart';
 /// v2 降级说明：刻印不再是通用装饰（那是 v1 的「日式符号」路径），
 /// 只出现在品牌位（展示页眉、信封封口）。珊瑚色，配给制至多一枚。
 class NatsuSeal extends StatelessWidget {
-  const NatsuSeal({
-    super.key,
-    this.character = '夏',
-    this.size = 56,
-  });
+  const NatsuSeal({super.key, this.character = '夏', this.size = 56});
 
   /// 刻印文字（单字为宜）。
   final String character;

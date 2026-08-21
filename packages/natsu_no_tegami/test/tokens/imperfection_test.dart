@@ -16,8 +16,11 @@ void main() {
     test('tiltOf 落在 ±[1.5, 2.0]，避开假对齐', () {
       for (var i = 0; i < 500; i++) {
         final t = NatsuImperfection.tiltOf('seed-$i');
-        expect(t.abs(), inInclusiveRange(1.5, 2.0),
-            reason: 'seed-$i 倾斜 ${t.toStringAsFixed(3)}° 越界');
+        expect(
+          t.abs(),
+          inInclusiveRange(1.5, 2.0),
+          reason: 'seed-$i 倾斜 ${t.toStringAsFixed(3)}° 越界',
+        );
       }
     });
 
@@ -33,7 +36,7 @@ void main() {
   group('离散性', () {
     test('不同 id 大概率不同种子（500 个样本去重 > 450）', () {
       final seeds = {
-        for (var i = 0; i < 500; i++) NatsuImperfection.seedOf('distinct-$i')
+        for (var i = 0; i < 500; i++) NatsuImperfection.seedOf('distinct-$i'),
       };
       expect(seeds.length, greaterThan(450));
     });
@@ -52,7 +55,10 @@ void main() {
       final o = Offset(0, 0);
       expect(o, isA<Offset>()); // sanity：dart:ui Offset 可用
       // x/y 从不同后缀派生
-      expect(NatsuImperfection.seedOf('id/x'), NatsuImperfection.seedOf('id/x'));
+      expect(
+        NatsuImperfection.seedOf('id/x'),
+        NatsuImperfection.seedOf('id/x'),
+      );
       // 极低概率相等——取 50 个 id，x/y 种子全等的应近乎不存在
       var collisions = 0;
       for (var i = 0; i < 50; i++) {

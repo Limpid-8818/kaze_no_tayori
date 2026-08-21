@@ -1,7 +1,6 @@
 import 'dart:ui' show Color;
 
-import 'package:flutter/painting.dart'
-    show Alignment, LinearGradient;
+import 'package:flutter/painting.dart' show Alignment, LinearGradient;
 
 /// 夏の手紙 v2 · 色彩令牌 — 「Summer Epistolary / 光在纸上」
 ///

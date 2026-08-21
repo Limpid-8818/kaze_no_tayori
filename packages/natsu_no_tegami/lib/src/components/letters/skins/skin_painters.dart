@@ -41,9 +41,7 @@ class SeaStampPainter extends CustomPainter {
       final y = size.height * (0.46 + row * 0.16);
       final amp = 3.0 + row * 1.2;
       final path = Path()..moveTo(size.width * 0.08, y);
-      for (var x = size.width * 0.08;
-          x < size.width * 0.92 - 8;
-          x += 8) {
+      for (var x = size.width * 0.08; x < size.width * 0.92 - 8; x += 8) {
         path.quadraticBezierTo(x + 4, y - amp, x + 8, y);
       }
       canvas.drawPath(path, paint);
@@ -70,11 +68,7 @@ class RainStampPainter extends CustomPainter {
       final cx = size.width * (0.22 + 0.14 * i);
       final cy = size.height * (0.20 + 0.075 * (i % 2));
       final len = size.height * 0.16;
-      canvas.drawLine(
-        Offset(cx, cy),
-        Offset(cx + len * dy, cy + len),
-        paint,
-      );
+      canvas.drawLine(Offset(cx, cy), Offset(cx + len * dy, cy + len), paint);
     }
 
     // 水洼：扁椭圆，雨停后留下的
@@ -113,10 +107,21 @@ class DuskStampPainter extends CustomPainter {
     );
 
     // 半圆日：坐在地平线上
-    canvas.drawArc(Rect.fromCircle(center: center, radius: r), math.pi, math.pi, false, paint);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: r),
+      math.pi,
+      math.pi,
+      false,
+      paint,
+    );
 
     // 放射线：只画上半（光往上走）
-    for (final a in [math.pi * 1.15, math.pi * 1.35, math.pi * 1.65, math.pi * 1.85]) {
+    for (final a in [
+      math.pi * 1.15,
+      math.pi * 1.35,
+      math.pi * 1.65,
+      math.pi * 1.85,
+    ]) {
       canvas.drawLine(
         center + Offset(math.cos(a) * (r + 3), math.sin(a) * (r + 3)),
         center + Offset(math.cos(a) * (r + 8), math.sin(a) * (r + 8)),
@@ -157,18 +162,27 @@ class NightWindStampPainter extends CustomPainter {
     final moon = Path.combine(
       PathOperation.difference,
       Path()..addOval(Rect.fromCircle(center: moonC, radius: moonR)),
-      Path()
-        ..addOval(Rect.fromCircle(
+      Path()..addOval(
+        Rect.fromCircle(
           center: moonC + Offset(moonR * 0.5, -moonR * 0.35),
           radius: moonR * 0.85,
-        )),
+        ),
+      ),
     );
     canvas.drawPath(moon, paint);
 
     // 小星：十字
     final star = Offset(size.width * 0.24, size.height * 0.18);
-    canvas.drawLine(star - const Offset(3, 0), star + const Offset(3, 0), paint);
-    canvas.drawLine(star - const Offset(0, 3), star + const Offset(0, 3), paint);
+    canvas.drawLine(
+      star - const Offset(3, 0),
+      star + const Offset(3, 0),
+      paint,
+    );
+    canvas.drawLine(
+      star - const Offset(0, 3),
+      star + const Offset(0, 3),
+      paint,
+    );
 
     // 风线：三条 S 形贝塞尔，掠过纸面
     for (var i = 0; i < 3; i++) {
@@ -176,9 +190,12 @@ class NightWindStampPainter extends CustomPainter {
       final path = Path()
         ..moveTo(size.width * 0.10, y)
         ..cubicTo(
-          size.width * 0.32, y - 8 - i * 2,
-          size.width * 0.48, y + 6,
-          size.width * 0.66, y - 2,
+          size.width * 0.32,
+          y - 8 - i * 2,
+          size.width * 0.48,
+          y + 6,
+          size.width * 0.66,
+          y - 2,
         )
         ..quadraticBezierTo(size.width * 0.80, y - 6, size.width * 0.90, y - 1);
       canvas.drawPath(path, paint);
@@ -221,11 +238,7 @@ class CicadaEmblemPainter extends CustomPainter {
       canvas.translate(w * 0.5 + side * w * 0.20, h * 0.44);
       canvas.rotate(side * 24 * math.pi / 180);
       canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset.zero,
-          width: w * 0.34,
-          height: w * 0.15,
-        ),
+        Rect.fromCenter(center: Offset.zero, width: w * 0.34, height: w * 0.15),
         paint,
       );
       canvas.restore();
@@ -260,12 +273,7 @@ class TramEmblemPainter extends CustomPainter {
     // 三扇窗
     for (var i = 0; i < 3; i++) {
       canvas.drawRect(
-        Rect.fromLTWH(
-          w * (0.20 + i * 0.22),
-          h * 0.41,
-          w * 0.13,
-          h * 0.14,
-        ),
+        Rect.fromLTWH(w * (0.20 + i * 0.22), h * 0.41, w * 0.13, h * 0.14),
         paint,
       );
     }
@@ -343,11 +351,7 @@ class WaveEmblemPainter extends CustomPainter {
     // 卷浪：一道大弧从左下涌起，向右卷出头
     final wave = Path()
       ..moveTo(w * 0.08, h * 0.78)
-      ..cubicTo(
-        w * 0.10, h * 0.40,
-        w * 0.34, h * 0.22,
-        w * 0.58, h * 0.30,
-      )
+      ..cubicTo(w * 0.10, h * 0.40, w * 0.34, h * 0.22, w * 0.58, h * 0.30)
       ..quadraticBezierTo(w * 0.74, h * 0.36, w * 0.72, h * 0.50);
     canvas.drawPath(wave, paint);
 
@@ -428,8 +432,10 @@ class SparklerDecorPainter extends CustomPainter {
     // 顶端放射：六条短线
     for (var i = 0; i < 6; i++) {
       final a = i * math.pi / 3 + math.pi / 6;
-      final inner = burst + Offset(math.cos(a) * w * 0.07, math.sin(a) * w * 0.07);
-      final outer = burst + Offset(math.cos(a) * w * 0.22, math.sin(a) * w * 0.22);
+      final inner =
+          burst + Offset(math.cos(a) * w * 0.07, math.sin(a) * w * 0.07);
+      final outer =
+          burst + Offset(math.cos(a) * w * 0.22, math.sin(a) * w * 0.22);
       canvas.drawLine(inner, outer, paint);
       // 籽火：实心小点（线香花火的火粒）
       canvas.drawCircle(outer, 1.8, paint..style = PaintingStyle.fill);

@@ -37,9 +37,8 @@ class NatsuResonance extends StatefulWidget {
 
   /// 句子式共鸣计数 — 「N 个陌生人也曾有过这样的时刻」。
   /// 零计数不排「0 个」（计数是叙事不是指标）：『它还在等第一个同感的人』。
-  static String sentence(int count) => count <= 0
-      ? '它还在等第一个同感的人'
-      : '$count 个陌生人也曾有过这样的时刻';
+  static String sentence(int count) =>
+      count <= 0 ? '它还在等第一个同感的人' : '$count 个陌生人也曾有过这样的时刻';
 
   @override
   State<NatsuResonance> createState() => _NatsuResonanceState();
@@ -48,10 +47,22 @@ class NatsuResonance extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(IntProperty('count', count));
-    properties.add(FlagProperty('resonated',
-        value: resonated, ifTrue: '已共鸣', ifFalse: '未共鸣'));
-    properties.add(FlagProperty('hasOnResonate',
-        value: onResonate != null, ifTrue: '可共鸣', ifFalse: '禁用'));
+    properties.add(
+      FlagProperty(
+        'resonated',
+        value: resonated,
+        ifTrue: '已共鸣',
+        ifFalse: '未共鸣',
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'hasOnResonate',
+        value: onResonate != null,
+        ifTrue: '可共鸣',
+        ifFalse: '禁用',
+      ),
+    );
   }
 }
 
@@ -88,8 +99,8 @@ class _NatsuResonanceState extends State<NatsuResonance>
     final sparkleColor = !canInteract
         ? NatsuColors.disabledContent
         : widget.resonated
-            ? NatsuColors.coralStamp
-            : NatsuColors.inkSoft;
+        ? NatsuColors.coralStamp
+        : NatsuColors.inkSoft;
 
     // 交互覆盖层（ghost 手法，与 NatsuButton 同语言）；仅未共鸣可按
     final Color overlay;
@@ -108,25 +119,30 @@ class _NatsuResonanceState extends State<NatsuResonance>
     final curved = CurvedAnimation(parent: _stamp, curve: NatsuMotion.easing);
     final scale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.6, end: 1.15)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 0.6,
+          end: 1.15,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 60,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.15, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween(
+          begin: 1.15,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 40,
       ),
     ]).animate(curved);
     // RotationTransition 收 turns（圈），-8° → 0° 换算成圈
-    final rotationTurns =
-        Tween(begin: -8.0 / 360, end: 0.0).animate(curved);
+    final rotationTurns = Tween(begin: -8.0 / 360, end: 0.0).animate(curved);
 
     return FocusableActionDetector(
-      mouseCursor:
-          _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onShowHoverHighlight:
-          _enabled ? (h) => setState(() => _hovered = h) : null,
+      mouseCursor: _enabled
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      onShowHoverHighlight: _enabled
+          ? (h) => setState(() => _hovered = h)
+          : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
@@ -188,14 +204,16 @@ class _NatsuResonanceState extends State<NatsuResonance>
                     children: [
                       TextSpan(
                         text: '共鸣',
-                        style: NatsuTypography.button
-                            .copyWith(color: NatsuColors.inkBlue),
+                        style: NatsuTypography.button.copyWith(
+                          color: NatsuColors.inkBlue,
+                        ),
                       ),
                       const TextSpan(text: '  '),
                       TextSpan(
                         text: NatsuResonance.sentence(widget.count),
-                        style: NatsuTypography.hwNote
-                            .copyWith(color: NatsuColors.inkFaint),
+                        style: NatsuTypography.hwNote.copyWith(
+                          color: NatsuColors.inkFaint,
+                        ),
                       ),
                     ],
                   ),

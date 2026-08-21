@@ -52,8 +52,8 @@ class _NatsuCheckboxState extends State<NatsuCheckbox> {
     final Color fill = !active
         ? NatsuColors.envelope
         : checked
-            ? NatsuColors.skyBlue
-            : NatsuColors.paperWhite;
+        ? NatsuColors.skyBlue
+        : NatsuColors.paperWhite;
 
     final Color overlay;
     if (!active) {
@@ -82,7 +82,9 @@ class _NatsuCheckboxState extends State<NatsuCheckbox> {
             child: TweenAnimationBuilder<double>(
               // 半选（tristate null）保持满格；勾的描线只在 true 时扫出
               tween: Tween<double>(
-                  begin: 0, end: checked || tristateMixed ? 1 : 0),
+                begin: 0,
+                end: checked || tristateMixed ? 1 : 0,
+              ),
               duration: NatsuMotion.short,
               curve: NatsuMotion.easing,
               builder: (context, t, _) => Container(
@@ -97,11 +99,11 @@ class _NatsuCheckboxState extends State<NatsuCheckbox> {
                             color: active
                                 ? NatsuColors.skyBlue
                                 : NatsuColors.paperEdge,
-                            width: 1)
+                            width: 1,
+                          )
                         : active
-                            ? NatsuBorders.inputSide
-                            : BorderSide(
-                                color: NatsuColors.paperEdge, width: 1),
+                        ? NatsuBorders.inputSide
+                        : BorderSide(color: NatsuColors.paperEdge, width: 1),
                   ),
                 ),
                 child: CustomPaint(
@@ -145,8 +147,11 @@ class _CheckMarkPainter extends CustomPainter {
       // 半选：短横线（居中，宽 8，随 progress 从中心扫出）
       final midY = size.height / 2;
       final half = 4 * progress;
-      canvas.drawLine(Offset(size.width / 2 - half, midY),
-          Offset(size.width / 2 + half, midY), paint);
+      canvas.drawLine(
+        Offset(size.width / 2 - half, midY),
+        Offset(size.width / 2 + half, midY),
+        paint,
+      );
       return;
     }
 

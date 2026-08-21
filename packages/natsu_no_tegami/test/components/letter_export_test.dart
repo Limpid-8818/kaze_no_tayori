@@ -8,36 +8,48 @@ import 'package:natsu_no_tegami/src/components/components.dart';
 
 /// toImage/toByteData 的 PNG 编码走真实异步（平台线程），testWidgets 的
 /// FakeAsync 区等不到它的回调——必须用 tester.runAsync 放出伪时间循环。
-Future<Uint8List?> capture(WidgetTester tester, GlobalKey key,
-        {double pixelRatio = 2.0}) =>
-    tester.runAsync<Uint8List?>(
-        () => captureLetterPng(key, pixelRatio: pixelRatio));
+Future<Uint8List?> capture(
+  WidgetTester tester,
+  GlobalKey key, {
+  double pixelRatio = 2.0,
+}) => tester.runAsync<Uint8List?>(
+  () => captureLetterPng(key, pixelRatio: pixelRatio),
+);
 
 void main() {
-  testWidgets('captureLetterPng 返回 PNG 字节（magic bytes 校验）',
-      (tester) async {
+  testWidgets('captureLetterPng 返回 PNG 字节（magic bytes 校验）', (tester) async {
     final key = GlobalKey();
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: LetterExportBoundary(
-            boundaryKey: key,
-            child: const SizedBox(
-              width: 100,
-              height: 50,
-              child: ColoredBox(color: Colors.white),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: LetterExportBoundary(
+              boundaryKey: key,
+              child: const SizedBox(
+                width: 100,
+                height: 50,
+                child: ColoredBox(color: Colors.white),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pump(); // 帧落定
 
     final bytes = await capture(tester, key);
     expect(bytes, isNotNull);
     // PNG magic: \x89 P N G \r \n \x1a \n
-    expect(bytes!.sublist(0, 8),
-        const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    expect(bytes!.sublist(0, 8), const [
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+    ]);
   });
 
   testWidgets('pixelRatio=2 时光栅宽 = 逻辑宽 × 2', (tester) async {
@@ -47,16 +59,18 @@ void main() {
     addTearDown(tester.view.reset);
 
     final key = GlobalKey();
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: LetterExportBoundary(
-            boundaryKey: key,
-            child: const SizedBox(width: 100, height: 50),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: LetterExportBoundary(
+              boundaryKey: key,
+              child: const SizedBox(width: 100, height: 50),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pump();
 
     final bytes = await capture(tester, key, pixelRatio: 2.0);
@@ -74,14 +88,16 @@ void main() {
 
   testWidgets('LetterExportBoundary 内是 RenderRepaintBoundary', (tester) async {
     final key = GlobalKey();
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: LetterExportBoundary(
-          boundaryKey: key,
-          child: const SizedBox(width: 10, height: 10),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LetterExportBoundary(
+            boundaryKey: key,
+            child: const SizedBox(width: 10, height: 10),
+          ),
         ),
       ),
-    ));
+    );
     final ro = key.currentContext!.findRenderObject();
     expect(ro, isA<RenderRepaintBoundary>());
   });

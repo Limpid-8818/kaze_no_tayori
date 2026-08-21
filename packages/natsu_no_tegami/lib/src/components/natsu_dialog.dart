@@ -21,7 +21,10 @@ Future<T?> showNatsuDialog<T>({
     barrierColor: NatsuColors.scrim,
     transitionDuration: NatsuMotion.medium,
     transitionBuilder: (context, animation, secondary, child) {
-      final curved = CurvedAnimation(parent: animation, curve: NatsuMotion.easing);
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: NatsuMotion.easing,
+      );
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
@@ -30,11 +33,8 @@ Future<T?> showNatsuDialog<T>({
         ),
       );
     },
-    pageBuilder: (context, animation, secondary) => NatsuDialog(
-      title: title,
-      body: body,
-      actions: actions,
-    ),
+    pageBuilder: (context, animation, secondary) =>
+        NatsuDialog(title: title, body: body, actions: actions),
   );
 }
 
@@ -59,56 +59,57 @@ class NatsuDialog extends StatelessWidget {
         // 窄屏边距：对话框不顶到屏幕边
         padding: const EdgeInsets.symmetric(horizontal: NatsuSpacing.lg),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-              maxWidth: NatsuSpacing.dialogMaxW),
+          constraints: const BoxConstraints(maxWidth: NatsuSpacing.dialogMaxW),
           child: DefaultTextStyle(
             // 纯 widgets 路由无 Material 祖先：环境默认样式是 debug 回退
             // （红字黄双下划线）。Text 的显式样式会与环境 merge——null 的
             // decoration 字段被回退样式填充。在这里切断，给浮层干净默认。
             style: NatsuTypography.body,
             child: Container(
-            padding: const EdgeInsets.all(NatsuSpacing.lg),
-            decoration: BoxDecoration(
-              color: NatsuColors.paperWhite,
-              borderRadius: BorderRadius.circular(NatsuRadius.card),
-              border: NatsuBorders.hairline,
-              boxShadow: NatsuShadows.paperHover,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DefaultTextStyle(
-                  style: NatsuTypography.heading.copyWith(
-                      color: NatsuColors.inkBlue),
-                  child: title,
-                ),
-                if (body != null) ...[
-                  const SizedBox(height: NatsuSpacing.md),
+              padding: const EdgeInsets.all(NatsuSpacing.lg),
+              decoration: BoxDecoration(
+                color: NatsuColors.paperWhite,
+                borderRadius: BorderRadius.circular(NatsuRadius.card),
+                border: NatsuBorders.hairline,
+                boxShadow: NatsuShadows.paperHover,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   DefaultTextStyle(
-                    style: NatsuTypography.bodySecondary
-                        .copyWith(color: NatsuColors.inkSoft),
-                    child: body!,
-                  ),
-                ],
-                if (actions.isNotEmpty) ...[
-                  const SizedBox(height: NatsuSpacing.lg),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final (i, action) in actions.indexed) ...[
-                          if (i > 0) const SizedBox(width: NatsuSpacing.sm),
-                          action,
-                        ],
-                      ],
+                    style: NatsuTypography.heading.copyWith(
+                      color: NatsuColors.inkBlue,
                     ),
+                    child: title,
                   ),
+                  if (body != null) ...[
+                    const SizedBox(height: NatsuSpacing.md),
+                    DefaultTextStyle(
+                      style: NatsuTypography.bodySecondary.copyWith(
+                        color: NatsuColors.inkSoft,
+                      ),
+                      child: body!,
+                    ),
+                  ],
+                  if (actions.isNotEmpty) ...[
+                    const SizedBox(height: NatsuSpacing.lg),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final (i, action) in actions.indexed) ...[
+                            if (i > 0) const SizedBox(width: NatsuSpacing.sm),
+                            action,
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
           ),
         ),
       ),

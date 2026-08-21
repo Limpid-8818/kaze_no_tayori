@@ -16,10 +16,8 @@ void showNatsuToast(BuildContext context, String message) {
   final overlay = Overlay.of(context, rootOverlay: true);
   late final OverlayEntry entry;
   entry = OverlayEntry(
-    builder: (context) => _ToastHost(
-      message: message,
-      onDismissed: () => entry.remove(),
-    ),
+    builder: (context) =>
+        _ToastHost(message: message, onDismissed: () => entry.remove()),
   );
   overlay.insert(entry);
 }
@@ -69,13 +67,14 @@ class _ToastHostState extends State<_ToastHost>
       bottom: bottomInset + NatsuSpacing.lg,
       child: Center(
         child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(maxWidth: NatsuSpacing.toastMaxW),
+          constraints: const BoxConstraints(maxWidth: NatsuSpacing.toastMaxW),
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final curved =
-                  CurvedAnimation(parent: _controller, curve: NatsuMotion.easing);
+              final curved = CurvedAnimation(
+                parent: _controller,
+                curve: NatsuMotion.easing,
+              );
               return Transform.translate(
                 offset: Offset(0, 8 * (1 - curved.value)),
                 child: Opacity(opacity: curved.value, child: child),
@@ -103,16 +102,15 @@ class NatsuToast extends StatelessWidget {
       style: NatsuTypography.button.copyWith(color: NatsuColors.onInk),
       child: Container(
         padding: const EdgeInsets.symmetric(
-            vertical: NatsuSpacing.sm + 2, horizontal: NatsuSpacing.md),
+          vertical: NatsuSpacing.sm + 2,
+          horizontal: NatsuSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: NatsuColors.inkBlue,
           borderRadius: BorderRadius.circular(NatsuRadius.card),
         ),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-        ),
-        ),
-      );
+        child: Text(message, textAlign: TextAlign.center),
+      ),
+    );
   }
 }

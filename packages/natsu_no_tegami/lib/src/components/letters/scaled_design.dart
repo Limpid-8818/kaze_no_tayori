@@ -21,9 +21,9 @@ class ScaledDesign extends StatelessWidget {
     required this.baseHeight,
     required this.width,
     required this.child,
-  })  : assert(width > 0),
-        assert(baseWidth > 0),
-        assert(baseHeight > 0);
+  }) : assert(width > 0),
+       assert(baseWidth > 0),
+       assert(baseHeight > 0);
 
   /// 基准设计宽（viewBox 宽）——child 全部按它布局
   final double baseWidth;
@@ -51,11 +51,7 @@ class ScaledDesign extends StatelessWidget {
         child: Transform.scale(
           scale: width / baseWidth,
           alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: baseWidth,
-            height: baseHeight,
-            child: child,
-          ),
+          child: SizedBox(width: baseWidth, height: baseHeight, child: child),
         ),
       ),
     );

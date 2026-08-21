@@ -42,8 +42,7 @@ class NatsuInput extends StatefulWidget {
 
 class _NatsuInputState extends State<NatsuInput> {
   late final TextEditingController _ownController;
-  TextEditingController get _controller =>
-      widget.controller ?? _ownController;
+  TextEditingController get _controller => widget.controller ?? _ownController;
 
   @override
   void initState() {
@@ -63,74 +62,78 @@ class _NatsuInputState extends State<NatsuInput> {
     return Focus(
       canRequestFocus: widget.enabled,
       onFocusChange: (_) => setState(() {}),
-      child: Builder(builder: (context) {
-        final focused = Focus.of(context).hasFocus;
-        final lineColor = !widget.enabled
-            ? NatsuColors.paperEdge
-            : widget.showError
-                ? NatsuColors.error
-                : focused
-                    ? NatsuColors.focusRing
-                    : NatsuBorders.inputSide.color;
+      child: Builder(
+        builder: (context) {
+          final focused = Focus.of(context).hasFocus;
+          final lineColor = !widget.enabled
+              ? NatsuColors.paperEdge
+              : widget.showError
+              ? NatsuColors.error
+              : focused
+              ? NatsuColors.focusRing
+              : NatsuBorders.inputSide.color;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: NatsuMotion.medium,
-              curve: NatsuMotion.easing,
-              constraints:
-                  const BoxConstraints(minHeight: NatsuSpacing.inputHeight),
-              padding: const EdgeInsets.symmetric(
-                horizontal: NatsuSpacing.md,
-                vertical: NatsuSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color:
-                    widget.enabled ? NatsuColors.paperWhite : NatsuColors.envelope,
-                borderRadius: BorderRadius.circular(NatsuRadius.card),
-                border: Border.all(
-                  color: lineColor,
-                  width: focused ? 1.5 : 1,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: NatsuMotion.medium,
+                curve: NatsuMotion.easing,
+                constraints: const BoxConstraints(
+                  minHeight: NatsuSpacing.inputHeight,
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      enabled: widget.enabled,
-                      maxLines: widget.maxLines,
-                      minLines: widget.maxLines == 1 ? 1 : null,
-                      maxLengthEnforcement: MaxLengthEnforcement.none,
-                      style: NatsuTypography.body,
-                      onChanged: widget.onChanged,
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        hintText: widget.hint,
-                        hintStyle: NatsuTypography.body.copyWith(
-                          color: NatsuColors.inkFaint,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NatsuSpacing.md,
+                  vertical: NatsuSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.enabled
+                      ? NatsuColors.paperWhite
+                      : NatsuColors.envelope,
+                  borderRadius: BorderRadius.circular(NatsuRadius.card),
+                  border: Border.all(
+                    color: lineColor,
+                    width: focused ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        enabled: widget.enabled,
+                        maxLines: widget.maxLines,
+                        minLines: widget.maxLines == 1 ? 1 : null,
+                        maxLengthEnforcement: MaxLengthEnforcement.none,
+                        style: NatsuTypography.body,
+                        onChanged: widget.onChanged,
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          border: InputBorder.none,
+                          hintText: widget.hint,
+                          hintStyle: NatsuTypography.body.copyWith(
+                            color: NatsuColors.inkFaint,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            if (widget.maxLength != null) ...[
-              const SizedBox(height: NatsuSpacing.xs),
-              Text(
-                '${_controller.text.characters.length} / ${widget.maxLength}',
-                style: NatsuTypography.caption.copyWith(
-                  color: widget.showError ? NatsuColors.error : null,
+                  ],
                 ),
               ),
+              if (widget.maxLength != null) ...[
+                const SizedBox(height: NatsuSpacing.xs),
+                Text(
+                  '${_controller.text.characters.length} / ${widget.maxLength}',
+                  style: NatsuTypography.caption.copyWith(
+                    color: widget.showError ? NatsuColors.error : null,
+                  ),
+                ),
+              ],
             ],
-          ],
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 }

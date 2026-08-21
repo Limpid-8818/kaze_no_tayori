@@ -82,13 +82,13 @@ class Postmark extends StatelessWidget {
   /// 地名弧排的弧幅（度，纯函数，测试锁定）：字距积分，上限 200°
   /// （越过环心水平线太远会撞日期区）
   static double arcSpanDeg(int charCount) => math.min(
-        200.0,
-        arcPlaceStep(arcPlaceFontSize(charCount)) *
-            charCount /
-            _placeRadius *
-            180 /
-            math.pi,
-      );
+    200.0,
+    arcPlaceStep(arcPlaceFontSize(charCount)) *
+        charCount /
+        _placeRadius *
+        180 /
+        math.pi,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -147,20 +147,20 @@ class Postmark extends StatelessWidget {
   /// 环内一行 — 压在 72px 弦宽预算里，FittedBox scaleDown 兜底：
   /// 超长文本缩进而非穿环
   Widget _chordLine(String text, {double letterSpacing = 0}) => SizedBox(
-        width: 72,
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            text,
-            maxLines: 1,
-            style: NatsuTypography.caption.copyWith(
-              color: _ink,
-              fontSize: 10,
-              letterSpacing: letterSpacing,
-            ),
-          ),
+    width: 72,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        text,
+        maxLines: 1,
+        style: NatsuTypography.caption.copyWith(
+          color: _ink,
+          fontSize: 10,
+          letterSpacing: letterSpacing,
         ),
-      );
+      ),
+    ),
+  );
 
   /// 地名弧排 — 拆字沿内上弧摆放，从 12 点钟向两侧展开
   Widget _arcPlace() {
@@ -169,7 +169,10 @@ class Postmark extends StatelessWidget {
     // 相邻字弧距 = 字号 × 1.15（紧凑——短地名不再分居两侧）；弧幅
     // 随字数积分，封顶 200°（[arcSpanDeg]）
     final stepDeg = arcPlaceStep(fontSize) / _placeRadius * 180 / math.pi;
-    final spanDeg = math.min(arcSpanDeg(chars.length), stepDeg * (chars.length - 1));
+    final spanDeg = math.min(
+      arcSpanDeg(chars.length),
+      stepDeg * (chars.length - 1),
+    );
     final span = spanDeg * math.pi / 180;
     final step = chars.length > 1 ? span / (chars.length - 1) : 0.0;
     // 每字角度：从 (90° + span/2) 到 (90° − span/2)——12 点钟向两侧对称展开
@@ -218,11 +221,7 @@ class Postmark extends StatelessWidget {
   /// 落地戳 — 变宽素材（一行文字），参数化缩放（几个值 × size/88）
   Widget _horizontal() {
     final k = size / baseSize;
-    final items = [
-      place,
-      date,
-      ?weather,
-    ];
+    final items = [place, date, ?weather];
     return Container(
       padding: EdgeInsets.symmetric(vertical: 5 * k, horizontal: 2 * k),
       decoration: BoxDecoration(

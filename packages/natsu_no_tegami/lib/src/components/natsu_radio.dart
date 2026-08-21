@@ -58,7 +58,9 @@ class _NatsuRadioState<T> extends State<NatsuRadio<T>> {
         onTapDown: active ? (_) => setState(() => _pressed = true) : null,
         onTapCancel: active ? () => setState(() => _pressed = false) : null,
         onTapUp: active ? (_) => setState(() => _pressed = false) : null,
-        onTap: active && !selected ? () => widget.onChanged!(widget.value) : null,
+        onTap: active && !selected
+            ? () => widget.onChanged!(widget.value)
+            : null,
         child: SizedBox(
           width: NatsuSpacing.controlHitTarget,
           height: NatsuSpacing.controlHitTarget,
@@ -75,8 +77,8 @@ class _NatsuRadioState<T> extends State<NatsuRadio<T>> {
                   color: !active
                       ? NatsuColors.paperEdge
                       : selected
-                          ? NatsuColors.skyBlue
-                          : NatsuBorders.inputSide.color,
+                      ? NatsuColors.skyBlue
+                      : NatsuBorders.inputSide.color,
                   width: selected ? 1.5 : 1,
                 ),
               ),

@@ -13,19 +13,13 @@ Future<T?> showNatsuSheet<T>({
   Widget? title,
   bool barrierDismissible = true,
 }) {
-  return Navigator.of(context).push<T>(_SheetRoute<T>(
-    child: child,
-    title: title,
-    dismissible: barrierDismissible,
-  ));
+  return Navigator.of(context).push<T>(
+    _SheetRoute<T>(child: child, title: title, dismissible: barrierDismissible),
+  );
 }
 
 class _SheetRoute<T> extends PopupRoute<T> {
-  _SheetRoute({
-    required this.child,
-    this.title,
-    this.dismissible = true,
-  });
+  _SheetRoute({required this.child, this.title, this.dismissible = true});
 
   final Widget child;
   final Widget? title;
@@ -47,15 +41,25 @@ class _SheetRoute<T> extends PopupRoute<T> {
   Duration get reverseTransitionDuration => NatsuMotion.medium;
 
   @override
-  Widget buildPage(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation) {
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
     return NatsuBottomSheet(title: title, child: child);
   }
 
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation, Widget child) {
-    final curved = CurvedAnimation(parent: animation, curve: NatsuMotion.easing);
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: NatsuMotion.easing,
+    );
     return SlideTransition(
       position: Tween<Offset>(
         begin: const Offset(0, 1),
@@ -79,64 +83,70 @@ class NatsuBottomSheet extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: ConstrainedBox(
-        constraints:
-            const BoxConstraints(maxWidth: NatsuSpacing.sheetMaxW),
+        constraints: const BoxConstraints(maxWidth: NatsuSpacing.sheetMaxW),
         child: DefaultTextStyle(
           // 纯 widgets 路由无 Material 祖先：切断 debug 回退样式（红字黄
           // 双下划线）经 merge 泄漏进 Text 的 decoration 字段。
           style: NatsuTypography.body,
           child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: NatsuColors.paperWhite,
-            borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(NatsuRadius.card)),
-            border: Border.all(color: NatsuColors.paperEdge, width: 1),
-            boxShadow: NatsuShadows.paperResting,
-          ),
-          child: Padding(
-            padding: EdgeInsets.only(bottom: bottomInset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: NatsuSpacing.sm),
-                // 拖拽把手 — 36×4 纸缘药丸
-                Center(
-                  child: Container(
-                    width: NatsuSpacing.handleW,
-                    height: NatsuSpacing.handleH,
-                    decoration: BoxDecoration(
-                      color: NatsuColors.paperEdge,
-                      borderRadius: BorderRadius.circular(
-                          NatsuSpacing.handleH / 2),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: NatsuColors.paperWhite,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(NatsuRadius.card),
+              ),
+              border: Border.all(color: NatsuColors.paperEdge, width: 1),
+              boxShadow: NatsuShadows.paperResting,
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: NatsuSpacing.sm),
+                  // 拖拽把手 — 36×4 纸缘药丸
+                  Center(
+                    child: Container(
+                      width: NatsuSpacing.handleW,
+                      height: NatsuSpacing.handleH,
+                      decoration: BoxDecoration(
+                        color: NatsuColors.paperEdge,
+                        borderRadius: BorderRadius.circular(
+                          NatsuSpacing.handleH / 2,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                if (title != null) ...[
+                  if (title != null) ...[
+                    const SizedBox(height: NatsuSpacing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: NatsuSpacing.lg,
+                      ),
+                      child: DefaultTextStyle(
+                        style: NatsuTypography.heading.copyWith(
+                          color: NatsuColors.inkBlue,
+                          fontSize: 22,
+                          height: 1.3,
+                        ),
+                        child: title!,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: NatsuSpacing.md),
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: NatsuSpacing.lg),
-                    child: DefaultTextStyle(
-                      style: NatsuTypography.heading.copyWith(
-                          color: NatsuColors.inkBlue, fontSize: 22, height: 1.3),
-                      child: title!,
+                      horizontal: NatsuSpacing.lg,
                     ),
+                    child: child,
                   ),
+                  const SizedBox(height: NatsuSpacing.lg),
                 ],
-                const SizedBox(height: NatsuSpacing.md),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: NatsuSpacing.lg),
-                  child: child,
-                ),
-                const SizedBox(height: NatsuSpacing.lg),
-              ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }

@@ -45,11 +45,7 @@ class LetterPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      ?place,
-      ?time,
-      ?weather,
-    ];
+    final meta = [?place, ?time, ?weather];
 
     return Container(
       width: width,

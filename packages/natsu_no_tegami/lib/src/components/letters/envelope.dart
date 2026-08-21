@@ -116,7 +116,9 @@ class Envelope extends StatelessWidget {
                 top: 44,
                 child: StampPiece(
                   seedId: '$seedId/stamp',
-                  motive: skin.stampId == null ? null : SkinMotive(skin.stampId!),
+                  motive: skin.stampId == null
+                      ? null
+                      : SkinMotive(skin.stampId!),
                   width: _stampWidth,
                 ),
               ),
@@ -140,19 +142,13 @@ class Envelope extends StatelessWidget {
                 Positioned(
                   right: 44,
                   bottom: 70,
-                  child: VerticalHandwriting(
-                    text: addressee!,
-                    maxHeight: 190,
-                  ),
+                  child: VerticalHandwriting(text: addressee!, maxHeight: 190),
                 ),
               // 刻印封缄：右下摺垂れ位置
               Positioned(
                 right: 24,
                 bottom: 22,
-                child: NatsuSeal(
-                  character: sealCharacter,
-                  size: _sealSize,
-                ),
+                child: NatsuSeal(character: sealCharacter, size: _sealSize),
               ),
             ],
           ),
