@@ -89,22 +89,31 @@
         "additionalProperties": false,
         "description": "写信（PRD 6.1）。",
         "properties": {
-          "content": {
-            "maxLength": 800,
-            "minLength": 1,
-            "title": "Content",
-            "type": "string"
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
           },
           "delivery_mode": {
             "$ref": "#/components/schemas/DeliveryMode"
-          },
-          "images": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 3,
-            "title": "Images",
-            "type": "array"
           },
           "lat": {
             "anyOf": [
@@ -173,11 +182,21 @@
             "title": "Tags",
             "type": "array"
           },
-          "theme": {
+          "theme_id": {
             "default": "natsu",
             "maxLength": 32,
-            "title": "Theme",
+            "title": "Theme Id",
             "type": "string"
+          },
+          "theme_skin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LetterSkin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "weather": {
             "anyOf": [
@@ -191,7 +210,7 @@
           }
         },
         "required": [
-          "content",
+          "blocks",
           "delivery_mode"
         ],
         "title": "LetterCreate",
@@ -200,15 +219,33 @@
       "LetterOwned": {
         "description": "本人视角，仅 /v1/me/* 路径返回。\n\n比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——\n自己不需要看自己的 id。",
         "properties": {
-          "content": {
-            "title": "Content",
-            "type": "string"
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
           },
           "counts": {
             "$ref": "#/components/schemas/LetterCounts"
           },
           "created_at": {
-            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -216,16 +253,8 @@
             "$ref": "#/components/schemas/DeliveryMode"
           },
           "id": {
-            "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "images": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Images",
-            "type": "array"
           },
           "lat": {
             "anyOf": [
@@ -262,7 +291,6 @@
           "parent_letter_id": {
             "anyOf": [
               {
-                "format": "uuid",
                 "type": "string"
               },
               {
@@ -303,9 +331,19 @@
             "title": "Tags",
             "type": "array"
           },
-          "theme": {
-            "title": "Theme",
+          "theme_id": {
+            "title": "Theme Id",
             "type": "string"
+          },
+          "theme_skin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LetterSkin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "weather": {
             "anyOf": [
@@ -319,9 +357,9 @@
           }
         },
         "required": [
+          "blocks",
           "id",
-          "content",
-          "theme",
+          "theme_id",
           "delivery_mode",
           "counts",
           "created_at",
@@ -333,15 +371,33 @@
       "LetterPublic": {
         "description": "对外信件响应——**唯一允许返回给读者的信件形状**。\n\n刻意缺席的字段：\n- owner_user_id / 任何作者标识（匿名铁律）\n- lat / lon 精确坐标（只给 place_label，避免反查作者活动位置，PRD §8.1）\n- status（读者只会看到 public 的信）",
         "properties": {
-          "content": {
-            "title": "Content",
-            "type": "string"
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
           },
           "counts": {
             "$ref": "#/components/schemas/LetterCounts"
           },
           "created_at": {
-            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -349,16 +405,8 @@
             "$ref": "#/components/schemas/DeliveryMode"
           },
           "id": {
-            "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "images": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Images",
-            "type": "array"
           },
           "music_ref": {
             "anyOf": [
@@ -373,7 +421,6 @@
           "parent_letter_id": {
             "anyOf": [
               {
-                "format": "uuid",
                 "type": "string"
               },
               {
@@ -411,9 +458,19 @@
             "title": "Tags",
             "type": "array"
           },
-          "theme": {
-            "title": "Theme",
+          "theme_id": {
+            "title": "Theme Id",
             "type": "string"
+          },
+          "theme_skin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LetterSkin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "weather": {
             "anyOf": [
@@ -427,14 +484,65 @@
           }
         },
         "required": [
+          "blocks",
           "id",
-          "content",
-          "theme",
+          "theme_id",
           "delivery_mode",
           "counts",
           "created_at"
         ],
         "title": "LetterPublic",
+        "type": "object"
+      },
+      "LetterSkin": {
+        "description": "信件皮肤搭配——各槽只存资产 ID 字符串。\n\n空槽 = 不携带该层皮肤，渲染层用默认值。**全空 = 全默认**（不携带皮肤的信）。\n一旦写入永久绑定，不做季节归档/自动迁移（CLAUDE.md 红线 6）。",
+        "properties": {
+          "decor": {
+            "description": "装饰资产 ID 列表（可多枚）",
+            "items": {
+              "type": "string"
+            },
+            "title": "Decor",
+            "type": "array"
+          },
+          "postcard": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "明信片底图资产 ID",
+            "title": "Postcard"
+          },
+          "postmarkEmblem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "邮戳中心图案资产 ID",
+            "title": "Postmarkemblem"
+          },
+          "stamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "邮票资产 ID",
+            "title": "Stamp"
+          }
+        },
+        "title": "LetterSkin",
         "type": "object"
       },
       "LetterStatus": {
@@ -449,7 +557,7 @@
         "type": "string"
       },
       "MusicRef": {
-        "description": "引用式音乐（PRD 6.7）：只有三个字符串。\n\n不生成音频、不上传音频、不贴外部链接——**不许新增 url / audio 字段**。",
+        "description": "引用式音乐：只有三个字符串。\n\n不生成音频、不上传音频、不贴外部链接——**不许新增 url / audio 字段**。",
         "properties": {
           "album": {
             "maxLength": 128,
@@ -618,6 +726,48 @@
         "title": "Page[NotificationPublic]",
         "type": "object"
       },
+      "PhotoBlock": {
+        "description": "一张照片（带可选 mood 与手记）。",
+        "properties": {
+          "mood": {
+            "default": "none",
+            "description": "拍摄瞬间 mood：none|overexposed|backlit|motion",
+            "title": "Mood",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "照片手记（hwNote）",
+            "title": "Note"
+          },
+          "ref": {
+            "description": "图片引用（URL 或资产标识）",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Ref",
+            "type": "string"
+          },
+          "type": {
+            "const": "photo",
+            "default": "photo",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "title": "PhotoBlock",
+        "type": "object"
+      },
       "PoemResponse": {
         "properties": {
           "poem": {
@@ -765,6 +915,28 @@
           "color"
         ],
         "title": "TagPublic",
+        "type": "object"
+      },
+      "TextBlock": {
+        "description": "一段手写正文。",
+        "properties": {
+          "text": {
+            "maxLength": 800,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "type": {
+            "const": "text",
+            "default": "text",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TextBlock",
         "type": "object"
       },
       "ThemePublic": {
@@ -953,7 +1125,7 @@
     },
     "/health/db": {
       "get": {
-        "description": "连库 + 确认 PostGIS 可用。",
+        "description": "连库 + 确认 PostGIS 可用。\n\n连不上时返回 503（附排查指引），而不是 500——「云库还没配好」是本项目当前的\n预期状态，不是服务端 bug。",
         "operationId": "health_db_health_db_get",
         "responses": {
           "200": {
