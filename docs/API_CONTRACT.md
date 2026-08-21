@@ -277,5 +277,6 @@ P0 只做拉取，不做推送。
 | 2 | `LetterPublic` 不返回精确坐标，只返回 `place_label` | PRD §8.1「位置可控/可模糊到城市级」。精确坐标外泄可反查作者活动位置，与匿名精神冲突。`LetterOwned` 里本人可见。 |
 | 3 | 新增 `POST /v1/letters/{id}/report` | PRD 8.2 要求举报入口，但 §9 未列实体。按最小实现落一张 `reports` 表。 |
 | 4 | 导出图片无后端接口 | PRD 6.11 的渲染在 Flutter 端用 `RepaintBoundary` 完成，无需服务端。 |
-| 5 | `music_ref`/`weather`/`images`/`tags` 用 jsonb 而非独立表 | 均为值对象、无需独立查询，jsonb 在 10 天赛期内更省事。若 P1 需要按标签聚合再抽表。 |
+| 5 | `music_ref`/`weather`/`tags`/`theme_skin` 用 jsonb 而非独立表 | 均为值对象、无需独立查询，jsonb 在 10 天赛期内更省事。若 P1 需要按标签聚合再抽表。 |
 | 6 | `content` + `images` 合并为 `blocks` 图文交替流 | 上游设计系统采用 sealed class `LetterBlock`（TextBlock / PhotoBlock）替代 flat 字段，前端渲染与数据模型一致。 |
+| 7 | `theme` 拆分为 `theme_id` + `theme_skin` | 基础主题 ID 指向 themes 表，皮肤搭配（stamp/postmarkEmblem/decor/postcard）是 jsonb 槽位搭配。空槽 = 默认，全空 = 不携带皮肤。 |
