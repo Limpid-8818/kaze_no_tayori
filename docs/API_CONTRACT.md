@@ -28,9 +28,8 @@
 | 列 | 类型 | 说明 |
 |---|---|---|
 | id | UUID PK | |
-| content | text NOT NULL | CHECK `char_length <= 800` |
+| blocks | jsonb NOT NULL DEFAULT `'[]'` | 图文交替流数组，见下 |
 | poem | text NULL | AI 短诗，≤4 行 |
-| images | jsonb NOT NULL DEFAULT `'[]'` | url 数组，应用层限 0–3 |
 | theme | varchar(32) NOT NULL DEFAULT `'natsu'` | **永久绑定，禁止批量 UPDATE** |
 | music_ref | jsonb NULL | `{album, song, lyrics}`，**不许加 url** |
 | location | geography(POINT,4326) NULL | stay 必填，drift 可空 |
@@ -44,6 +43,15 @@
 | expire_at | timestamptz NULL | **恒 NULL**，预留不启用 |
 | read_count / resonance_count / voice_count / reply_count / saved_count | int NOT NULL DEFAULT 0 | 叙事计数 |
 | created_at | timestamptz NOT NULL | |
+
+**blocks 结构**（jsonb 数组，每项带 `type` 区分）：
+```
+{"type": "text",  "text": "一段手写正文"}        # TextBlock
+{"type": "photo", "ref": "https://…",             # PhotoBlock
+ "mood": "overexposed",          # none|overexposed|backlit|motion
+ "note": "正午的海"}             # 可选手记
+```
+约束：最少 1 块，最多 20 块，其中照片 ≤ 3 张。应用层校验，不建 DB CHECK。
 
 ### letter_reads
 | 列 | 类型 |
@@ -90,9 +98,11 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ```json
 {
   "id": "uuid",
-  "content": "……",
+  "blocks": [
+    {"type": "text", "text": "……"},
+    {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
+  ],
   "poem": "……",
-  "images": ["https://…"],
   "theme": "natsu",
   "music_ref": {"album": "二人称", "song": "早朝、郵便受け", "lyrics": "……"},
   "place_label": "Tokyo",
@@ -138,9 +148,11 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 创建 body：
 ```json
 {
-  "content": "≤800 字",
+  "blocks": [
+    {"type": "text", "text": "海的彼岸……"},
+    {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
+  ],
   "poem": null,
-  "images": ["url1"],
   "theme": "natsu",
   "music_ref": {"album": "…", "song": "…", "lyrics": "…"},
   "tags": ["旅途"],
@@ -150,7 +162,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
   "weather": {"text": "小雨", "temp_c": 19.0}
 }
 ```
-`delivery_mode` **必填**（PRD 6.1：必选留/投）。`stay` 时 `lat`/`lon` 必填。
+`delivery_mode` **必填**（PRD 6.1：必选留/投）。`stay` 时 `lat`/`lon` 必填。照片 ≤3 张，最少 1 块正文。
 
 ### AI 辅助（PRD 6.2，可关）
 | 方法 | 路径 | 说明 |
@@ -251,3 +263,4 @@ P0 只做拉取，不做推送。
 | 3 | 新增 `POST /v1/letters/{id}/report` | PRD 8.2 要求举报入口，但 §9 未列实体。按最小实现落一张 `reports` 表。 |
 | 4 | 导出图片无后端接口 | PRD 6.11 的渲染在 Flutter 端用 `RepaintBoundary` 完成，无需服务端。 |
 | 5 | `music_ref`/`weather`/`images`/`tags` 用 jsonb 而非独立表 | 均为值对象、无需独立查询，jsonb 在 10 天赛期内更省事。若 P1 需要按标签聚合再抽表。 |
+| 6 | `content` + `images` 合并为 `blocks` 图文交替流 | 上游设计系统采用 sealed class `LetterBlock`（TextBlock / PhotoBlock）替代 flat 字段，前端渲染与数据模型一致。 |

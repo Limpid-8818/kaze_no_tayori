@@ -25,7 +25,14 @@ class Notification(Base, UUIDPrimaryKey, TimestampCreated):
         PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     type: Mapped[NotificationType] = mapped_column(
-        SAEnum(NotificationType, name="notification_type", native_enum=True), nullable=False
+        # values_callable：PG 枚举值取 StrEnum 的 value（小写），与 Pydantic 序列化一致
+        SAEnum(
+            NotificationType,
+            name="notification_type",
+            native_enum=True,
+            values_callable=lambda cls: [e.value for e in cls],
+        ),
+        nullable=False,
     )
     # 那封回信
     letter_id: Mapped[UUID] = mapped_column(

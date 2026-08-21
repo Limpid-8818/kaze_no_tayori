@@ -1,6 +1,7 @@
 """漂流信（系统第一公民）。
 
 红线提醒（见根 CLAUDE.md §2）：
+- `blocks` 图文交替流：正文段与照片块的有序流，禁止回到 flat content+images
 - `theme` 永久绑定单信，禁止批量 UPDATE
 - `music_ref` 只有 {album, song, lyrics}，不许加 url / audio 字段
 - `expire_at` 恒为 NULL，不实现过期清理
@@ -36,12 +37,15 @@ from app.models.enums import DeliveryMode, LetterStatus
 class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     __tablename__ = "letters"
 
-    # ---------- 内容 ----------
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    poem: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI 短诗，≤4 行
-    images: Mapped[list[str]] = mapped_column(
+    # ---------- 内容（图文交替流）----------
+    # blocks = [{"type":"text","text":"…"}, {"type":"photo","ref":"url",
+    #   "mood":"overexposed","note":"…"}]
+    # 空流校验在 service 层；照片上限 3 也在 service 层做叙事化校验
+    blocks: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
     )
+    # AI 短诗，≤4 行
+    poem: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 主题皮肤：一旦写入永久绑定该信，不因平台推出新主题而迁移
     theme: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'natsu'"))
     # 引用式音乐：{album, song, lyrics}。不生成、不上传、不外链
@@ -59,11 +63,24 @@ class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     weather: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # ---------- 投放与状态 ----------
+    # values_callable：PG 枚举值取 StrEnum 的 value（小写），与 server_default、
+    # Pydantic 序列化、裸 SQL 查询的直觉一致。不传则默认用成员名（大写）。
     delivery_mode: Mapped[DeliveryMode] = mapped_column(
-        SAEnum(DeliveryMode, name="delivery_mode", native_enum=True), nullable=False
+        SAEnum(
+            DeliveryMode,
+            name="delivery_mode",
+            native_enum=True,
+            values_callable=lambda cls: [e.value for e in cls],
+        ),
+        nullable=False,
     )
     status: Mapped[LetterStatus] = mapped_column(
-        SAEnum(LetterStatus, name="letter_status", native_enum=True),
+        SAEnum(
+            LetterStatus,
+            name="letter_status",
+            native_enum=True,
+            values_callable=lambda e: [i.value for i in e],
+        ),
         nullable=False,
         server_default=text("'pending'"),
     )
@@ -89,8 +106,8 @@ class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     saved_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
     __table_args__ = (
-        CheckConstraint("char_length(content) <= 800", name="content_max_len"),
-        CheckConstraint("jsonb_array_length(images) <= 3", name="images_max_3"),
+        # blocks 非空在服务层校验（需要叙事化错误信息），此处只保底
+        CheckConstraint("jsonb_typeof(blocks) = 'array'", name="blocks_is_array"),
         # 漂流池筛选
         Index("ix_letters_pool", "status", "delivery_mode"),
         # 回信溯源

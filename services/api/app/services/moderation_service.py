@@ -11,7 +11,12 @@ from app.models.enums import LetterStatus
 BLOCKLIST: tuple[str, ...] = ()
 
 
-async def moderate(content: str) -> LetterStatus:
+def _text_from_blocks(blocks: list[dict]) -> str:
+    """从图文交替流中提取纯正文（只拼 text 块）。"""
+    return " ".join(b["text"] for b in blocks if b.get("type") == "text")
+
+
+async def moderate(blocks: list[dict]) -> LetterStatus:
     """返回信件应落入的状态。
 
     契约：
@@ -24,4 +29,5 @@ async def moderate(content: str) -> LetterStatus:
     settings = get_settings()
     if not settings.feature_moderation:
         return LetterStatus.PENDING
+    _text_from_blocks(blocks)  # 实现时使用
     raise NotImplementedError
