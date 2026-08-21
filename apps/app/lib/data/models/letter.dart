@@ -1,7 +1,7 @@
 /// 信件模型。字段名与后端 Pydantic schema **严格同名**（见 docs/API_CONTRACT.md）。
 ///
 /// 匿名铁律在客户端的体现：[LetterPublic] 没有作者字段，也没有精确坐标——
-/// 服务端不给，客户端就没有渲染它的可能。**不要为了「方便」加回来。**
+/// 服务端不给，客户端就没有渲染它的可能。**不要为了「方便」加回来。
 ///
 /// 用 json_serializable 而非 freezed：见 pubspec.yaml 里的版本冲突说明。
 /// 不可变性靠 final 字段自律。
@@ -11,13 +11,13 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'letter.g.dart';
 
+// ---------- 投递与状态 ----------
+
 /// 投递方式。两者都是一等公民。
 enum DeliveryMode {
-  /// 留在这里：锚定位置，后来者就地发掘
   @JsonValue('stay')
   stay,
 
-  /// 投递出去：入随机漂流池
   @JsonValue('drift')
   drift,
 }
@@ -33,6 +33,71 @@ enum LetterStatus {
   @JsonValue('taken_down')
   takenDown,
 }
+
+// ---------- 图文交替流（PRD 6.1 · blocks）----------
+
+/// 照片 mood——按下快门的那一瞬间。
+enum PhotoMood {
+  @JsonValue('none')
+  none,
+  @JsonValue('overexposed')
+  overexposed,
+  @JsonValue('backlit')
+  backlit,
+  @JsonValue('motion')
+  motion,
+}
+
+/// 单块——正文段或照片块。
+@JsonSerializable()
+class LetterBlock {
+  const LetterBlock({
+    required this.type,
+    this.text,
+    this.ref,
+    this.mood,
+    this.note,
+  });
+
+  factory LetterBlock.fromJson(Map<String, dynamic> json) =>
+      _$LetterBlockFromJson(json);
+
+  final String type; // 'text' | 'photo'
+  final String? text;
+  final String? ref;
+  final PhotoMood? mood;
+  final String? note;
+
+  Map<String, dynamic> toJson() => _$LetterBlockToJson(this);
+}
+
+// ---------- 皮肤搭配（PRD 6.9 · theme_skin）----------
+
+/// 信件皮肤搭配——各槽只存资产 ID 字符串。
+///
+/// 空槽 = 不携带该层皮肤，渲染层用默认值。**全空 = 全默认**（不携带皮肤的信）。
+@JsonSerializable()
+class LetterSkin {
+  const LetterSkin({
+    this.stamp,
+    this.postmarkEmblem,
+    this.decor = const [],
+    this.postcard,
+  });
+
+  factory LetterSkin.fromJson(Map<String, dynamic> json) =>
+      _$LetterSkinFromJson(json);
+
+  final String? stamp;
+  @JsonKey(name: 'postmarkEmblem')
+  final String? postmarkEmblem;
+  final List<String> decor;
+  final String? postcard;
+
+  Map<String, dynamic> toJson() => _$LetterSkinToJson(this);
+}
+
+// ---------- 引用式音乐（PRD 6.7）----------
 
 /// 引用式音乐：只有三个字符串。不生成、不上传、不外链。
 @JsonSerializable()
@@ -53,6 +118,8 @@ class MusicRef {
   Map<String, dynamic> toJson() => _$MusicRefToJson(this);
 }
 
+// ---------- 天气（PRD 6.1 · 落点天气）----------
+
 /// 落点天气，「此情此景」的锚点之一。取不到就是 null，不影响写信。
 @JsonSerializable()
 class Weather {
@@ -68,6 +135,8 @@ class Weather {
 
   Map<String, dynamic> toJson() => _$WeatherToJson(this);
 }
+
+// ---------- 叙事计数（PRD §7.4）----------
 
 /// 叙事计数。**只有这 5 个**，不是点赞数、不参与跨信排行。
 @JsonSerializable()
@@ -94,18 +163,20 @@ class LetterCounts {
   Map<String, dynamic> toJson() => _$LetterCountsToJson(this);
 }
 
+// ---------- 对外信件 ----------
+
 /// 对外信件。**没有作者字段，没有精确坐标。**
 @JsonSerializable()
 class LetterPublic {
   const LetterPublic({
     required this.id,
-    required this.content,
-    required this.theme,
+    required this.blocks,
+    required this.themeId,
     required this.deliveryMode,
     required this.counts,
     required this.createdAt,
     this.poem,
-    this.images = const [],
+    this.themeSkin,
     this.musicRef,
     this.placeLabel,
     this.weather,
@@ -117,12 +188,19 @@ class LetterPublic {
       _$LetterPublicFromJson(json);
 
   final String id;
-  final String content;
+  final List<LetterBlock> blocks;
 
   /// AI 短诗，≤4 行。可为 null（AI 关闭或用户没采纳）。
   final String? poem;
-  final List<String> images;
-  final String theme;
+
+  /// 基础主题 ID（如 "natsu"），指向 themes 表。
+  @JsonKey(name: 'theme_id')
+  final String themeId;
+
+  /// 皮肤搭配（可选，不传则全默认）。
+  @JsonKey(name: 'theme_skin')
+  final LetterSkin? themeSkin;
+
   @JsonKey(name: 'music_ref')
   final MusicRef? musicRef;
 
@@ -142,4 +220,83 @@ class LetterPublic {
   final DateTime createdAt;
 
   Map<String, dynamic> toJson() => _$LetterPublicToJson(this);
+}
+
+// ---------- 本人视角 ----------
+
+/// 本人视角，仅 /v1/me/* 路径返回。
+///
+/// 比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——
+/// 自己不需要看自己的 id。
+@JsonSerializable()
+class LetterOwned extends LetterPublic {
+  const LetterOwned({
+    required super.id,
+    required super.blocks,
+    required super.themeId,
+    required super.deliveryMode,
+    required super.counts,
+    required super.createdAt,
+    super.poem,
+    super.themeSkin,
+    super.musicRef,
+    super.placeLabel,
+    super.weather,
+    super.tags,
+    super.parentLetterId,
+    required this.status,
+    this.lat,
+    this.lon,
+  });
+
+  factory LetterOwned.fromJson(Map<String, dynamic> json) =>
+      _$LetterOwnedFromJson(json);
+
+  final LetterStatus status;
+  final double? lat;
+  final double? lon;
+
+  @override
+  Map<String, dynamic> toJson() => _$LetterOwnedToJson(this);
+}
+
+// ---------- 写信请求 ----------
+
+@JsonSerializable()
+class LetterCreateRequest {
+  const LetterCreateRequest({
+    required this.blocks,
+    this.poem,
+    required this.themeId,
+    this.themeSkin,
+    this.musicRef,
+    this.tags = const [],
+    required this.deliveryMode,
+    this.lat,
+    this.lon,
+    this.placeLabel,
+    this.weather,
+  });
+
+  factory LetterCreateRequest.fromJson(Map<String, dynamic> json) =>
+      _$LetterCreateRequestFromJson(json);
+
+  final List<LetterBlock> blocks;
+  final String? poem;
+  @JsonKey(name: 'theme_id')
+  final String themeId;
+  @JsonKey(name: 'theme_skin')
+  final LetterSkin? themeSkin;
+  @JsonKey(name: 'music_ref')
+  final MusicRef? musicRef;
+  final List<String> tags;
+  @JsonKey(name: 'delivery_mode')
+  final DeliveryMode deliveryMode;
+  final double? lat;
+  final double? lon;
+  @JsonKey(name: 'place_label')
+  final String? placeLabel;
+  final Weather? weather;
+
+  Map<String, dynamic> toJson() => _$LetterCreateRequestToJson(this);
 }

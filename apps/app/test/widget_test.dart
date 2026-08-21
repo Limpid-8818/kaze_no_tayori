@@ -9,8 +9,9 @@ void main() {
     // 这里用 toJson 的键集合做守卫：加回 owner/author 会立刻变红。
     final letter = LetterPublic(
       id: 'x',
-      content: '海的彼岸',
-      theme: 'natsu',
+      blocks: const [LetterBlock(type: 'text', text: '海的彼岸')],
+      themeId: 'natsu',
+      themeSkin: null,
       deliveryMode: DeliveryMode.drift,
       counts: const LetterCounts(),
       createdAt: DateTime.utc(2026, 8, 20),
