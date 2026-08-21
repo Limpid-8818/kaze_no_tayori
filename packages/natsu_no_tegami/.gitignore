@@ -1,0 +1,9 @@
+# Design system package — generated / test output
+design_tokens/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+*.g.dart
+*.freezed.dart
