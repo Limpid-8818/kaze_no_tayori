@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
 class SecureStore {
   SecureStore({FlutterSecureStorage? storage})
@@ -24,6 +25,16 @@ class SecureStore {
 
   Future<void> writeDeviceId(String id) =>
       _storage.write(key: _kDeviceId, value: id);
+
+  /// 读出或生成 device_id（UUIDv4，36 字符，落在后端 8–64 约束内）。
+  /// 首启后保证非空且稳定——「无强制注册」的基石。
+  Future<String> ensureDeviceId() async {
+    final existing = await _storage.read(key: _kDeviceId);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final id = const Uuid().v4();
+    await _storage.write(key: _kDeviceId, value: id);
+    return id;
+  }
 
   /// 清空本地身份。用于「删除我的数据」（PRD §8.1 可删除）。
   Future<void> clear() => _storage.deleteAll();

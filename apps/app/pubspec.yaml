@@ -28,6 +28,9 @@ dependencies:
   # device_id 与 JWT 的安全存储（PRD 6.13 设备绑定）
   flutter_secure_storage: ^11.0.0
 
+  # device_id 用 UUIDv4（纯 Dart，无平台依赖）
+  uuid: ^4.5.0
+
   # 定位：就地发掘与埋信的落点
   geolocator: ^14.0.3
   # 12.x 而非 13/14.x：14.0.0 的 Java 源码用了 API 37 独有符号（ACCESS_LOCAL_NETWORK /
@@ -53,6 +56,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+  # 测试 fakes 用它换内存 platform instance（版本随 flutter_secure_storage 锁定）
+  flutter_secure_storage_platform_interface: ^2.0.3
 
   build_runner: ^2.16.0
   json_serializable: ^6.14.1

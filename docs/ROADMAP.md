@@ -78,11 +78,11 @@
 依赖链：`F0 数据层 → F1 写信（最大）→ F2 收信 → F3 阅读器 → F4 回信/通知 → F5 我的`，F6 时机特殊，F7 是 P1。
 
 ### F0 · 数据层与认证引导（0.5 天）
-- [ ] `secure_store`：首启生成 device_id（UUIDv4）存安全存储
-- [ ] 启动引导：静默 `POST /v1/auth/device` 换 JWT（401 自动重绑一次）
-- [ ] `data/api` 按资源补 endpoint 封装（letters/drift/discover/me/ai/uploads）
-- [ ] 验证 ApiClient 对 **204 无 body 响应**的容错（postJson 现假定 JSON body）
-- [ ] 补模型：LetterOwned、NotificationPublic、ThemePublic、TagPublic（现在只有 LetterPublic 一族）
+- [x] `secure_store`：首启生成 device_id（UUIDv4）存安全存储
+- [x] 启动引导：静默 `POST /v1/auth/device` 换 JWT（401 自动重绑一次）
+- [x] `data/api` 按资源补 endpoint 封装（letters/drift/discover/me/ai/uploads）
+- [x] 验证 ApiClient 对 **204 无 body 响应**的容错（postJson 现假定 JSON body）
+- [x] 补模型：LetterOwned、NotificationPublic、ThemePublic、TagPublic（现在只有 LetterPublic 一族）
 - **验收**：冷启动无感登录；HealthCard 仍绿；`make check-dart` 过
 
 ### F1 · 写信流（1.5–2 天，全 App 最复杂）

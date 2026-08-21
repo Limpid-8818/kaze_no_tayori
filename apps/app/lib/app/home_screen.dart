@@ -9,17 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/env.dart';
-import '../data/api/api_client.dart';
+import '../data/api/providers.dart';
 import '../core/result.dart';
 import 'router.dart';
 import 'theme.dart';
-
-/// 脚手架期的连通性探针。功能开发完成后连同卡片一起删掉。
-final _healthProvider = FutureProvider<String>((ref) async {
-  final client = ApiClient();
-  final json = await client.getJson('/health');
-  return json['status'] as String? ?? 'unknown';
-});
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -106,7 +99,7 @@ class _HealthCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final health = ref.watch(_healthProvider);
+    final health = ref.watch(healthProvider);
 
     return Card(
       child: Padding(
@@ -137,7 +130,7 @@ class _HealthCard extends ConsumerWidget {
             },
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () => ref.invalidate(_healthProvider),
+              onPressed: () => ref.invalidate(healthProvider),
               child: const Text('重试'),
             ),
           ],
