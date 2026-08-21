@@ -30,7 +30,8 @@
 | id | UUID PK | |
 | blocks | jsonb NOT NULL DEFAULT `'[]'` | 图文交替流数组，见下 |
 | poem | text NULL | AI 短诗，≤4 行 |
-| theme | varchar(32) NOT NULL DEFAULT `'natsu'` | **永久绑定，禁止批量 UPDATE** |
+| theme_id | varchar(32) NOT NULL DEFAULT `'natsu'` | 基础主题 ID，指向 themes 表 |
+| theme_skin | jsonb NULL | 皮肤搭配，见下。**全 null = 全默认**（不携带皮肤的信） |
 | music_ref | jsonb NULL | `{album, song, lyrics}`，**不许加 url** |
 | location | geography(POINT,4326) NULL | stay 必填，drift 可空 |
 | place_label | varchar(128) NULL | 地点名（逆地理或手填） |
@@ -52,6 +53,18 @@
  "note": "正午的海"}             # 可选手记
 ```
 约束：最少 1 块，最多 20 块，其中照片 ≤ 3 张。应用层校验，不建 DB CHECK。
+
+**theme_skin 结构**（jsonb 对象，空槽省略键 = 用默认值）：
+```json
+{
+  "stamp": "stamp-summer-01",
+  "postmarkEmblem": "emblem-wave",
+  "decor": ["decor-firefly", "decor-star"],
+  "postcard": "postcard-beach"
+}
+```
+`stamp` / `postmarkEmblem` / `postcard` 单选（null = 默认），`decor` 可多枚。
+一旦写入永久绑定该信，禁止批量 UPDATE。
 
 ### letter_reads
 | 列 | 类型 |
@@ -103,7 +116,8 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
     {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
   ],
   "poem": "……",
-  "theme": "natsu",
+  "theme_id": "natsu",
+  "theme_skin": {"stamp": "stamp-summer-01", "decor": ["decor-firefly"]},
   "music_ref": {"album": "二人称", "song": "早朝、郵便受け", "lyrics": "……"},
   "place_label": "Tokyo",
   "weather": {"text": "小雨", "temp_c": 19.0, "icon": "rain"},
@@ -153,7 +167,8 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
     {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
   ],
   "poem": null,
-  "theme": "natsu",
+  "theme_id": "natsu",
+  "theme_skin": {"stamp": "stamp-summer-01", "decor": ["decor-firefly"]},
   "music_ref": {"album": "…", "song": "…", "lyrics": "…"},
   "tags": ["旅途"],
   "delivery_mode": "stay",
