@@ -16,7 +16,11 @@ lib/features/  write drift discover reader reply my_letters scripbook notificati
 - **feature 之间不得互相 import。** 共享的上提到 `core/` 或 `data/`，视觉组件放 `lib/app/widgets/`。
 - **网络只经 `data/api/api_client.dart`**，不要在 feature 里 new Dio。
 - **禁止字面量颜色/字号/间距**，一律 `Theme.of(context)`。这样上游设计系统拷入后不用改 feature。
-- **`natsu_no_tegami` 只许被 `lib/app/theme.dart` import。**
+- **`natsu_no_tegami` 的令牌层（tokens/）只许被 `lib/app/theme.dart` import。**
+  feature 代码走 `Theme.of(context)`，不写字面量颜色/字号/间距。
+- **`natsu_no_tegami` 的组件层（components/letters/、components/）可由 feature 直接 import。**
+  信件组件（LetterPaper / PhotoCard / LetterBlock 等）和通用组件（NatsuButton / NatsuCard 等）
+  是渲染层的二等公民，不需要经过 theme.dart 中转。
 
 ## 代码生成
 
