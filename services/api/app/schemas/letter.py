@@ -31,7 +31,8 @@ class PhotoBlock(BaseModel):
     type: Literal["photo"] = "photo"
     ref: str = Field(min_length=1, max_length=512, description="图片引用（URL 或资产标识）")
     mood: str = Field(
-        default="none", description=f"拍摄瞬间 mood：{'|'.join(sorted(_VALID_MOODS))}"
+        default="none",
+        description="拍摄瞬间 mood：none|overexposed|backlit|motion",
     )
     note: str | None = Field(default=None, max_length=200, description="照片手记（hwNote）")
 
@@ -61,6 +62,26 @@ class _BlocksMixin(BaseModel):
         if photos > 3:
             raise ValueError("一封信最多夹三张照片")
         return self
+
+
+# ---------- 皮肤搭配（PRD 6.9 · theme_skin）----------
+
+
+class LetterSkin(BaseModel):
+    """信件皮肤搭配——各槽只存资产 ID 字符串。
+
+    空槽 = 不携带该层皮肤，渲染层用默认值。**全空 = 全默认**（不携带皮肤的信）。
+    一旦写入永久绑定，不做季节归档/自动迁移（CLAUDE.md 红线 6）。
+    """
+
+    stamp: str | None = Field(default=None, description="邮票资产 ID")
+    postmark_emblem: str | None = Field(
+        default=None, alias="postmarkEmblem", description="邮戳中心图案资产 ID"
+    )
+    decor: list[str] = Field(default_factory=list, description="装饰资产 ID 列表（可多枚）")
+    postcard: str | None = Field(default=None, description="明信片底图资产 ID")
+
+    model_config = {"populate_by_name": True}
 
 
 # ---------- 引用式音乐（PRD 6.7）----------
@@ -105,7 +126,10 @@ class LetterCreate(_BlocksMixin):
     """写信（PRD 6.1）。"""
 
     poem: str | None = None
-    theme: str = Field(default="natsu", max_length=32)
+    # 基础主题 ID（如 "natsu"），指向 themes 表
+    theme_id: str = Field(default="natsu", max_length=32)
+    # 皮肤搭配（可选，不传则全默认）
+    theme_skin: LetterSkin | None = None
     music_ref: MusicRef | None = None
     tags: list[str] = Field(default_factory=list, max_length=3)
 
@@ -133,7 +157,8 @@ class LetterPublic(_BlocksMixin):
 
     id: str  # UUID serialized as string
     poem: str | None = None
-    theme: str
+    theme_id: str
+    theme_skin: LetterSkin | None = None
     music_ref: MusicRef | None = None
     place_label: str | None = None
     weather: Weather | None = None

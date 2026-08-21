@@ -46,8 +46,13 @@ class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     )
     # AI 短诗，≤4 行
     poem: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # 主题皮肤：一旦写入永久绑定该信，不因平台推出新主题而迁移
-    theme: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'natsu'"))
+    # ---------- 皮肤搭配（PRD 6.9）----------
+    # theme_id 指向 themes 表的基础主题（如 "natsu"），theme_skin 是槽位搭配的 jsonb
+    # 两者一旦写入永久绑定单信，禁止批量 UPDATE（CLAUDE.md 红线 6）
+    theme_id: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'natsu'")
+    )
+    theme_skin: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     # 引用式音乐：{album, song, lyrics}。不生成、不上传、不外链
     music_ref: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     tags: Mapped[list[str]] = mapped_column(
