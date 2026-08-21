@@ -9,7 +9,7 @@
 |---|---|
 | 仓库 | `D:\CodeRepository\Flutter\natsu_no_tegami` |
 | 分支 | `main`（无 remote） |
-| 已拷入的源 commit | *（尚未拷入）* |
+| 已拷入的源 commit | `6bf5204` |
 
 上游是一个纯展示层组件库 + 交互式画廊 App，零业务依赖（只有 flutter + cupertino_icons + flutter_lints）。
 
@@ -17,11 +17,11 @@
 
 | 源路径 | 目标 | 说明 |
 |---|---|---|
-| `lib/src/tokens/` | `lib/src/tokens/` | 7 个文件：Colors / Typography / Spacing / Radius+Borders+Motion / Shadows / Imperfection / barrel |
-| `lib/src/components/` | `lib/src/components/` | Button / Card / Input / Quote / Seal / Tag / Kicker+SectionHeading+MetaLine |
-| `lib/src/components/letters/` | 同上 | LetterPaper / PhotoCard / Postmark / StampPiece / DeskScene |
+| `lib/src/tokens/` | `lib/src/tokens/` | 9 个文件：Colors / Typography / Spacing / Radius+Borders+Motion / Shadows / Imperfection / PhotoMood / Weather / barrel |
+| `lib/src/components/` | `lib/src/components/` | 18 个组件（含 resonance / toast / slider 等）+ barrel |
+| `lib/src/components/letters/` | 同上 | 17 个文件：LetterPaper / PhotoCard / LetterBlock / LetterExport / LetterReading / DeskScene / StampPiece / skins 等 |
 | `assets/fonts/` | `assets/fonts/` | 15 个字体：`info/` 6 个信息层 + `warm/` 9 个手写层 |
-| `test/` | `test/` | 组件与令牌测试（828 行，含 WCAG 对比度与确定性种子断言） |
+| `test/` | `test/` | 14 个测试文件（含 WCAG 对比度、deterministic seed 断言、DTCG 导出器） |
 | `test/tool/export_design_tokens_test.dart` | 同上 | Dart → DTCG 单向导出器 |
 | pubspec 的 `fonts:` 段 | `pubspec.yaml` | 整段搬来，13 个 family 声明 |
 
@@ -41,8 +41,7 @@
    ```
 2. 删掉 App 侧的临时主题 `apps/app/lib/app/theme.dart` 里的 `KazeTempTheme`，改为用上游令牌构造 `ThemeData`。**`theme.dart` 是唯一允许 import 本包的地方。**
 3. `cd apps/app && flutter pub get && flutter analyze && flutter test`
-4. 在上表「已拷入的源 commit」记下源 commit hash。
-5. 提交信息用 `chore: 拷入设计系统 <short-hash>`。
+4. 提交信息用 `chore: 拷入设计系统 <short-hash>`。
 
 ## 两个坑
 

@@ -1,8 +1,8 @@
 name: natsu_no_tegami
 description: >-
-  夏の手紙 — 风信的视觉设计系统（令牌 + 组件）。
-  当前是占位空壳：真实实现在上游独立仓库开发，成形后按 COPY_IN.md 整体拷入。
-version: 0.0.1
+  夏の手紙 - 风信的视觉设计系统（令牌 + 组件）。
+  源自上游独立仓库，按 COPY_IN.md 整体拷入；本包内禁止手改。
+version: 1.0.0
 publish_to: none
 
 environment:
@@ -12,12 +12,76 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # 上游唯一非 SDK 依赖（图标字体包）
+  cupertino_icons: ^1.0.8
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-# 拷入时上游 pubspec 的 fonts: 声明整段搬到这里（15 个字体文件，
-# assets/fonts/info/ 6 个信息层 + assets/fonts/warm/ 9 个手写层）。
-# 见 COPY_IN.md。
 flutter:
+  uses-material-design: true
+
+  # ---------------------------------------------------------------------------
+  # 夏の手紙字体体系 - 全部打包离线可用（自上游 pubspec 整段搬来）
+  #
+  # 信息层（info）：可读性体系
+  #   NotoSerifJP / NotoSansJP  - 日文明朝/ゴシック（标题·正文）
+  #   NotoSerifSC / NotoSansSC  - 简中回退（fontFamilyFallback 续写链）
+  #   Inter                     - 欧文·标签·元数据
+  #   RobotoMono                - 色值/代码等宽展示
+  #
+  # 温度层（warm）：筆跡手写体（日文原版 + 简中候选，对照后定稿）
+  #   KleeOne      - 鉛筆手写（手紙正文）-> LXGWWenKai 回退
+  #   YujiMai      - 個人筆跡（宛名·署名）
+  #   ZenKurenaido - 毛筆（刻印·装飾）
+  #   Yomogi       - 追筆 P.S.
+  #   LongCang / MaShanZheng / ZhiMangXing - 简中手写候选（字体对照区）
+  # ---------------------------------------------------------------------------
+  fonts:
+    - family: NotoSerifJP
+      fonts:
+        - asset: assets/fonts/info/NotoSerifJP-Variable.ttf
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/info/NotoSansJP-Variable.ttf
+    - family: NotoSerifSC
+      fonts:
+        - asset: assets/fonts/info/NotoSerifSC-Variable.ttf
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/info/NotoSansSC-Variable.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/info/Inter-Regular.ttf
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/info/RobotoMono-Variable.ttf
+    - family: KleeOne
+      fonts:
+        - asset: assets/fonts/warm/KleeOne-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/warm/KleeOne-SemiBold.ttf
+          weight: 600
+    - family: YujiMai
+      fonts:
+        - asset: assets/fonts/warm/YujiMai-Regular.ttf
+    - family: ZenKurenaido
+      fonts:
+        - asset: assets/fonts/warm/ZenKurenaido-Regular.ttf
+    - family: Yomogi
+      fonts:
+        - asset: assets/fonts/warm/Yomogi-Regular.ttf
+    - family: LXGWWenKai
+      fonts:
+        - asset: assets/fonts/warm/LXGWWenKai-Regular.ttf
+    - family: LongCang
+      fonts:
+        - asset: assets/fonts/warm/LongCang-Regular.ttf
+    - family: MaShanZheng
+      fonts:
+        - asset: assets/fonts/warm/MaShanZheng-Regular.ttf
+    - family: ZhiMangXing
+      fonts:
+        - asset: assets/fonts/warm/ZhiMangXing-Regular.ttf

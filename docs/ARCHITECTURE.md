@@ -153,7 +153,7 @@ lib/
 
 ### 设计系统边界
 
-`packages/natsu_no_tegami/` 当前是**空壳 + 临时主题（shim）**。上游真实组件库在独立仓库开发，成形后按 `packages/natsu_no_tegami/COPY_IN.md` 整体拷入并删除 shim。monorepo 内**永不手改**该包。
+`packages/natsu_no_tegami/` 已于 `6bf5204` 完成拷入，包含 9 个令牌文件、18 个通用组件、17 个信件组件、15 个字体、14 个测试文件。monorepo 内**永不手改**该包——一切改动在上游仓库做，再跑 `make sync-ds`。
 
 ---
 
