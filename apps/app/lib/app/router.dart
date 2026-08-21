@@ -17,6 +17,7 @@ import '../features/scripbook/scripbook_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/write/write_screen.dart';
 import 'home_screen.dart';
+import 'widgets/placeholder_screen.dart';
 
 abstract final class Routes {
   static const home = '/';
@@ -28,6 +29,7 @@ abstract final class Routes {
   static const scripbook = '/me/scripbook';
   static const notifications = '/me/notifications';
   static const settings = '/settings';
+  static const about = '/about';
 
   static String readerOf(String id) => '/letters/$id';
 }
@@ -35,7 +37,7 @@ abstract final class Routes {
 final router = GoRouter(
   initialLocation: Routes.home,
   routes: [
-    GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
+    GoRoute(path: Routes.home, builder: (_, _) => HomeScreen()),
 
     // 写信流。带 parent 时即为「回以一封信」（回信是独立作品，不是私信）
     GoRoute(
@@ -61,5 +63,14 @@ final router = GoRouter(
       builder: (_, _) => const NotificationsScreen(),
     ),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+
+    // 关于页：产品理念与红线，内容 P1 再填
+    GoRoute(
+      path: Routes.about,
+      builder: (_, _) => const PlaceholderScreen(
+        title: '关于风信',
+        intent: '产品理念与红线（匿名 · 漂流 · 不追踪）。',
+      ),
+    ),
   ],
 );
