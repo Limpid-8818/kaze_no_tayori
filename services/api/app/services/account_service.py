@@ -6,8 +6,11 @@
 
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import NotFound
 from app.models.user import User
 
 
@@ -17,9 +20,19 @@ async def upsert_by_device(session: AsyncSession, device_id: str) -> User:
     契约：ON CONFLICT (device_id) DO NOTHING 后回查，保证并发下幂等。
     不写入任何画像字段（PRD §8.1 数据最小化）。
     """
-    raise NotImplementedError
+    await session.execute(
+        pg_insert(User)
+        .values(device_id=device_id)
+        .on_conflict_do_nothing(index_elements=["device_id"])
+    )
+    result = await session.execute(select(User).where(User.device_id == device_id))
+    user = result.scalar_one()
+    return user
 
 
 async def get_user(session: AsyncSession, user_id: UUID) -> User:
     """按 id 取用户，不存在抛 NotFound。"""
-    raise NotImplementedError
+    user = await session.get(User, user_id)
+    if user is None:
+        raise NotFound("用户不存在")
+    return user

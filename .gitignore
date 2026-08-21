@@ -46,7 +46,9 @@ uploads/
 .vscode/launch.json
 *.swp
 
+.claude/
 .workbuddy/
+.zcode/
 
 # ---------- Windows / macOS ----------
 Thumbs.db

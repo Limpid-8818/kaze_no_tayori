@@ -22,20 +22,21 @@
 依赖链：`B0 迁移 → B1 认证 → B2 写信 → B3 收信 → B4 互动 → B5 me → B6 种子/验收`，B7 可插空。
 
 ### B0 · 地基（0.5 天）⚡ 全局阻塞项
-- [ ] 配 `.env`（云库连接串 + `DB_SCHEMA=dev_<name>` + `JWT_SECRET`）——**当前缺失，阻塞一切 DB 工作**
-- [ ] `make revision` 生成初始迁移，人工审阅两处坑（空间索引重复 / CREATE EXTENSION 置顶）
-- [ ] `make migrate` 建表；`check_db.py` 通过
+- [x] 配 `.env`（云库连接串 + `DB_SCHEMA=dev_<name>` + `JWT_SECRET`）
+- [x] `make revision` 生成初始迁移，人工审阅两处坑（空间索引重复 / CREATE EXTENSION 置顶）
+- [x] `make migrate` 建表；`check_db.py` 通过
 - **验收**：`GET /health/db` 返回 postgis_version 与自己的 schema
 
 ### B1 · 认证 + 静态目录（0.5 天）
-- [ ] `account_service.upsert_by_device`（ON CONFLICT 幂等）→ `POST /v1/auth/device`
-- [ ] `catalog`：themes / tags 列表（seed 先灌静态行，或此处直接查表）
+- [x] `account_service.upsert_by_device`（ON CONFLICT 幂等）→ `POST /v1/auth/device`
+- [x] `catalog`：themes / tags 列表（seed 先灌静态行，或此处直接查表）
 - **验收**：curl 用 device_id 换到 JWT；`GET /v1/themes` 返回 natsu
 
 ### B2 · 写信链路（1 天）
 - [ ] `storage_service`：Pillow 压缩（长边 1600 / JPEG ~82）+ 本地落盘 → `POST /v1/uploads/images`
 - [ ] `moderation_service` 最小实现：**纯关键词表**。`FEATURE_MODERATION=true` + 未命中 → PUBLIC；关闭/失败 → PENDING（红线 8）
-- [ ] `letter_service.create_letter`：stay 时 lat/lon 必填校验、`ST_MakePoint`、theme 一次写入永久绑定
+- [ ] `letter_service.create_letter`：stay 时 lat/lon 必填校验、`ST_MakePoint`、`theme_id` + `theme_skin` 一次写入永久绑定
+- [ ] blocks 应用层校验：最少 1 块、最多 20 块、照片 ≤3 张（契约不建 DB CHECK）；tags 存 id 还是 name 待定（契约列说明为 id，示例为 name，实装前定夺）
 - [ ] `GET /v1/letters/{id}`（非 public 一律 404）
 - **验收**：两种 mode 各建一封；stay 信能被 ST_DWithin 查到；rejected 不泄漏存在性
 - ⚠️ 开发期让信能进 public 的唯一合规路径是 `FEATURE_MODERATION=true` + 空关键词表（通过→PUBLIC 是契约允许的）
@@ -86,10 +87,10 @@
 - **验收**：冷启动无感登录；HealthCard 仍绿；`make check-dart` 过
 
 ### F1 · 写信流（1.5–2 天，全 App 最复杂）
-- [ ] `write_controller`（@riverpod）+ 分步流：正文 → 图(0–3) → 主题 → 音乐引用 → 落点 → **必选留/投**
+- [ ] `write_controller`（@riverpod）+ 分步流：blocks 图文交替编辑（文字/照片块）→ 主题（`theme_id`）+ 皮肤槽位（`theme_skin`：stamp/postmarkEmblem/decor/postcard）→ 音乐引用 → 落点 → **必选留/投**
 - [ ] 图片：image_picker 选 → 压缩 → uploads → 拼 URL
 - [ ] 落点：geolocator 定位；失败/拒绝 → 手填 place_label（温和降级，不弹红错）
-- [ ] 字数 800 / 图 3 / 标签 1–3 的客户端校验与文案
+- [ ] 客户端校验与文案：blocks 1–20 块、照片 ≤3 张、标签 1–3 个（与契约一致，无字数硬限）
 - [ ] 草稿本地暂存（data/local），离开不丢
 - [ ] 留/投二选一的 UI 必须是显式一步，不许有默认值悄悄带过（PRD 6.1 必选）
 - **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通
@@ -101,7 +102,7 @@
 - **验收**：双入口并列可达；driftPoolEmpty 呈现为叙事状态
 
 ### F3 · 阅读器（1 天）
-- [ ] 信纸渲染：`地点·时间·天气` + 正文 + 图 + 短诗（引用体）+ 音乐引用 + 计数文案「已被 N 个陌生人接住」
+- [ ] 信纸渲染：`地点·时间·天气` + blocks 图文交替流 + 短诗（引用体）+ 音乐引用 + `theme_skin` 槽位皮肤 + 计数文案「已被 N 个陌生人接住」
 - [ ] ✦ 共鸣按钮（幂等，本地即时反馈）、回信入口、收进抄本、举报
 - [ ] 溯源：parent_letter_id 非空可跳原信（public 才可达，404 就 404）
 - **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位
@@ -122,7 +123,7 @@
 - **验收**：`make sync-ds` + `make check-dart`；feature 代码零改动（token 纪律的回报点）
 
 ### F7 · 导出图片（P1，0.5 天）
-- [ ] `RepaintBoundary` 把带皮肤的信渲染成图（含正文/图/短诗/音乐/落点/计数，**不含作者信息**）→ 存相册
+- [ ] `RepaintBoundary` 把带皮肤的信渲染成图（含 blocks 全部内容/短诗/音乐/落点/计数，**不含作者信息**）→ 存相册
 
 **前端 P0 合计约 5–6 人日。**
 

@@ -7,7 +7,9 @@
 from fastapi import APIRouter
 
 from app.core.deps import Session
+from app.core.security import create_access_token
 from app.schemas.common import DeviceAuthRequest, TokenResponse
+from app.services import account_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,4 +20,8 @@ async def bind_device(payload: DeviceAuthRequest, session: Session) -> TokenResp
 
     首次调用时 upsert 一个 users 行。
     """
-    raise NotImplementedError
+    user = await account_service.upsert_by_device(session, payload.device_id)
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        user_id=user.id,
+    )
