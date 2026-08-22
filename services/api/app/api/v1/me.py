@@ -11,7 +11,7 @@ from fastapi import APIRouter, Query
 from app.core.deps import CurrentUser, Session
 from app.schemas.common import NotificationPublic, Page, ScripbookAddRequest
 from app.schemas.letter import LetterOwned, LetterPublic
-from app.services import notification_service
+from app.services import letter_service, notification_service, resonance_service
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -24,13 +24,15 @@ async def my_letters(
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[LetterOwned]:
     """我写下的信，含审核中（pending）的。"""
-    raise NotImplementedError
+    letters = await letter_service.list_owned_letters(session, user_id, limit)
+    items = [LetterOwned.from_letter(letter, lat=letter.lat, lon=letter.lon) for letter in letters]
+    return Page(items=items, next_cursor=None)
 
 
 @router.delete("/letters/{letter_id}", status_code=204)
 async def take_down_letter(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
     """下架自己的信（→ taken_down）。非硬删，保留回信链完整性（PRD §8.1 可删除）。"""
-    raise NotImplementedError
+    await letter_service.take_down(session, letter_id, user_id)
 
 
 # ---------- 抄本 ----------
@@ -41,19 +43,21 @@ async def my_scripbook(
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[LetterPublic]:
     """我的抄本。个人行为，不计入公开互动。"""
-    raise NotImplementedError
+    letters = await resonance_service.list_scripbook(session, user_id, limit)
+    items = [LetterPublic.from_letter(letter) for letter in letters]
+    return Page(items=items, next_cursor=None)
 
 
 @router.post("/scripbook", status_code=204)
 async def add_to_scripbook(
     payload: ScripbookAddRequest, session: Session, user_id: CurrentUser
 ) -> None:
-    raise NotImplementedError
+    await resonance_service.add_to_scripbook(session, payload.letter_id, user_id, payload.note)
 
 
 @router.delete("/scripbook/{letter_id}", status_code=204)
 async def remove_from_scripbook(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
-    raise NotImplementedError
+    await resonance_service.remove_from_scripbook(session, letter_id, user_id)
 
 
 # ---------- 通知 ----------

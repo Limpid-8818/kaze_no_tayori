@@ -56,8 +56,8 @@
 - **验收**：重复共鸣计数不变；回信后原信作者通知出现，纯过客信无通知不报错
 
 ### B5 · me 全家桶（0.5 天）
-- [ ] 我的信（LetterOwned，含 pending）/ 下架（taken_down，非硬删）
-- [ ] 抄本 add/remove/list（saved_count 增减）；~~通知列表 + 已读标记~~（已随 B4 提前实装）
+- [x] 我的信（LetterOwned，含 pending）/ 下架（taken_down，非硬删）
+- [x] 抄本 add/remove/list（saved_count 增减）；~~通知列表 + 已读标记~~（已随 B4 提前实装）
 - **验收**：LetterOwned 仅出现在 /v1/me/*（test_anonymity 持续绿）
 
 ### B6 · 种子与端到端（0.5 天）

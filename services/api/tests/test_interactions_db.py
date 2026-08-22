@@ -269,3 +269,162 @@ async def test_report_pending_letter_404(db_client: Any, actors: dict[str, str])
     letter_id = await _create_letter(db_client, actors["author_token"])  # pending
     r = await db_client.post(f"/v1/letters/{letter_id}/report", json={"reason": "spam"})
     assert r.status_code == 404
+
+
+# ---------- B5 · me 全家桶 ----------
+
+
+async def test_my_letters_contains_pending_and_excludes_others(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str]
+) -> None:
+    """我的信列表：含 pending、按 created_at DESC，且不含他人信。"""
+    # author 建两封（moderation 关 → pending）
+    id1 = await _create_letter(db_client, actors["author_token"], place_label="A")
+    id2 = await _create_letter(db_client, actors["author_token"], place_label="B")
+
+    # reader 建一封
+    id_other = await _create_letter(db_client, actors["reader_token"], place_label="C")
+
+    page = (
+        await db_client.get("/v1/me/letters?limit=20", headers=_auth(actors["author_token"]))
+    ).json()
+    assert page["next_cursor"] is None
+    ids = [item["id"] for item in page["items"]]
+    assert id1 in ids and id2 in ids
+    assert id_other not in ids
+    # status 含 pending
+    statuses = {item["status"] for item in page["items"]}
+    assert "pending" in statuses
+    # LetterOwned 含 lat/lon（stay 信有坐标，drift 信为 null）
+    for item in page["items"]:
+        assert "lat" in item and "lon" in item
+
+
+async def test_take_down_soft_deletes_and_preserves_chain(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str], moderation_on: None
+) -> None:
+    """下架后读者侧 404，parent_letter_id 仍存在（回信链不塌）。"""
+    parent_id = await _create_letter(db_client, actors["author_token"], place_label="原点")
+
+    # 回信
+    reply_resp = await db_client.post(
+        f"/v1/letters/{parent_id}/replies",
+        json={"blocks": [{"type": "text", "text": "回信"}], "delivery_mode": "drift"},
+        headers=_auth(actors["reader_token"]),
+    )
+    assert reply_resp.status_code == 201
+    reply_id = reply_resp.json()["id"]
+
+    # 下架原信
+    r = await db_client.delete(f"/v1/me/letters/{parent_id}", headers=_auth(actors["author_token"]))
+    assert r.status_code == 204
+
+    # 读者侧原信 404
+    got = await db_client.get(f"/v1/letters/{parent_id}")
+    assert got.status_code == 404
+
+    # 回信仍在，parent_letter_id 未断
+    reply_row = await db_session.execute(
+        sql_text("SELECT parent_letter_id FROM letters WHERE id = CAST(:id AS uuid)"),
+        {"id": reply_id},
+    )
+    assert reply_row.scalar_one() == uuid.UUID(parent_id)
+
+
+async def test_non_owner_take_down_returns_404(
+    db_client: Any, actors: dict[str, str], moderation_on: None
+) -> None:
+    """非 owner 下架他人信 → 404（不区分「不存在」与「不是你的」）。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    r = await db_client.delete(f"/v1/me/letters/{letter_id}", headers=_auth(actors["reader_token"]))
+    assert r.status_code == 404
+
+
+async def test_scripbook_add_idempotent(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str], moderation_on: None
+) -> None:
+    """抄本添加幂等：两次添加 saved_count 只 +1。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+
+    # 第一次添加
+    r1 = await db_client.post(
+        "/v1/me/scripbook",
+        json={"letter_id": letter_id},
+        headers=_auth(actors["reader_token"]),
+    )
+    assert r1.status_code == 204
+
+    counts_after_first = (
+        await db_session.execute(
+            sql_text("SELECT saved_count FROM letters WHERE id = CAST(:id AS uuid)"),
+            {"id": letter_id},
+        )
+    ).scalar_one()
+    assert counts_after_first == 1
+
+    # 第二次添加（幂等）
+    r2 = await db_client.post(
+        "/v1/me/scripbook",
+        json={"letter_id": letter_id},
+        headers=_auth(actors["reader_token"]),
+    )
+    assert r2.status_code == 204
+
+    counts_after_second = (
+        await db_session.execute(
+            sql_text("SELECT saved_count FROM letters WHERE id = CAST(:id AS uuid)"),
+            {"id": letter_id},
+        )
+    ).scalar_one()
+    assert counts_after_second == 1  # 不再增加
+
+
+async def test_scripbook_remove_decrements_and_floors_at_zero(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str], moderation_on: None
+) -> None:
+    """移除抄本条目：saved_count 递减，且 floor 0。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    await db_client.post(
+        "/v1/me/scripbook",
+        json={"letter_id": letter_id},
+        headers=_auth(actors["reader_token"]),
+    )
+
+    # 移除
+    r = await db_client.delete(
+        f"/v1/me/scripbook/{letter_id}", headers=_auth(actors["reader_token"])
+    )
+    assert r.status_code == 204
+
+    saved = (
+        await db_session.execute(
+            sql_text("SELECT saved_count FROM letters WHERE id = CAST(:id AS uuid)"),
+            {"id": letter_id},
+        )
+    ).scalar_one()
+    assert saved == 0
+
+    # 再次移除：已不在抄本中 → 404（与 mark_read 一致：资源不存在即 404）
+    r2 = await db_client.delete(
+        f"/v1/me/scripbook/{letter_id}", headers=_auth(actors["reader_token"])
+    )
+    assert r2.status_code == 404
+    # saved_count 仍为 0（floor 不松动）
+    saved_again = (
+        await db_session.execute(
+            sql_text("SELECT saved_count FROM letters WHERE id = CAST(:id AS uuid)"),
+            {"id": letter_id},
+        )
+    ).scalar_one()
+    assert saved_again == 0
+
+
+async def test_scripbook_remove_not_in_scripbook_returns_404(
+    db_client: Any, actors: dict[str, str], moderation_on: None
+) -> None:
+    """从抄本移除不存在的条目 → 404。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    r = await db_client.delete(
+        f"/v1/me/scripbook/{letter_id}", headers=_auth(actors["reader_token"])
+    )
+    assert r.status_code == 404

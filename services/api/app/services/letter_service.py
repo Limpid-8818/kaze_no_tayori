@@ -3,8 +3,9 @@
 from typing import Any, cast
 from uuid import UUID
 
-from geoalchemy2 import WKTElement
+from geoalchemy2 import Geometry, WKTElement
 from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy import cast as sql_cast
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,10 +147,38 @@ async def create_report(
 async def list_owned_letters(
     session: AsyncSession, owner_user_id: UUID, limit: int
 ) -> list[Letter]:
-    """我写下的信，含 pending。按 created_at DESC。"""
-    raise NotImplementedError
+    """我写下的信，含 pending。按 created_at DESC。
+
+    坐标从 geography 列反解：ST_X / ST_Y 仅接受 geometry，
+    因此显式 CAST(location AS geometry)（PostGIS 3.6 实测）。
+    """
+    result = await session.execute(
+        select(
+            Letter,
+            func.st_x(sql_cast(Letter.location, Geometry)).label("lon"),
+            func.st_y(sql_cast(Letter.location, Geometry)).label("lat"),
+        )
+        .where(Letter.owner_user_id == owner_user_id)
+        .order_by(Letter.created_at.desc())
+        .limit(limit)
+    )
+    rows = result.all()
+    letters: list[Letter] = []
+    for row in rows:
+        letter = row[0]
+        letter.lon = row.lon  # type: ignore[attr-defined]
+        letter.lat = row.lat  # type: ignore[attr-defined]
+        letters.append(letter)
+    return letters
 
 
 async def take_down(session: AsyncSession, letter_id: UUID, owner_user_id: UUID) -> None:
     """下架自己的信 → status=taken_down。非硬删，保留回信链完整性。"""
-    raise NotImplementedError
+    result = await session.execute(
+        update(Letter)
+        .where(Letter.id == letter_id, Letter.owner_user_id == owner_user_id)
+        .values(status=LetterStatus.TAKEN_DOWN)
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount == 0:
+        raise LetterNotFound("信不存在或你没有权限操作此信")

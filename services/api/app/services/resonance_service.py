@@ -7,12 +7,14 @@
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import CursorResult, update
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import NotFound
 from app.models.letter import Letter
 from app.models.resonance import ResonanceLog
+from app.models.scripbook import ScripbookEntry
 from app.services import letter_service
 
 
@@ -54,14 +56,48 @@ async def add_to_scripbook(
     session: AsyncSession, letter_id: UUID, user_id: UUID, note: str | None
 ) -> None:
     """收进抄本。幂等（PK 冲突忽略），原信 saved_count + 1。"""
-    raise NotImplementedError
+    inserted = cast(
+        CursorResult,
+        await session.execute(
+            pg_insert(ScripbookEntry)
+            .values(user_id=user_id, letter_id=letter_id, note=note)
+            .on_conflict_do_nothing(constraint="pk_scripbook_entries")
+        ),
+    )
+    if inserted.rowcount == 1:
+        await session.execute(
+            update(Letter)
+            .where(Letter.id == letter_id)
+            .values(saved_count=Letter.saved_count + 1)
+            .execution_options(synchronize_session=False)
+        )
 
 
 async def remove_from_scripbook(session: AsyncSession, letter_id: UUID, user_id: UUID) -> None:
     """从抄本移除，saved_count - 1（不小于 0）。"""
-    raise NotImplementedError
+    result = await session.execute(
+        delete(ScripbookEntry).where(
+            ScripbookEntry.user_id == user_id, ScripbookEntry.letter_id == letter_id
+        )
+    )
+    if result.rowcount == 1:
+        await session.execute(
+            update(Letter)
+            .where(Letter.id == letter_id)
+            .values(saved_count=func.greatest(Letter.saved_count - 1, 0))
+            .execution_options(synchronize_session=False)
+        )
+    elif result.rowcount == 0:
+        raise NotFound("抄本中没有这封信")
 
 
 async def list_scripbook(session: AsyncSession, user_id: UUID, limit: int) -> list[Letter]:
     """我的抄本，按 added_at DESC。"""
-    raise NotImplementedError
+    result = await session.execute(
+        select(Letter)
+        .join(ScripbookEntry, ScripbookEntry.letter_id == Letter.id)
+        .where(ScripbookEntry.user_id == user_id)
+        .order_by(ScripbookEntry.added_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())

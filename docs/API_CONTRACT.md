@@ -234,14 +234,14 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ### 抄本（PRD 6.10）
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| POST | `/v1/me/scripbook` | `{letter_id, note?}` 收藏 |
+| POST | `/v1/me/scripbook` | `{letter_id, note?}` 收藏，`limit` 1–50，默认 20 |
 | DELETE | `/v1/me/scripbook/{letter_id}` | 取消收藏 |
-| GET | `/v1/me/scripbook` | 我的抄本列表 |
+| GET | `/v1/me/scripbook` | 我的抄本列表，`limit` 1–50，默认 20 |
 
 ### 我的信
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/v1/me/letters` | 我写的信（`LetterOwned`，含 pending） |
+| GET | `/v1/me/letters` | 我写的信（`LetterOwned`，含 pending），`limit` 1–50，默认 20 |
 | DELETE | `/v1/me/letters/{id}` | 下架（→ `taken_down`），非硬删 |
 
 ### 通知（PRD 6.5）
