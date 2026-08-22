@@ -7,7 +7,7 @@
 `tests/test_anonymity.py` 会立刻变红。
 """
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -168,6 +168,31 @@ class LetterPublic(_BlocksMixin):
     counts: LetterCounts
     created_at: str  # ISO 8601 datetime serialized as string
 
+    @classmethod
+    def from_letter(cls, letter: Any) -> "LetterPublic":
+        """ORM Letter → 对外形状。counts/created_at 是派生字段，不能 from_attributes。"""
+        return cls(
+            id=str(letter.id),
+            blocks=letter.blocks,
+            poem=letter.poem,
+            theme_id=letter.theme_id,
+            theme_skin=letter.theme_skin,
+            music_ref=letter.music_ref,
+            place_label=letter.place_label,
+            weather=letter.weather,
+            tags=letter.tags,
+            delivery_mode=letter.delivery_mode,
+            parent_letter_id=str(letter.parent_letter_id) if letter.parent_letter_id else None,
+            counts=LetterCounts(
+                read=letter.read_count,
+                resonance=letter.resonance_count,
+                voice=letter.voice_count,
+                reply=letter.reply_count,
+                saved=letter.saved_count,
+            ),
+            created_at=letter.created_at.isoformat(),
+        )
+
 
 class LetterOwned(LetterPublic):
     """本人视角，仅 /v1/me/* 路径返回。
@@ -179,3 +204,12 @@ class LetterOwned(LetterPublic):
     status: LetterStatus
     lat: float | None = None
     lon: float | None = None
+
+    @classmethod
+    def from_letter(
+        cls, letter: Any, lat: float | None = None, lon: float | None = None
+    ) -> "LetterOwned":
+        """lat/lon 由调用方（建信时来自 payload）传入，ORM 侧不反解 geography。"""
+        data = LetterPublic.from_letter(letter).model_dump()
+        data.update(status=letter.status, lat=lat, lon=lon)
+        return cls(**data)

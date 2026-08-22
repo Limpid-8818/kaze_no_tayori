@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     cors_origins: str = "http://localhost:*"
+    # 拼图片公开 URL 的前缀（本地 StaticFiles 挂载在 /uploads）
+    public_base_url: str = "http://localhost:8000"
 
     # ---------- 数据库 ----------
     # 运行时用 asyncpg，Alembic 迁移用 psycopg，两条指向同一个库

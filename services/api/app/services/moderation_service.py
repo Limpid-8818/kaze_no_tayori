@@ -4,10 +4,15 @@
 绝不降级为直接 PUBLIC。这条不许「为了 demo 顺畅」放宽。
 """
 
+import logging
+
 from app.core.config import get_settings
 from app.models.enums import LetterStatus
 
-# 关键词表占位。实现时可外置为配置文件
+logger = logging.getLogger(__name__)
+
+# 关键词表占位。开发期为空表（空表=全过，这是契约允许的 PUBLIC 路径）；
+# LLM 分类接入（B7）后再收紧，或外置为配置文件。
 BLOCKLIST: tuple[str, ...] = ()
 
 
@@ -22,12 +27,20 @@ async def moderate(blocks: list[dict]) -> LetterStatus:
     契约：
     1. FEATURE_MODERATION=false → 返回 PENDING（不公开，靠 seed 脚本/控制台放行）
     2. 命中关键词 → REJECTED
-    3. LLM 分类判违规 → REJECTED
+    3. LLM 分类判违规 → REJECTED（B7 接入）
     4. LLM 调用失败/超时 → PENDING（**不是 PUBLIC**）
     5. 通过 → PUBLIC
     """
     settings = get_settings()
     if not settings.feature_moderation:
         return LetterStatus.PENDING
-    _text_from_blocks(blocks)  # 实现时使用
-    raise NotImplementedError
+
+    try:
+        text = _text_from_blocks(blocks)
+        if any(word in text for word in BLOCKLIST):
+            return LetterStatus.REJECTED
+    except Exception:
+        # 审核自身故障 → 待审不公开（红线 8）
+        logger.exception("moderation failed, falling back to PENDING")
+        return LetterStatus.PENDING
+    return LetterStatus.PUBLIC

@@ -6,6 +6,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import health
 from app.api.v1.router import api_router
@@ -38,6 +39,10 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(api_router)
+
+    # 本地图片静态服务（STORAGE_BACKEND=local 时 storage_service 落盘于此）
+    settings.local_upload_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.local_upload_dir), name="uploads")
 
     return app
 

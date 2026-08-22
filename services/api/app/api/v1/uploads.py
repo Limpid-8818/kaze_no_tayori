@@ -9,9 +9,13 @@ from typing import Annotated
 from fastapi import APIRouter, File, UploadFile
 
 from app.core.deps import CurrentUser
+from app.core.errors import UnsupportedImageType
 from app.schemas.common import UploadResponse
+from app.services import storage_service
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
+
+_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 @router.post("/images", response_model=UploadResponse, status_code=201)
@@ -23,4 +27,8 @@ async def upload_image(
 
     存储不可用时降级为本地磁盘——图片失败不应阻断写信主流程。
     """
-    raise NotImplementedError
+    if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        raise UnsupportedImageType("仅支持 JPEG / PNG / WebP 图片")
+    data = await file.read()
+    url = await storage_service.save_image(data, file.filename or "")
+    return UploadResponse(url=url)

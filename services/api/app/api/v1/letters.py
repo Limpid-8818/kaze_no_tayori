@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from app.core.deps import CurrentUser, OptionalUser, Session
 from app.schemas.common import ReportRequest
 from app.schemas.letter import LetterCreate, LetterOwned, LetterPublic
+from app.services import letter_service
 
 router = APIRouter(tags=["letters"])
 
@@ -23,13 +24,15 @@ async def create_letter(
     delivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。
     提交后入审，默认 status=pending。
     """
-    raise NotImplementedError
+    letter = await letter_service.create_letter(session, payload, owner_user_id=user_id)
+    return LetterOwned.from_letter(letter, lat=payload.lat, lon=payload.lon)
 
 
 @router.get("/letters/{letter_id}", response_model=LetterPublic)
 async def read_letter(letter_id: UUID, session: Session, user_id: OptionalUser) -> LetterPublic:
     """读单封公开信（回信溯源用）。非 public 一律 404。"""
-    raise NotImplementedError
+    letter = await letter_service.get_public_letter(session, letter_id)
+    return LetterPublic.from_letter(letter)
 
 
 @router.post("/letters/{letter_id}/report", status_code=204)

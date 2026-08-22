@@ -59,6 +59,33 @@ class DriftPoolEmpty(NotFound):
     code = "drift_pool_empty"
 
 
+class LetterNotFound(NotFound):
+    """信不存在或未公开。不区分两者，避免泄漏存在性。"""
+
+    code = "letter_not_found"
+
+
+class InvalidImage(AppError):
+    """上传的内容不是可解码的图片。"""
+
+    status_code = 422
+    code = "invalid_image"
+
+
+class UnsupportedImageType(AppError):
+    """上传的 content type 不在白名单。"""
+
+    status_code = 422
+    code = "unsupported_image_type"
+
+
+class StayRequiresLocation(AppError):
+    """stay 信缺坐标。"""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "stay_requires_location"
+
+
 def _body(code: str, message: str, detail: Any = None) -> dict[str, Any]:
     return {"error": {"code": code, "message": message, "detail": detail}}
 
@@ -90,7 +117,7 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             content=_body("validation_error", "请求参数不合法", exc.errors()),
         )
 

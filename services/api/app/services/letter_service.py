@@ -1,14 +1,16 @@
-"""信服务（模块①）：信件存取、状态机、计数自增。
-
-脚手架阶段：只定签名与契约，不实现逻辑。
-"""
+"""信服务（模块①）：信件存取、状态机、计数自增。"""
 
 from uuid import UUID
 
+from geoalchemy2 import WKTElement
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import LetterNotFound, StayRequiresLocation
+from app.models.enums import LetterStatus
 from app.models.letter import Letter
 from app.schemas.letter import LetterCreate
+from app.services import moderation_service
 
 
 async def create_letter(
@@ -21,12 +23,44 @@ async def create_letter(
     - 走审核（moderation_service）决定 status；审核不可用时停在 pending
     - theme 写入后永久绑定，后续不得批量迁移
     """
-    raise NotImplementedError
+    location: WKTElement | None = None
+    if payload.delivery_mode == "stay":
+        if payload.lat is None or payload.lon is None:
+            raise StayRequiresLocation("「留在这里」需要当前位置（lat/lon）")
+        # extended=True → EWKB，与 geography 列直接兼容
+        location = WKTElement(f"POINT({payload.lon} {payload.lat})", srid=4326, extended=True)
+
+    letter = Letter(
+        blocks=[b.model_dump() for b in payload.blocks],
+        poem=payload.poem,
+        theme_id=payload.theme_id,
+        theme_skin=payload.theme_skin.model_dump(by_alias=True) if payload.theme_skin else None,
+        music_ref=payload.music_ref.model_dump() if payload.music_ref else None,
+        tags=list(payload.tags),
+        location=location,
+        place_label=payload.place_label,
+        weather=payload.weather,
+        delivery_mode=payload.delivery_mode,
+        status=await moderation_service.moderate([b.model_dump() for b in payload.blocks]),
+        owner_user_id=owner_user_id,
+        parent_letter_id=None,
+    )
+    session.add(letter)
+    await session.flush()
+    # created_at / id 是 server_default，refresh 取回
+    await session.refresh(letter)
+    return letter
 
 
 async def get_public_letter(session: AsyncSession, letter_id: UUID) -> Letter:
     """读一封公开信。非 public 抛 NotFound（不泄漏「存在但未公开」）。"""
-    raise NotImplementedError
+    result = await session.execute(
+        select(Letter).where(Letter.id == letter_id, Letter.status == LetterStatus.PUBLIC)
+    )
+    letter = result.scalar_one_or_none()
+    if letter is None:
+        raise LetterNotFound("信不存在或尚未漂到公开水域")
+    return letter
 
 
 async def list_owned_letters(

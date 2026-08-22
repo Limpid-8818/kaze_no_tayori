@@ -21,9 +21,11 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # 删掉旧的 content / images 列与其 CHECK 约束
-    op.drop_check_constraint("ck_letters_content_max_len", table_name="letters")
-    op.drop_check_constraint("ck_letters_images_max_3", table_name="letters")
+    # 删掉旧的 content / images 列与其 CHECK 约束。
+    # 不用 op.drop_constraint：metadata 的 naming convention 会对传入名再套一层
+    # ck_%(table_name)s_ 前缀（产生 ck_letters_ck_... 双前缀），直接 SQL 最稳。
+    op.execute("ALTER TABLE letters DROP CONSTRAINT ck_letters_content_max_len")
+    op.execute("ALTER TABLE letters DROP CONSTRAINT ck_letters_images_max_3")
     op.drop_column("letters", "content")
     op.drop_column("letters", "images")
 

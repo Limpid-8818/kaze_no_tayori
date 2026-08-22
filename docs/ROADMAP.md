@@ -33,11 +33,11 @@
 - **验收**：curl 用 device_id 换到 JWT；`GET /v1/themes` 返回 natsu
 
 ### B2 · 写信链路（1 天）
-- [ ] `storage_service`：Pillow 压缩（长边 1600 / JPEG ~82）+ 本地落盘 → `POST /v1/uploads/images`
-- [ ] `moderation_service` 最小实现：**纯关键词表**。`FEATURE_MODERATION=true` + 未命中 → PUBLIC；关闭/失败 → PENDING（红线 8）
-- [ ] `letter_service.create_letter`：stay 时 lat/lon 必填校验、`ST_MakePoint`、`theme_id` + `theme_skin` 一次写入永久绑定
-- [ ] blocks 应用层校验：最少 1 块、最多 20 块、照片 ≤3 张（契约不建 DB CHECK）；tags 存 id 还是 name 待定（契约列说明为 id，示例为 name，实装前定夺）
-- [ ] `GET /v1/letters/{id}`（非 public 一律 404）
+- [x] `storage_service`：Pillow 压缩（长边 1600 / JPEG ~82）+ 本地落盘 → `POST /v1/uploads/images`
+- [x] `moderation_service` 最小实现：**纯关键词表**。`FEATURE_MODERATION=true` + 未命中 → PUBLIC；关闭/失败 → PENDING（红线 8）
+- [x] `letter_service.create_letter`：stay 时 lat/lon 必填校验、`ST_MakePoint`、`theme_id` + `theme_skin` 一次写入永久绑定
+- [x] blocks 应用层校验：最少 1 块、最多 20 块、照片 ≤3 张（契约不建 DB CHECK）；tags 存 id 还是 name 待定（契约列说明为 id，示例为 name，实装前定夺）→ **已定夺：存 id，契约示例已同步**
+- [x] `GET /v1/letters/{id}`（非 public 一律 404）
 - **验收**：两种 mode 各建一封；stay 信能被 ST_DWithin 查到；rejected 不泄漏存在性
 - ⚠️ 开发期让信能进 public 的唯一合规路径是 `FEATURE_MODERATION=true` + 空关键词表（通过→PUBLIC 是契约允许的）
 
