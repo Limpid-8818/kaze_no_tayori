@@ -17,6 +17,7 @@ import 'drift_api.dart';
 import 'letters_api.dart';
 import 'me_api.dart';
 import 'uploads_api.dart';
+import 'weather_api.dart';
 
 final secureStoreProvider = Provider<SecureStore>((_) => SecureStore());
 
@@ -43,6 +44,9 @@ final uploadsApiProvider = Provider(
 );
 final catalogApiProvider = Provider(
   (ref) => CatalogApi(ref.watch(apiClientProvider)),
+);
+final weatherApiProvider = Provider(
+  (ref) => WeatherApi(ref.watch(apiClientProvider)),
 );
 
 /// 脚手架期的连通性探针。功能开发完成后随 HealthCard 一起删掉。

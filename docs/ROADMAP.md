@@ -67,8 +67,9 @@
 - **验收**：空库 `make seed` 后，drift 能抽到、固定坐标能掘到
 
 ### B7 · 可降级模块真实接入（P1，按余量插空）
-- [ ] weather（QWeather 等）+ 逆地理（高德）——各自失败返回 None
-- [ ] AI 润色/短诗（OpenAI 兼容接口）——失败抛 FeatureDisabled
+- [x] weather（QWeather 等）—— 内存缓存（TTL 10min）+ geo 降级 + X-QW-Api-Key 鉴权，失败返回 None
+- [ ] 逆地理（高德）—— 失败返回 None，由用户手填 place_label
+- [ ] AI 润色/短诗（OpenAI 兼容接口）—— 失败抛 FeatureDisabled
 - [ ] LLM 审核分类接入 moderation；S3/minio 存储（infra 已备）
 - 每项接完必须重验关闭分支
 

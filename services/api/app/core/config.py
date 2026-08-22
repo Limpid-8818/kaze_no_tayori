@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     feature_weather: bool = False
     weather_api_key: str = ""
 
+    # ---------- 天气（和风天气 QWeather）----------
+    weather_api_key: str = ""
+    weather_api_host: str = "https://devapi.qweather.com"
+
     feature_geocode: bool = False
     amap_key: str = ""
 
