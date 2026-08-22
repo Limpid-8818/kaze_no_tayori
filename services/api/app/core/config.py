@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     discover_radius_m: int = 1000
     letter_max_chars: int = 800
     letter_max_images: int = 3
+    # drift 送达冷却（秒）：被丢弃未开封的信在此窗口内不重发，过后回池
+    drift_serve_cooldown_s: int = 3600
 
     # ---------- 可降级模块（PRD §8.3）----------
     feature_ai: bool = False

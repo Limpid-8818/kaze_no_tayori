@@ -11,7 +11,8 @@ class DriftApi {
 
   final ApiClient _client;
 
-  /// 抽一封漂来的信。副作用：写入已读，计数 read+1。
+  /// 抽一封漂来的信。收信 ≠ 已读：抽取只做送达去重，不计数。
+  /// 信纸真正打开时需另调 [LettersApi.markRead]（read_count 唯一自增点）。
   ///
   /// 池空时抛 ApiFailure(driftPoolEmpty)——这是叙事状态
   /// 「此刻还没有漂来的信」，UI 不得当错误弹窗处理。

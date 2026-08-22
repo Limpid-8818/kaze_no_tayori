@@ -1285,7 +1285,7 @@
     },
     "/v1/discover": {
       "get": {
-        "description": "检索附近「留在这里」的公开信。\n\n走 ST_DWithin + GiST 索引；radius_m 缺省取 DISCOVER_RADIUS_M（默认 1000 米）。\n按 created_at DESC 排序——**不按热度**。",
+        "description": "检索附近「留在这里」的公开信（不含自己已开过的）。\n\n走 ST_DWithin + GiST 索引；radius_m 缺省取 DISCOVER_RADIUS_M（默认 1000 米）。\n按 created_at DESC 排序——**不按热度**。",
         "operationId": "discover_nearby_v1_discover_get",
         "parameters": [
           {
@@ -1376,7 +1376,7 @@
     },
     "/v1/drift/next": {
       "get": {
-        "description": "抽一封非自己发、未读过的公开漂流信。\n\n副作用：写 letter_reads + read_count+1。\n池空时返回 404 drift_pool_empty。",
+        "description": "抽一封非自己发、未被占用的公开漂流信。\n\n副作用：写 letter_reads（served_at，冷却去重）。已开封信永不再现；\n被丢弃的未开封信在冷却期后回池。池空时返回 404 drift_pool_empty。",
         "operationId": "next_letter_v1_drift_next_get",
         "responses": {
           "200": {
@@ -1450,7 +1450,7 @@
     },
     "/v1/letters/{letter_id}": {
       "get": {
-        "description": "读单封公开信（回信溯源用）。非 public 一律 404。",
+        "description": "读单封公开信（回信溯源用）。非 public 一律 404。\n\n纯读：不写 letter_reads、不动 read_count（开信上报走 POST /letters/{id}/read）。",
         "operationId": "read_letter_v1_letters__letter_id__get",
         "parameters": [
           {
@@ -1492,6 +1492,48 @@
           }
         ],
         "summary": "Read Letter",
+        "tags": [
+          "letters"
+        ]
+      }
+    },
+    "/v1/letters/{letter_id}/read": {
+      "post": {
+        "description": "开信上报（收信≠已读）。幂等：首开计一次 read_count，重复开不再计。",
+        "operationId": "mark_letter_read_v1_letters__letter_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Letter Read",
         "tags": [
           "letters"
         ]

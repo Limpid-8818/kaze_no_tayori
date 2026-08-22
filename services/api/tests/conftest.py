@@ -11,6 +11,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.config import get_settings
 from app.core.db import create_engine, get_session
 from app.main import app
 
@@ -20,6 +21,12 @@ async def client() -> AsyncGenerator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture
+def moderation_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """FEATURE_MODERATION=true + 空关键词表 → 新信直接 public（契约允许的开发路径）。"""
+    monkeypatch.setattr(get_settings(), "feature_moderation", True)
 
 
 @pytest.fixture

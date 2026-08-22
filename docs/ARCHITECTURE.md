@@ -41,7 +41,7 @@
 | 模块 | 目录 | 职责 | 降级行为 |
 |---|---|---|---|
 | ① 信服务 | `services/letter_service.py` | 信件存取、状态机、计数自增 | 不可降级（核心） |
-| ① 漂流分发 | `services/drift_service.py` | 随机抽取（排除自己/已读） | 不可降级（核心） |
+| ① 漂流分发 | `services/drift_service.py` | 随机抽取（排除自己/已开封/冷却内送达） | 不可降级（核心） |
 | ① 地理发掘 | `services/discover_service.py` | `ST_DWithin` 附近检索 | 不可降级（核心） |
 | ② 账户服务 | `services/`（薄，逻辑在 `core/security.py`） | 设备绑定、JWT | 不可降级 |
 | ③ 回信与通知 | `services/reply_service.py` | `parent_letter_id` 溯源 + 告知原作者 | 无 owner 的信静默跳过通知 |
@@ -96,10 +96,15 @@
 读者 GET /v1/drift/next
   → WHERE status='public' AND delivery_mode='drift'
       AND (owner_user_id IS NULL OR owner_user_id <> me)
-      AND id NOT IN (SELECT letter_id FROM letter_reads WHERE user_id=me)
+      AND id NOT IN (SELECT letter_id FROM letter_reads WHERE user_id=me
+                     AND (opened_at IS NOT NULL          -- 已开封：永不再现
+                          OR served_at > now()-cooldown)) -- 冷却内：暂不复现
     ORDER BY random() LIMIT 1
-  → 写 letter_reads + read_count+1
+  → 写 letter_reads.served_at（收信去重，不动 read_count）
   → 返回 LetterPublic（无作者字段）
+
+读者打开信纸 POST /v1/letters/{id}/read
+  → letter_reads.opened_at: NULL→now 迁移成功才 read_count+1（幂等，唯一自增点）
 ```
 
 `ORDER BY random()` 在 demo 量级足够（PRD §8.4 要求 <1s）。**禁止引入任何相似度/兴趣加权**——那与赛道「制造一点意外」相悖，也违反 CLAUDE.md 红线 2。

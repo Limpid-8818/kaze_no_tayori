@@ -20,9 +20,16 @@ class LettersApi {
   }
 
   /// 读一封公开信。非 public 一律 404（pending 不泄漏存在性）。
+  /// 纯读无副作用——开信上报另调 [markRead]。
   Future<LetterPublic> get(String letterId) async {
     final json = await _client.getJson('/v1/letters/$letterId');
     return LetterPublic.fromJson(json);
+  }
+
+  /// 开信上报（收信 ≠ 已读）。204；幂等：首开 read_count+1，重复开不再计。
+  /// 信纸真正打开时调用（drift 解开封面 / discover 点开列表项皆然）。
+  Future<void> markRead(String letterId) async {
+    await _client.postJson('/v1/letters/$letterId/read');
   }
 
   /// 举报。204 无 body。

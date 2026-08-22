@@ -3,13 +3,13 @@
 共享云库纪律：自造自清，结束只删自己插的 user 与其信件。
 """
 
+import random
 import uuid
 
 import pytest
 from geoalchemy2 import WKTElement
 from sqlalchemy import delete, func, select
 
-from app.core.config import get_settings
 from app.models.letter import Letter
 from app.models.user import User
 from app.services import moderation_service
@@ -42,12 +42,6 @@ async def _cleanup(session, user_id: str) -> None:  # type: ignore[no-untyped-de
     await session.execute(delete(Letter).where(Letter.owner_user_id == uuid.UUID(user_id)))
     await session.execute(delete(User).where(User.id == uuid.UUID(user_id)))
     await session.commit()
-
-
-@pytest.fixture
-def moderation_on(monkeypatch: pytest.MonkeyPatch) -> None:
-    settings = get_settings()
-    monkeypatch.setattr(settings, "feature_moderation", True)
 
 
 async def test_create_drift_letter_defaults_pending(db_client, db_session):  # type: ignore[no-untyped-def]
@@ -110,10 +104,11 @@ async def test_stay_letter_located_and_readable(  # type: ignore[no-untyped-def]
     db_client, db_session, moderation_on
 ):
     token, user_id = await _make_user(db_client)
-    lon, lat = 139.7671, 35.6812  # 东京站附近
+    # 随机落点，避免与共享库遗留数据撞点
+    lat, lon = round(random.uniform(-60, 60), 6), round(random.uniform(-170, 170), 6)
     resp = await db_client.post(
         "/v1/letters",
-        json=_letter_body(delivery_mode="stay", lat=lat, lon=lon, place_label="东京·车站"),
+        json=_letter_body(delivery_mode="stay", lat=lat, lon=lon, place_label="随机·落点"),
         headers=_auth(token),
     )
     assert resp.status_code == 201
@@ -123,13 +118,13 @@ async def test_stay_letter_located_and_readable(  # type: ignore[no-untyped-def]
     # 落库的是 geography POINT，且能被 ST_DWithin 就地查到（B3 的地基）
     point = WKTElement(f"POINT({lon} {lat})", srid=4326, extended=True)
     found = await db_session.scalar(
-        select(func.count()).select_from(Letter).where(func.ST_DWithin(Letter.location, point, 0))
+        select(Letter.id).where(Letter.id == letter_id, func.ST_DWithin(Letter.location, point, 0))
     )
-    assert found == 1
+    assert str(found) == letter_id
 
     # 公开读 200，且不泄漏坐标
     got = await db_client.get(f"/v1/letters/{letter_id}")
     assert got.status_code == 200
-    assert got.json()["place_label"] == "东京·车站"
+    assert got.json()["place_label"] == "随机·落点"
     assert "lat" not in got.json() and "lon" not in got.json()
     await _cleanup(db_session, user_id)

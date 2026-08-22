@@ -1,14 +1,17 @@
 """信服务（模块①）：信件存取、状态机、计数自增。"""
 
+from typing import Any, cast
 from uuid import UUID
 
 from geoalchemy2 import WKTElement
-from sqlalchemy import select
+from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import LetterNotFound, StayRequiresLocation
 from app.models.enums import LetterStatus
 from app.models.letter import Letter
+from app.models.letter_read import LetterRead
 from app.schemas.letter import LetterCreate
 from app.services import moderation_service
 
@@ -61,6 +64,52 @@ async def get_public_letter(session: AsyncSession, letter_id: UUID) -> Letter:
     if letter is None:
         raise LetterNotFound("信不存在或尚未漂到公开水域")
     return letter
+
+
+async def mark_read(session: AsyncSession, letter_id: UUID, user_id: UUID) -> None:
+    """开信标记（POST /v1/letters/{id}/read）。read_count 的唯一自增点。
+
+    收信 ≠ 已读：drift 抽取只写 served_at；此处才写 opened_at 并计数。
+    幂等：首开（drift 路径已 served / discover 路径无记录）计数一次，
+    重复开信不再计。非 public 抛 LetterNotFound。
+    """
+    await get_public_letter(session, letter_id)
+
+    # discover 路径没有 served 行：直接插入已开信行 → rowcount=1 计数
+    # （Result 运行时是 CursorResult，mypy 看不到 rowcount，cast 收口）
+    inserted = cast(
+        CursorResult[Any],
+        await session.execute(
+            pg_insert(LetterRead)
+            .values(letter_id=letter_id, user_id=user_id, opened_at=func.now())
+            .on_conflict_do_nothing()
+        ),
+    )
+    if inserted.rowcount == 1:
+        await _bump_read_count(session, letter_id)
+        return
+
+    # drift 路径：行已存在（served 未开）→ NULL→now 迁移成功才计数
+    transitioned = cast(
+        CursorResult[Any],
+        await session.execute(
+            update(LetterRead)
+            .where(
+                LetterRead.letter_id == letter_id,
+                LetterRead.user_id == user_id,
+                LetterRead.opened_at.is_(None),
+            )
+            .values(opened_at=func.now())
+        ),
+    )
+    if transitioned.rowcount == 1:
+        await _bump_read_count(session, letter_id)
+
+
+async def _bump_read_count(session: AsyncSession, letter_id: UUID) -> None:
+    await session.execute(
+        update(Letter).where(Letter.id == letter_id).values(read_count=Letter.read_count + 1)
+    )
 
 
 async def list_owned_letters(

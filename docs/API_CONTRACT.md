@@ -71,9 +71,12 @@
 |---|---|
 | letter_id | UUID FK letters |
 | user_id | UUID FK users |
-| read_at | timestamptz |
+| served_at | timestamptz（drift 抽取送达时间） |
+| opened_at | timestamptz NULL（开信时间，NULL = 收到未开封） |
 
 PK `(letter_id, user_id)`。**PRD 未列，是 6.3「未读过」需求的必需推导实体**（见第 5 节）。
+一行两层语义（**收信 ≠ 已读**）：`served_at` 服务于「不重复给同一个人同一封信」的
+冷却去重；`opened_at` 服务于 discover 已开封过滤与 `read_count` 计数。
 
 ### resonance_logs
 `id UUID PK` · `letter_id FK` · `user_id FK` · `note varchar(30) NULL` · `created_at`
@@ -190,21 +193,28 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ### 随机漂流（PRD 6.3）
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/v1/drift/next` | 抽一封非自己发、未读过的 public+drift 信。返回 `LetterPublic`；池空返回 `404 drift_pool_empty` |
+| GET | `/v1/drift/next` | 抽一封非自己发、未被占用的 public+drift 信。返回 `LetterPublic`；池空返回 `404 drift_pool_empty` |
 
-副作用：写 `letter_reads` + `read_count+1`。**纯随机，禁止任何加权。**
+副作用：只写 `letter_reads.served_at`（送达去重），**不动 `read_count`**。
+排除条件：已开封（永不再现）或冷却期内（`DRIFT_SERVE_COOLDOWN_S`，默认 3600s）送达过——
+被丢弃的未开封信在冷却后回到池里，未来仍可漂来。**纯随机，禁止任何加权。**
 
 ### 就地发掘（PRD 6.4）
 | 方法 | 路径 | 说明 |
-|---|---|---|
+|---|---|
 | GET | `/v1/discover?lat=&lon=&radius_m=` | `ST_DWithin` 检索附近 public+stay 信。`radius_m` 默认取 `DISCOVER_RADIUS_M`（1000） |
 
 响应 `{"items": [LetterPublic...], "next_cursor": null}`，按 `created_at DESC`。
+不返回 viewer 已开封的信（`opened_at` 非空即过滤）。
 
 ### 阅读
 | 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/v1/letters/{id}` | 读单封 public 信（回信溯源用）。非 public 返回 404 |
+|---|---|
+| GET | `/v1/letters/{id}` | 读单封 public 信（回信溯源用）。非 public 返回 404。纯读，无副作用 |
+| POST | `/v1/letters/{id}/read` | 开信上报（收信≠已读）。204；幂等：首开 `read_count+1`，重复开不再计。非 public 返回 404 |
+
+前端在信纸真正打开时调用（drift 解开封面 / discover 点开列表项皆然）。
+`read_count` 全链路唯一自增点。
 
 ### 回信（PRD 6.5）
 | 方法 | 路径 | 说明 |
@@ -273,7 +283,7 @@ P0 只做拉取，不做推送。
 
 | # | 偏差 | 原因 |
 |---|---|---|
-| 1 | 新增 `letter_reads` 表 | PRD 6.3 要求抽「未读过」的信，`read_count` 只是聚合值无法判断个体已读。这是需求的必然推导。 |
+| 1 | 新增 `letter_reads` 表（served_at + opened_at） | PRD 6.3 要求抽「未读过」的信，`read_count` 只是聚合值无法判断个体已读。收信≠已读拆分后，served_at 服务送达去重、opened_at 服务开信计数与 discover 过滤。 |
 | 2 | `LetterPublic` 不返回精确坐标，只返回 `place_label` | PRD §8.1「位置可控/可模糊到城市级」。精确坐标外泄可反查作者活动位置，与匿名精神冲突。`LetterOwned` 里本人可见。 |
 | 3 | 新增 `POST /v1/letters/{id}/report` | PRD 8.2 要求举报入口，但 §9 未列实体。按最小实现落一张 `reports` 表。 |
 | 4 | 导出图片无后端接口 | PRD 6.11 的渲染在 Flutter 端用 `RepaintBoundary` 完成，无需服务端。 |

@@ -42,10 +42,11 @@
 - ⚠️ 开发期让信能进 public 的唯一合规路径是 `FEATURE_MODERATION=true` + 空关键词表（通过→PUBLIC 是契约允许的）
 
 ### B3 · 收信双入口（1 天）
-- [ ] `drift_service.draw_next`：`ORDER BY random()` + 排除自己/已读（子查询 letter_reads）+ 副作用写 reads 与 read_count
-- [ ] `discover_service.discover_nearby`：ST_DWithin + GiST，按 created_at DESC（不按热度）
-- [ ] `@pytest.mark.db` 测试：已读过滤、池空 404 drift_pool_empty、半径边界
-- **验收**：同一 user 连抽不重复；抽完自己发的信后池空报 404
+- [x] `drift_service.draw_next`：`ORDER BY random()` + 排除自己/已开封/冷却内送达（子查询 letter_reads）+ 副作用只写 served_at 去重（**收信≠已读**）
+- [x] `letter_reads` 语义拆分：`read_at` → `served_at` + `opened_at`（迁移 3e7dce148beb）；`POST /v1/letters/{id}/read` 开信上报 = read_count 唯一自增点
+- [x] `discover_service.discover_nearby`：ST_DWithin + GiST，按 created_at DESC（不按热度），过滤 viewer 已开封信
+- [x] `@pytest.mark.db` 测试：已开封过滤、池空 404 drift_pool_empty、半径边界、弃信冷却后回池、幂等计数
+- **验收**：同一 user 连抽不重复（冷却内）；丢弃未开封信冷却后可重抽；抽完自己发的信后池空报 404；开信计数恰好一次
 
 ### B4 · 互动与回信（1 天）
 - [ ] `resonate`：ON CONFLICT DO NOTHING 幂等，note 时 voice_count+1，只回计数

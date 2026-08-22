@@ -30,9 +30,18 @@ async def create_letter(
 
 @router.get("/letters/{letter_id}", response_model=LetterPublic)
 async def read_letter(letter_id: UUID, session: Session, user_id: OptionalUser) -> LetterPublic:
-    """读单封公开信（回信溯源用）。非 public 一律 404。"""
+    """读单封公开信（回信溯源用）。非 public 一律 404。
+
+    纯读：不写 letter_reads、不动 read_count（开信上报走 POST /letters/{id}/read）。
+    """
     letter = await letter_service.get_public_letter(session, letter_id)
     return LetterPublic.from_letter(letter)
+
+
+@router.post("/letters/{letter_id}/read", status_code=204)
+async def mark_letter_read(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
+    """开信上报（收信≠已读）。幂等：首开计一次 read_count，重复开不再计。"""
+    await letter_service.mark_read(session, letter_id, user_id)
 
 
 @router.post("/letters/{letter_id}/report", status_code=204)
