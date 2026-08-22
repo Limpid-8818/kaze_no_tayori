@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from app.core.deps import CurrentUser, Session
 from app.schemas.common import ResonanceRequest, ResonanceResponse
+from app.services import resonance_service
 
 router = APIRouter(tags=["resonance"])
 
@@ -23,4 +24,5 @@ async def resonate(
     幂等：同一人重复调用返回 200 且不重复计数（uq_resonance_once 保证）。
     可选附 ≤30 字匿名短句。
     """
-    raise NotImplementedError
+    count = await resonance_service.resonate(session, letter_id, user_id, payload.note)
+    return ResonanceResponse(resonance_count=count)

@@ -4,13 +4,15 @@
 原作者只是「获知」，不是收件人，也无法回复。禁止在此之上建 DM / conversation / thread。
 """
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.core.deps import CurrentUser, OptionalUser, Session
 from app.schemas.common import Page
 from app.schemas.letter import LetterCreate, LetterOwned, LetterPublic
+from app.services import reply_service
 
 router = APIRouter(tags=["replies"])
 
@@ -26,12 +28,17 @@ async def create_reply(
     - 原信 owner_user_id 非空 → 插入 Notification(type=reply)
     - 原信无 owner（纯过客所写）→ 静默跳过通知，回信照样公开
     """
-    raise NotImplementedError
+    reply = await reply_service.create_reply(session, letter_id, payload, owner_user_id=user_id)
+    return LetterOwned.from_letter(reply, lat=payload.lat, lon=payload.lon)
 
 
 @router.get("/letters/{letter_id}/replies", response_model=Page[LetterPublic])
 async def list_replies(
-    letter_id: UUID, session: Session, user_id: OptionalUser
+    letter_id: UUID,
+    session: Session,
+    user_id: OptionalUser,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[LetterPublic]:
     """该信的公开回信列表，形成弱链接作品链。"""
-    raise NotImplementedError
+    letters = await reply_service.list_replies(session, letter_id, limit)
+    return Page(items=[LetterPublic.from_letter(x) for x in letters], next_cursor=None)

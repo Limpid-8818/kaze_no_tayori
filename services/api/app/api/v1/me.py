@@ -11,6 +11,7 @@ from fastapi import APIRouter, Query
 from app.core.deps import CurrentUser, Session
 from app.schemas.common import NotificationPublic, Page, ScripbookAddRequest
 from app.schemas.letter import LetterOwned, LetterPublic
+from app.services import notification_service
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -63,12 +64,25 @@ async def my_notifications(
     unread_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[NotificationPublic]:
-    """回信告知列表。P0 只做拉取，不做推送。"""
-    raise NotImplementedError
+    """回信告知列表。P0 只做拉取，不做推送（前端：开页拉取 + 回前台拉 unread_only）。"""
+    rows = await notification_service.list_notifications(session, user_id, unread_only, limit)
+    items = [
+        NotificationPublic(
+            id=str(n.id),
+            type=n.type,
+            letter_id=str(n.letter_id),
+            parent_letter_id=str(n.parent_letter_id),
+            parent_place_label=place_label,
+            is_read=n.is_read,
+            created_at=n.created_at.isoformat(),
+        )
+        for n, place_label in rows
+    ]
+    return Page(items=items, next_cursor=None)
 
 
 @router.post("/notifications/{notification_id}/read", status_code=204)
 async def mark_notification_read(
     notification_id: UUID, session: Session, user_id: CurrentUser
 ) -> None:
-    raise NotImplementedError
+    await notification_service.mark_read(session, user_id, notification_id)

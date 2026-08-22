@@ -1553,6 +1553,18 @@
               "title": "Letter Id",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -1647,7 +1659,7 @@
     },
     "/v1/letters/{letter_id}/report": {
       "post": {
-        "description": "举报（PRD §8.2）。入库待人工处理。",
+        "description": "举报（PRD §8.2）。入库待人工处理。匿名可举报（reporter 置空）。",
         "operationId": "report_letter_v1_letters__letter_id__report_post",
         "parameters": [
           {
@@ -1851,7 +1863,7 @@
     },
     "/v1/me/notifications": {
       "get": {
-        "description": "回信告知列表。P0 只做拉取，不做推送。",
+        "description": "回信告知列表。P0 只做拉取，不做推送（前端：开页拉取 + 回前台拉 unread_only）。",
         "operationId": "my_notifications_v1_me_notifications_get",
         "parameters": [
           {

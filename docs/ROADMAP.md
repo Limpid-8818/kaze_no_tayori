@@ -49,14 +49,15 @@
 - **验收**：同一 user 连抽不重复（冷却内）；丢弃未开封信冷却后可重抽；抽完自己发的信后池空报 404；开信计数恰好一次
 
 ### B4 · 互动与回信（1 天）
-- [ ] `resonate`：ON CONFLICT DO NOTHING 幂等，note 时 voice_count+1，只回计数
-- [ ] `reply_service.create_reply`：复用 create_letter + parent 预置 + 原信 reply_count+1 + owner 非空插 Notification（为空静默）
-- [ ] `GET /letters/{id}/replies` 公开回信列表；`report` 入库
+- [x] `resonate`：ON CONFLICT DO NOTHING 幂等，note 时 voice_count+1，只回计数
+- [x] `reply_service.create_reply`：复用 create_letter + parent 预置 + 原信 reply_count+1 + owner 非空插 Notification（为空静默）
+- [x] `GET /letters/{id}/replies` 公开回信列表；`report` 入库
+- [x] 通知端点**提前实装**（原属 B5）：`GET /me/notifications`（JOIN 原信取地名）+ 已读标记；实现方式定为**前端拉取**（开页拉取 + 回前台拉 unread_only），不做推送
 - **验收**：重复共鸣计数不变；回信后原信作者通知出现，纯过客信无通知不报错
 
 ### B5 · me 全家桶（0.5 天）
 - [ ] 我的信（LetterOwned，含 pending）/ 下架（taken_down，非硬删）
-- [ ] 抄本 add/remove/list（saved_count 增减）；通知列表 + 已读标记
+- [ ] 抄本 add/remove/list（saved_count 增减）；~~通知列表 + 已读标记~~（已随 B4 提前实装）
 - **验收**：LetterOwned 仅出现在 /v1/me/*（test_anonymity 持续绿）
 
 ### B6 · 种子与端到端（0.5 天）
@@ -110,7 +111,7 @@
 
 ### F4 · 回信 + 通知（0.5–1 天）
 - [ ] 回信复用写信流（router 已留 `?parent=`），入口文案「回以一封信」，写完同样选留/投
-- [ ] notifications 列表 + 已读 + 点击跳公开回信
+- [ ] notifications 列表 + 已读 + 点击跳公开回信；拉取策略：开通知页拉一次 + App 回前台静默拉 `unread_only=true`（不做定时轮询、不建推送基建——契约「P0 只做拉取」）
 - **验收**：回信发布后，原信作者设备上出现告知并能读到回信
 
 ### F5 · 我的信 + 抄本（0.5 天）

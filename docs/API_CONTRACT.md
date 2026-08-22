@@ -220,7 +220,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/v1/letters/{id}/replies` | body 同创建信。新建独立信件，`parent_letter_id={id}` |
-| GET | `/v1/letters/{id}/replies` | 该信的公开回信列表 |
+| GET | `/v1/letters/{id}/replies` | 该信的公开回信列表（`limit` 1–50，默认 20） |
 
 副作用：原信 `reply_count+1`；原信 owner 非空则插 `Notification`，为空则静默跳过（回信照样公开）。
 

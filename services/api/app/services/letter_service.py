@@ -12,12 +12,16 @@ from app.core.errors import LetterNotFound, StayRequiresLocation
 from app.models.enums import LetterStatus
 from app.models.letter import Letter
 from app.models.letter_read import LetterRead
+from app.models.report import Report
 from app.schemas.letter import LetterCreate
 from app.services import moderation_service
 
 
 async def create_letter(
-    session: AsyncSession, payload: LetterCreate, owner_user_id: UUID | None
+    session: AsyncSession,
+    payload: LetterCreate,
+    owner_user_id: UUID | None,
+    parent_letter_id: UUID | None = None,
 ) -> Letter:
     """建信。
 
@@ -25,6 +29,7 @@ async def create_letter(
     - delivery_mode=stay 时 lat/lon 必填，写入 location（geography POINT 4326）
     - 走审核（moderation_service）决定 status；审核不可用时停在 pending
     - theme 写入后永久绑定，后续不得批量迁移
+    - parent_letter_id 仅由 service 预置（回信场景），schema 不接受客户端直传
     """
     location: WKTElement | None = None
     if payload.delivery_mode == "stay":
@@ -46,7 +51,7 @@ async def create_letter(
         delivery_mode=payload.delivery_mode,
         status=await moderation_service.moderate([b.model_dump() for b in payload.blocks]),
         owner_user_id=owner_user_id,
-        parent_letter_id=None,
+        parent_letter_id=parent_letter_id,
     )
     session.add(letter)
     await session.flush()
@@ -108,8 +113,34 @@ async def mark_read(session: AsyncSession, letter_id: UUID, user_id: UUID) -> No
 
 async def _bump_read_count(session: AsyncSession, letter_id: UUID) -> None:
     await session.execute(
-        update(Letter).where(Letter.id == letter_id).values(read_count=Letter.read_count + 1)
+        update(Letter)
+        .where(Letter.id == letter_id)
+        .values(read_count=Letter.read_count + 1)
+        .execution_options(synchronize_session=False)
     )
+
+
+async def create_report(
+    session: AsyncSession,
+    letter_id: UUID,
+    reporter_user_id: UUID | None,
+    reason: str,
+    detail: str | None,
+) -> None:
+    """举报入库（PRD §8.2）。reporter 可空 = 匿名举报。
+
+    先走 public 守卫：对非 public 信举报同样 404，不泄漏存在性。
+    """
+    await get_public_letter(session, letter_id)
+    session.add(
+        Report(
+            letter_id=letter_id,
+            reporter_user_id=reporter_user_id,
+            reason=reason,
+            detail=detail,
+        )
+    )
+    await session.flush()
 
 
 async def list_owned_letters(

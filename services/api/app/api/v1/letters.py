@@ -48,5 +48,7 @@ async def mark_letter_read(letter_id: UUID, session: Session, user_id: CurrentUs
 async def report_letter(
     letter_id: UUID, payload: ReportRequest, session: Session, user_id: OptionalUser
 ) -> None:
-    """举报（PRD §8.2）。入库待人工处理。"""
-    raise NotImplementedError
+    """举报（PRD §8.2）。入库待人工处理。匿名可举报（reporter 置空）。"""
+    await letter_service.create_report(
+        session, letter_id, reporter_user_id=user_id, reason=payload.reason, detail=payload.detail
+    )
