@@ -11,6 +11,7 @@ from app.api.v1 import (
     catalog,
     discover,
     drift,
+    geo,
     letters,
     me,
     replies,
@@ -32,3 +33,4 @@ api_router.include_router(ai.router)
 api_router.include_router(uploads.router)
 api_router.include_router(catalog.router)
 api_router.include_router(weather.router)
+api_router.include_router(geo.router)

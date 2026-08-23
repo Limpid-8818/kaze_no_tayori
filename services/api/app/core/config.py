@@ -66,6 +66,7 @@ class Settings(BaseSettings):
 
     feature_geocode: bool = False
     amap_key: str = ""
+    amap_api_host: str = "https://restapi.amap.com"
 
     # ---------- 图片存储 ----------
     storage_backend: Literal["local", "s3"] = "local"
