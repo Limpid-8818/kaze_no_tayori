@@ -30,10 +30,33 @@ async def client() -> AsyncGenerator[AsyncClient]:
         yield ac
 
 
+@pytest.fixture(autouse=True)
+def offline_feature_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    """测试默认关闭外部 LLM 依赖，避免 .env 打开 flag 后单测打真实接口。
+
+    moderation_on 等显式 fixture 后执行，仍可覆盖为 True。
+    DB 测试中 test_db_schema 的 cache_clear() 会在该函数内重新应用默认值。
+    """
+    monkeypatch.setattr(get_settings(), "feature_moderation", False)
+    monkeypatch.setattr(get_settings(), "feature_ai", False)
+
+
+async def approve_llm(text: str):
+    """LLM 审核替身：一律判合规。"""
+    from app.models.enums import LetterStatus
+
+    return LetterStatus.PUBLIC
+
+
 @pytest.fixture
 def moderation_on(monkeypatch: pytest.MonkeyPatch) -> None:
-    """FEATURE_MODERATION=true + 空关键词表 → 新信直接 public（契约允许的开发路径）。"""
+    """FEATURE_MODERATION=true + LLM mock 为 APPROVED → 新信直接 public。
+
+    LLM 审核接入后，「空关键词表=全过」不再成立，必须显式 mock LLM 判定，
+    避免 DB 测试打真实外部接口。
+    """
     monkeypatch.setattr(get_settings(), "feature_moderation", True)
+    monkeypatch.setattr("app.services.moderation_service._moderate_by_llm", approve_llm)
 
 
 @pytest.fixture
@@ -49,6 +72,9 @@ async def test_db_schema(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[str]
     get_settings.cache_clear()
 
     settings = get_settings()
+    # cache_clear 重建实例后重新应用离线默认值（.env 里 flag 已打开）
+    settings.feature_moderation = False
+    settings.feature_ai = False
     dev_schema = settings.db_schema
     # 从 dev_<name> 推导 test_<name>
     if dev_schema.startswith("dev_"):

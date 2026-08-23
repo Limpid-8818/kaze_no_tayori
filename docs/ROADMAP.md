@@ -75,8 +75,8 @@
 ### B7 · 可降级模块真实接入（P1，按余量插空）
 - [x] weather（QWeather 等）—— 内存缓存（TTL 10min）+ geo 降级 + X-QW-Api-Key 鉴权，失败返回 None
 - [x] 逆地理（高德）—— `GET /v1/geo/reverse`，内存缓存（TTL 1h）+ 隐私截断（省市区，直辖市保留区级），失败返回 None，由用户手填 place_label
-- [ ] AI 润色/短诗（OpenAI 兼容接口）—— 失败抛 FeatureDisabled
-- [ ] LLM 审核分类接入 moderation；S3/minio 存储（infra 已备）
+- [x] AI 润色/短诗（OpenAI 兼容接口）—— 失败抛 FeatureDisabled
+- [x] LLM 审核分类接入 moderation；S3/minio 存储（infra 已备，S3 未接）
 - 每项接完必须重验关闭分支
 
 **后端 P0 合计约 5 人日。**
