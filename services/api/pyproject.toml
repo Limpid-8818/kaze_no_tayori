@@ -60,6 +60,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "migrations/*" = ["E501", "I001"]
 "tests/*" = ["E501"]
+# 种子信是整段散文，硬折行伤可读性
+"scripts/*" = ["E501"]
 
 # ---------------- mypy ----------------
 [tool.mypy]

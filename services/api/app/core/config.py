@@ -58,7 +58,6 @@ class Settings(BaseSettings):
     feature_moderation: bool = False
 
     feature_weather: bool = False
-    weather_api_key: str = ""
 
     # ---------- 天气（和风天气 QWeather）----------
     weather_api_key: str = ""

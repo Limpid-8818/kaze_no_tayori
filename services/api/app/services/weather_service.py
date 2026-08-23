@@ -42,7 +42,7 @@ def _cache_set(location_id: str, weather: Weather) -> None:
 
 # ---------- QWeather 映射 ----------
 
-_ICON_MAP: dict[str, str] = {
+_ICON_MAP: dict[str, list[str]] = {
     "sunny": ["晴"],
     "cloudy": ["云", "阴"],
     "rainy": ["雨", "雪", "雹", "雾", "霾"],
@@ -141,7 +141,7 @@ async def fetch_weather(lat: float, lon: float) -> Weather | None:
 
     # 3. 构建查询参数
     # 有 LocationID 时用它（更精确、可缓存），否则降级用 lat,lon
-    location_param = location_id if use_location_id else f"{lon},{lat}"
+    location_param = location_id if use_location_id and location_id is not None else f"{lon},{lat}"
 
     # 4. 调 QWeather
     try:

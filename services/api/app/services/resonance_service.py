@@ -75,10 +75,13 @@ async def add_to_scripbook(
 
 async def remove_from_scripbook(session: AsyncSession, letter_id: UUID, user_id: UUID) -> None:
     """从抄本移除，saved_count - 1（不小于 0）。"""
-    result = await session.execute(
-        delete(ScripbookEntry).where(
-            ScripbookEntry.user_id == user_id, ScripbookEntry.letter_id == letter_id
-        )
+    result = cast(
+        CursorResult,
+        await session.execute(
+            delete(ScripbookEntry).where(
+                ScripbookEntry.user_id == user_id, ScripbookEntry.letter_id == letter_id
+            )
+        ),
     )
     if result.rowcount == 1:
         await session.execute(

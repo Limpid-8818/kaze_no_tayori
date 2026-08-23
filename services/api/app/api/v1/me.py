@@ -24,8 +24,8 @@ async def my_letters(
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[LetterOwned]:
     """我写下的信，含审核中（pending）的。"""
-    letters = await letter_service.list_owned_letters(session, user_id, limit)
-    items = [LetterOwned.from_letter(letter, lat=letter.lat, lon=letter.lon) for letter in letters]
+    rows = await letter_service.list_owned_letters(session, user_id, limit)
+    items = [LetterOwned.from_letter(letter, lat=lat, lon=lon) for letter, lon, lat in rows]
     return Page(items=items, next_cursor=None)
 
 

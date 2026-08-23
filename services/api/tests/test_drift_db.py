@@ -46,7 +46,16 @@ async def actors(db_client: Any, db_session: AsyncSession) -> AsyncGenerator[dic
     """writer（写信人）+ reader（收信人），teardown 统一清理其用户与信件。
 
     清理走 db_session（每测试独立引擎）——模块级 SessionLocal 跨事件循环会炸。
+    测试环境（schema 以 test_ 开头）下，测试开始前清掉种子信，保证池子干净；
+    开发环境（dev_ 等）不清，保留种子信作为冷启动演示数据。
     """
+    # 只在测试 schema 下清种子信，避免影响 dev 环境的演示数据
+    from app.core.config import get_settings
+
+    if get_settings().db_schema.startswith("test_"):
+        await db_session.execute(delete(Letter).where(Letter.owner_user_id.is_(None)))
+        await db_session.commit()
+
     writer_token, writer = await _make_user(db_client)
     reader_token, reader = await _make_user(db_client)
     yield {

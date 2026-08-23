@@ -32,8 +32,14 @@ config.set_main_option("sqlalchemy.url", settings.database_url_sync)
 
 target_metadata = Base.metadata
 
-# 共享云库靠 per-developer schema 隔离，每个 schema 有自己的 alembic_version
-VERSION_TABLE_SCHEMA = settings.db_schema if settings.db_schema != "public" else None
+
+def _get_version_table_schema() -> str | None:
+    """动态获取 version table schema，支持测试环境 monkeypatch。
+
+    原来在 module-level 固化，测试时 monkeypatch settings.db_schema 不生效。
+    """
+    schema = get_settings().db_schema
+    return schema if schema != "public" else None
 
 
 def _configure_kwargs() -> dict[str, object]:
@@ -41,7 +47,7 @@ def _configure_kwargs() -> dict[str, object]:
         "target_metadata": target_metadata,
         "compare_type": True,
         "compare_server_default": True,
-        "version_table_schema": VERSION_TABLE_SCHEMA,
+        "version_table_schema": _get_version_table_schema(),
         "include_schemas": True,
         # ↓ GeoAlchemy2 三件套，缺一不可
         "include_object": alembic_helpers.include_object,
@@ -70,9 +76,10 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         # 确保自己的 schema 存在并置于 search_path 首位
-        if VERSION_TABLE_SCHEMA:
-            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{VERSION_TABLE_SCHEMA}"'))
-            connection.execute(text(f'SET search_path TO "{VERSION_TABLE_SCHEMA}", public'))
+        version_schema = _get_version_table_schema()
+        if version_schema:
+            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{version_schema}"'))
+            connection.execute(text(f'SET search_path TO "{version_schema}", public'))
             connection.commit()
 
         context.configure(connection=connection, **_configure_kwargs())  # type: ignore[arg-type]

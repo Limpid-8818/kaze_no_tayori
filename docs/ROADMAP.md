@@ -5,6 +5,9 @@
 >
 > 现状基线（2026-08-20）：骨架完备、契约冻结（openapi.json 已导出）、质量关卡全绿；
 > 全部 endpoint 与 service 是带契约注释的 stub，**初始迁移与 .env 未生成**。
+>
+> 更新（2026-08-23）：后端 B0–B6 全部完成、B7 已接 weather/geo（`make check` 与 `make check-db` 全绿）；
+> DB 测试已迁移到独立 `test_<name>` schema，与 dev schema 完全隔离。前端 F1 起未动。
 
 ---
 
@@ -61,10 +64,13 @@
 - **验收**：LetterOwned 仅出现在 /v1/me/*（test_anonymity 持续绿）
 
 ### B6 · 种子与端到端（0.5 天）
-- [ ] `seed_letters.py` 实装：upsert themes/tags + 插种子信（drift/stay 都有、带 place_label/weather、无 owner、直接 public）
-- [ ] 种子信文案：**待用户/团队提供**（PRD 6.14 明确待定）
-- [ ] PRD §11 双路径的 API 层版本用 curl 走通
-- **验收**：空库 `make seed` 后，drift 能抽到、固定坐标能掘到
+- [x] `seed_letters.py` 实装：upsert themes/tags + 插种子信（drift/stay 都有、带 place_label/weather、无 owner、直接 public）
+- [x] 种子信文案：初版 12 封（drift 8 / stay 4，国内坐标、简体中文地名）已定并灌入，文案可随运营迭代
+- [x] PRD §11 双路径的 API 层版本走通（ASGI 测试覆盖：drift 抽取链 + discover 发掘链）
+- [x] **验收**：`make seed` 后 drift 池 8 封可抽；厦门种子坐标 1km discover 掘到 stay 信（2026-08-23 实测）
+- 附带完成：DB 测试隔离改造（tests/conftest.py）——每个 db 测试独立 `test_<name>` schema
+  （create_all 建表 + 测试后 DROP CASCADE），不再写 dev schema；测试内清种子信带 `test_` 前缀守卫，
+  dev 演示数据不受影响。发现并修复：早前测试清理曾误删 dev 种子信，已重灌。
 
 ### B7 · 可降级模块真实接入（P1，按余量插空）
 - [x] weather（QWeather 等）—— 内存缓存（TTL 10min）+ geo 降级 + X-QW-Api-Key 鉴权，失败返回 None
@@ -162,11 +168,12 @@ B0 → B1 → B2 → F0 → F1 →(J1)→ B3 → B4 → F2 → F3 →(J2)→ B5 
 | # | 项 | 影响 | 对策 |
 |---|---|---|---|
 | 1 | `.env` 未配置，云库连接串未落 | **阻塞 B0，即阻塞一切 DB 工作** | 最优先向用户要连接串 |
-| 2 | 种子信文案待定（PRD 6.14） | 阻塞 B6 冷启动演示 | D5 前向团队征集，10–20 封、drift/stay 各半 |
+| 2 | ~~种子信文案待定~~（已解决：初版 12 封于 B6 灌入） | — | 后续按运营反馈迭代文案即可 |
 | 3 | FEATURE_MODERATION 关闭时信停在 pending，演示时「信发不出去」 | demo 体验 | 开发期 `FEATURE_MODERATION=true` + 空关键词表；LLM 审核接入后再收紧 |
 | 4 | ApiClient 未验证 204 空 body | F0 一并处理 | postJson 对空响应返回 `{}` |
 | 5 | cursor 分页未实现（next_cursor 恒 null） | demo 量级无影响 | 契约已留字段，不额外投入 |
 | 6 | 共享库多人同时 `make revision` | 迁移链分叉 | 改 schema 前 `git pull`（CLAUDE.md §6 已立规） |
+| 7 | 迁移文件硬编码 `schema="dev_limpid"` | 其他开发者/CI 跑 `make migrate` 会把表建进 dev_limpid；db 测试已绕行 create_all，模型↔迁移的漂移不被测试捕获 | 待办：迁移去 schema 化（依赖 search_path）或按开发者重生成初始迁移；做 CI 前必须解决 |
 
 ---
 
