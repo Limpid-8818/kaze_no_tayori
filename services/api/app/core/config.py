@@ -69,10 +69,12 @@ class Settings(BaseSettings):
 
     # ---------- 图片存储 ----------
     storage_backend: Literal["local", "s3"] = "local"
-    s3_endpoint: str = ""
+    s3_endpoint: str = ""  # 七牛 S3 兼容端点，如 s3.cn-east-1.qiniucs.com
     s3_bucket: str = ""
     s3_access_key: str = ""
     s3_secret_key: str = ""
+    s3_public_url: str = ""
+    # 公开访问前缀（如 https://cdn.example.com）；留空自动拼 bucket.endpoint
 
     @property
     def cors_origin_list(self) -> list[str]:

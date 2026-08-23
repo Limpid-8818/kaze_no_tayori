@@ -19,6 +19,7 @@ dependencies = [
     "shapely==2.1.2",
     "httpx==0.28.1",
     "openai==3.3.1",
+    "boto3>=1.35,<2",
 ]
 
 [dependency-groups]
@@ -73,7 +74,7 @@ no_implicit_optional = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["geoalchemy2.*", "shapely.*", "alembic.*", "asyncpg.*"]
+module = ["geoalchemy2.*", "shapely.*", "alembic.*", "asyncpg.*", "boto3.*", "botocore.*"]
 ignore_missing_imports = true
 
 # ---------------- pytest ----------------

@@ -36,7 +36,7 @@
 - **验收**：curl 用 device_id 换到 JWT；`GET /v1/themes` 返回 natsu
 
 ### B2 · 写信链路（1 天）
-- [x] `storage_service`：Pillow 压缩（长边 1600 / JPEG ~82）+ 本地落盘 → `POST /v1/uploads/images`
+- [x] `storage_service`：Pillow 压缩（长边 1600 / JPEG ~82）+ 本地落盘 + 七牛 Kodo S3 兼容上传 → `POST /v1/uploads/images`；S3 失败自动降级本地
 - [x] `moderation_service` 最小实现：**纯关键词表**。`FEATURE_MODERATION=true` + 未命中 → PUBLIC；关闭/失败 → PENDING（红线 8）
 - [x] `letter_service.create_letter`：stay 时 lat/lon 必填校验、`ST_MakePoint`、`theme_id` + `theme_skin` 一次写入永久绑定
 - [x] blocks 应用层校验：最少 1 块、最多 20 块、照片 ≤3 张（契约不建 DB CHECK）；tags 存 id 还是 name 待定（契约列说明为 id，示例为 name，实装前定夺）→ **已定夺：存 id，契约示例已同步**
@@ -76,7 +76,7 @@
 - [x] weather（QWeather 等）—— 内存缓存（TTL 10min）+ geo 降级 + X-QW-Api-Key 鉴权，失败返回 None
 - [x] 逆地理（高德）—— `GET /v1/geo/reverse`，内存缓存（TTL 1h）+ 隐私截断（省市区，直辖市保留区级），失败返回 None，由用户手填 place_label
 - [x] AI 润色/短诗（OpenAI 兼容接口）—— 失败抛 FeatureDisabled
-- [x] LLM 审核分类接入 moderation；S3/minio 存储（infra 已备，S3 未接）
+- [x] LLM 审核分类接入 moderation；七牛 Kodo S3 兼容存储已接入（降级本地）
 - 每项接完必须重验关闭分支
 
 **后端 P0 合计约 5 人日。**
