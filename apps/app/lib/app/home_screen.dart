@@ -12,6 +12,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:natsu_no_tegami/natsu_no_tegami.dart';
+
 import '../core/day_period.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -168,8 +170,8 @@ class _HomeEntryCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      // 卡主题已带圆角与纸缘描边；透明底让天空环境透进来
-      color: Colors.transparent,
+      // 暖白纸面底：与页面天空渐变形成冷暖对比
+      color: NatsuColors.envelope,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

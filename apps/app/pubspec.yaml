@@ -52,6 +52,12 @@ dependencies:
   natsu_no_tegami:
     path: ../../packages/natsu_no_tegami
 
+  # 用户偏好存储（纯前端 key-value，不存敏感信息）
+  shared_preferences: ^2.3.0
+
+  # 读取应用版本号用于设置页展示
+  package_info_plus: ^10.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

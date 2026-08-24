@@ -161,6 +161,9 @@ abstract final class KazeColors {
 
   /// 图标井底色 — skyTop 35% 透明（画布 Home 入口卡 48×48 IconBg）
   static const Color iconWell = Color(0x59C9E2F2);
+
+  /// 暖白纸面底 — 入口卡等浅色表面（信封/禁用底同源）
+  static const Color envelope = NatsuColors.envelope;
 }
 
 /// Home 画布（夏の手紙 v2 · Screen/Home）的结构尺寸 — 非间距刻度，
