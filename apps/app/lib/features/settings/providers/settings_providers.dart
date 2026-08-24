@@ -24,6 +24,12 @@ class ThemeSyncNotifier extends Notifier<bool> {
   @override
   bool build() => false;
 
+  /// 冷启动加载：从 Repository 读持久化值覆写默认值。
+  /// （Notifier build 保持同步默认 false；由 SettingsScreen.initState 触发。）
+  Future<void> load() async {
+    state = await ref.read(settingsRepositoryProvider).getThemeSyncEnabled();
+  }
+
   Future<void> setEnabled(bool value) async {
     final repo = ref.read(settingsRepositoryProvider);
     await repo.setThemeSyncEnabled(value);

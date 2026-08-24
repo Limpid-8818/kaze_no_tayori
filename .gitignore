@@ -47,6 +47,7 @@ uploads/
 *.swp
 
 .claude/
+.qoder*/
 .workbuddy/
 .zcode/
 
