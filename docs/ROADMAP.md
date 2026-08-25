@@ -173,7 +173,7 @@ B0 → B1 → B2 → F0 → F1 →(J1)→ B3 → B4 → F2 → F3 →(J2)→ B5 
 | 4 | ApiClient 未验证 204 空 body | F0 一并处理 | postJson 对空响应返回 `{}` |
 | 5 | cursor 分页未实现（next_cursor 恒 null） | demo 量级无影响 | 契约已留字段，不额外投入 |
 | 6 | 共享库多人同时 `make revision` | 迁移链分叉 | 改 schema 前 `git pull`（CLAUDE.md §6 已立规） |
-| 7 | 迁移文件硬编码 `schema="dev_limpid"` | 其他开发者/CI 跑 `make migrate` 会把表建进 dev_limpid；db 测试已绕行 create_all，模型↔迁移的漂移不被测试捕获 | 待办：迁移去 schema 化（依赖 search_path）或按开发者重生成初始迁移；做 CI 前必须解决 |
+| 7 | ~~迁移文件硬编码 `schema="dev_limpid"`~~（已解决：迁移使用连接 `search_path`，PostGIS 固定安装在 public） | — | 新数据库执行 `make migrate` 冒烟验证；DB 业务测试仍用独立 `test_<name>` schema |
 
 ---
 

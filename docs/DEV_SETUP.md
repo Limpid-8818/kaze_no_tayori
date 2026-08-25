@@ -10,24 +10,27 @@
 |---|---|---|
 | Flutter | 3.47.0+ | 含 Dart 3.13。`flutter doctor -v` 自查 |
 | uv | 0.9.18+ | Python 包与虚拟环境管理，不用 pip/conda |
-| GNU Make | 3.81+ | 本机在 `D:\ProgramFiles\GnuWin32\bin\make`，在 **git bash** 里跑 |
+| GNU Make | 3.81+ | 统一通过仓库根目录的 `Makefile` 执行常用命令 |
 | Git | 2.49+ | |
+| Docker + Compose v2 | 可选 | 推荐用于运行本机 PostGIS；API 与 App 仍在宿主机运行 |
 
-**不需要** Docker（数据库在云端）。**不需要** Chrome（Web 用 Edge）。
+本机有 Docker 时，推荐只用它运行 PostGIS，避免依赖共享云数据库。Web 调试设备由 `make app` 自动选择：Windows 优先 Edge，其他平台优先 Chrome；也可用 `APP_DEVICE` 覆盖。
 
 ---
 
 ## 2. 首次启动
 
 ```bash
-cd /d/CodeRepository/misc/kazenotayori
 cp .env.example .env      # 填写：见第 3 节
 make bootstrap            # 自检 + uv sync + flutter pub get + 装 git hook
+make db-up                # Docker 启动本机 PostGIS
+make migrate              # 应用迁移
+make seed                 # 灌入本地开发种子数据
 make api                  # → http://localhost:8000/docs
-make app                  # → Edge 打开 App
+make app                  # → 浏览器打开 App
 ```
 
-后端不连数据库也能起（`/health` 只报进程存活）。要建表才需要数据库。
+后端不连数据库也能启动（`/health` 只表示进程存活），但业务接口和 `/health/db` 需要数据库。PostGIS 数据保存在 Docker volume 中，`make db-stop` 不会删除数据。
 
 ---
 
@@ -36,11 +39,14 @@ make app                  # → Edge 打开 App
 从 `.env.example` 复制后，按需要程度分三档：
 
 **必填（否则无法建表/读写数据）**
-- `DATABASE_URL` / `DATABASE_URL_SYNC` —— 比赛云服务器的 PostgreSQL 连接串。两条指向同一个库，前者用 asyncpg（运行时），后者用 psycopg（Alembic 迁移）。
-- `DB_SCHEMA` —— **改成自己的名字**，如 `dev_yukai`。多人共用一台云库，靠 schema 隔离，见第 5 节。
-- `JWT_SECRET` —— 随便一串长随机字符即可。
+
+- `POSTGRES_USER` / `POSTGRES_PASSWORD` —— 本机 Docker 数据库账号；密码使用随机长字符串，并同步更新两条数据库连接串（特殊字符需要 URL 编码）。
+- `DATABASE_URL` / `DATABASE_URL_SYNC` —— 两条指向同一个数据库，前者用 asyncpg（运行时），后者用 psycopg（Alembic 迁移）。本机默认连接 `127.0.0.1:5432`，也可替换为远程 PostgreSQL。
+- `DB_SCHEMA` —— **改成自己的名字**，如 `dev_yukai`。即使使用本机数据库也保留独立 schema，避免迁移行为与共享环境不一致。
+- `JWT_SECRET` —— 使用随机长字符串。
 
 **可留空（对应功能自动降级，核心循环不受影响）**
+
 - `FEATURE_AI` + `OPENAI_*` —— 关掉则写信流没有 AI 润色与短诗，纯手动。
 - `FEATURE_MODERATION` —— 关掉则新信一律停在 `pending`（**不是** public），靠 `make seed` 或后续控制台放行。
 - `FEATURE_WEATHER` + `WEATHER_API_KEY` —— 关掉则落点不带天气。
@@ -48,13 +54,26 @@ make app                  # → Edge 打开 App
 - `S3_*` —— `STORAGE_BACKEND=local` 时不需要，图片写服务器本地磁盘。
 
 **前端用**
+
 - `API_BASE_URL` —— `make app` 会通过 `--dart-define` 注入。真机调试见第 6 节。
 
 ---
 
-## 4. 数据库初始化（需要云服务器就绪）
+## 4. 数据库初始化
 
-一次性准备（需超级权限，只做一次）：
+本机 Docker 推荐直接运行：
+
+```bash
+make db-up       # 创建或启动 PostGIS
+make db-status   # 查看健康状态
+make migrate     # 建 schema 并应用迁移
+make seed        # 灌入种子数据
+make db-stop     # 停止数据库，但保留 volume 数据
+```
+
+Apple Silicon 上官方 `postgis/postgis:17-3.5` 镜像通过 Docker Desktop 的 amd64 模拟运行，首次拉取或启动会稍慢。
+
+如果改用共享云数据库，一次性准备（需超级权限，只做一次）：
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS postgis;   -- 装在 public，各 schema 共用其函数
@@ -91,13 +110,13 @@ make seed                                 # 灌种子信（解决漂流池冷启
 ## 6. 常见故障
 
 **`make` 报 `command not found`**
-在 git bash 里跑，不是 PowerShell。确认 `D:\ProgramFiles\GnuWin32\bin` 在 PATH 里。
+安装 GNU Make 3.81+ 并确认它在 `PATH` 中。Windows 推荐在 git bash 中运行。
 
 **`make help` 输出乱码**
 Windows 控制台默认 GBK 代码页。这也是为什么所有终端输出都写成英文——如果你新增 `@echo`，请也用英文。
 
-**`flutter run -d chrome` 报找不到 Chrome**
-本机没装 Chrome。用 `make app`（走 `-d edge`）。
+**`make app` 没选到正确浏览器**
+先用 `flutter devices` 查看设备 ID，再显式运行 `make app APP_DEVICE=chrome` 或 `make app APP_DEVICE=edge`。
 
 **真机调试时 App 连不上后端**
 `API_BASE_URL` 不能用 `localhost`（那是手机自己）。改成电脑的局域网 IP：
@@ -116,7 +135,7 @@ make app-android API_BASE_URL=http://192.168.x.x:8000
 同样是 `make gen`。开发期可用 `dart run build_runner watch`。
 
 **`uv run` 报缺包**
-`cd services/api && uv sync`。不要用 pip 装。
+`cd services/api && uv sync --frozen`。不要用 pip 装；需要增删依赖时使用 `uv add` / `uv remove`，由 uv 同步更新 `pyproject.toml` 与 `uv.lock`。
 
 ---
 

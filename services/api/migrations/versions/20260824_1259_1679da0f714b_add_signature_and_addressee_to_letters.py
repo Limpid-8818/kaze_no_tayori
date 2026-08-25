@@ -21,7 +21,8 @@ down_revision: str | Sequence[str] | None = "3e7dce148beb"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-_SCHEMA = "dev_limpid"
+# 表由 Alembic 连接的 search_path 定位，迁移不绑定任何开发者 schema。
+_SCHEMA = None
 
 
 def upgrade() -> None:

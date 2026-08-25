@@ -25,9 +25,9 @@ need git     git     "https://git-scm.com/"
 
 echo ""
 echo "=== known environment facts ==="
-echo "  - no Chrome on this machine -> use 'flutter run -d edge' for web"
-echo "  - no Docker -> infra/docker-compose.yml is a cloud-deploy artifact only"
-echo "  - database lives on the contest cloud server; local dev connects remotely"
+echo "  - web device is selected by make app (override with APP_DEVICE=...)"
+echo "  - local PostGIS is available through Docker: make db-up"
+echo "  - remote PostgreSQL is also supported through DATABASE_URL"
 echo ""
 
 if [ "$missing" -ne 0 ]; then
@@ -47,7 +47,7 @@ fi
 if [ -f services/api/pyproject.toml ]; then
   echo ""
   echo "=== installing backend deps (uv sync) ==="
-  ( cd services/api && uv sync ) || { echo "uv sync failed"; exit 1; }
+  ( cd services/api && uv sync --frozen ) || { echo "uv sync failed"; exit 1; }
 fi
 
 # ---------- 前端依赖 ----------
@@ -66,4 +66,4 @@ if [ -d .git ] && [ -f scripts/git-hooks/pre-commit ]; then
 fi
 
 echo ""
-echo "=== done. next: make api / make app  (make help for all targets) ==="
+echo "=== done. local DB: make db-up / make migrate / make seed  (make help for all targets) ==="

@@ -1,22 +1,38 @@
-# 部署（云服务器）
+# Docker 环境
 
-> **本地开发不用这里的东西。** 本机没装 Docker，开发直连云端 PostGIS，见 `docs/DEV_SETUP.md`。
-> 本目录是 PRD §11 DoD 要求的部署产物。
+> 本地开发默认只启动 `db`，API 与 Flutter App 在宿主机运行，便于热重载和断点调试。完整 compose 栈用于部署验证，也是 PRD §11 DoD 要求的部署产物。
 
-## 起服务
+## 本机数据库
+
+在仓库根目录运行：
 
 ```bash
-cd infra
-# .env 在仓库根，compose 会读它；另需 POSTGRES_PASSWORD
-POSTGRES_PASSWORD=... docker compose up -d
-docker compose ps
+make db-up
+make migrate
+make seed
+make db-status
+```
+
+停止数据库但保留数据：
+
+```bash
+make db-stop
+```
+
+本机 compose 项目名固定为 `kaze-local`，数据库监听 `127.0.0.1:5432`，数据存放在 Docker volume `kaze-local_pgdata`。Apple Silicon 默认通过 Docker Desktop 运行官方 amd64 PostGIS 镜像。
+
+## 完整服务栈
+
+```bash
+docker compose --env-file .env -f infra/docker-compose.yml up -d
+docker compose --env-file .env -f infra/docker-compose.yml ps
 curl localhost:8000/health
 ```
 
 带对象存储（可选，默认用本地磁盘）：
 
 ```bash
-POSTGRES_PASSWORD=... S3_SECRET_KEY=... docker compose --profile s3 up -d
+docker compose --env-file .env -f infra/docker-compose.yml --profile s3 up -d
 ```
 
 ## 建表
@@ -24,9 +40,9 @@ POSTGRES_PASSWORD=... S3_SECRET_KEY=... docker compose --profile s3 up -d
 迁移**不在容器启动时自动跑** —— 它需要人工审阅（GeoAlchemy2 的空间索引易重复）。
 
 ```bash
-docker compose exec api alembic upgrade head
-docker compose exec api python scripts/check_db.py
-docker compose exec api python scripts/seed_letters.py   # 冷启动种子信
+docker compose --env-file .env -f infra/docker-compose.yml exec api alembic upgrade head
+docker compose --env-file .env -f infra/docker-compose.yml exec api python scripts/check_db.py
+docker compose --env-file .env -f infra/docker-compose.yml exec api python scripts/seed_letters.py
 ```
 
 ## 组成

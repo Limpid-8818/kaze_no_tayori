@@ -1,9 +1,11 @@
-# 云服务器部署产物（PRD §8.3 / §11 DoD）。
-# 本地开发**不用**它：本机没装 Docker，开发直连云端 PostGIS（见 docs/DEV_SETUP.md）。
+# 本地默认只启动 db；完整服务栈用于云服务器部署（PRD §8.3 / §11 DoD）。
+# 本地调试流程见 docs/DEV_SETUP.md。
 
 services:
   db:
     image: postgis/postgis:17-3.5
+    # 官方 PostGIS 17 镜像当前只有 amd64；Docker Desktop 在 Apple Silicon 上透明模拟。
+    platform: ${DB_PLATFORM:-linux/amd64}
     restart: unless-stopped
     environment:
       POSTGRES_DB: kazenotayori
@@ -49,7 +51,9 @@ services:
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-kaze}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?required-when-s3-profile}
+      # profile 未启用时 compose 也会插值；留空不应阻塞 db-only 启动。
+      # 真正启用 s3 profile 时 MinIO 会拒绝空或过短密码。
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-}
     volumes:
       - miniodata:/data
     ports:

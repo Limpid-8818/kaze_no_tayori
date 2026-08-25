@@ -22,8 +22,8 @@ fi
 
 # ---------- 2. Python: ruff ----------
 if staged | grep -qE '\.py$' && command -v uv >/dev/null 2>&1 && [ -d services/api ]; then
-  if ! ( cd services/api && uv run ruff format --check . && uv run ruff check . ); then
-    echo "[x] ruff failed. Fix: cd services/api && uv run ruff format . && uv run ruff check --fix ."
+  if ! ( cd services/api && uv run --frozen ruff format --check . && uv run --frozen ruff check . ); then
+    echo "[x] ruff failed. Fix: cd services/api && uv run --frozen ruff format . && uv run --frozen ruff check --fix ."
     fail=1
   fi
 fi

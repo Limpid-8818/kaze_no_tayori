@@ -65,8 +65,8 @@ async def test_db_schema(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[str]
 
     测试结束后自动清理（DROP SCHEMA ... CASCADE），确保与开发数据完全隔离。
 
-    注意：Alembic 迁移文件硬编码了 schema="dev_limpid"，
-    因此这里用 Base.metadata.create_all() 在 test schema 上直接建表。
+    DB 业务测试关注 ORM/服务行为，因此用 Base.metadata.create_all() 在 test schema
+    上快速建表；Alembic 迁移本身由独立的新库迁移冒烟验证。
     """
     # get_settings 有 lru_cache，必须先清掉，否则 monkeypatch 不生效
     get_settings.cache_clear()
@@ -102,8 +102,7 @@ async def test_db_schema(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[str]
 
     set_schema(test_schema)
 
-    # 用 Base.metadata.create_all 在 test schema 上创建所有表
-    # （绕过 Alembic 迁移文件硬编码 schema="dev_limpid" 的问题）
+    # 用 Base.metadata.create_all 在 test schema 上创建所有表。
     from app.models import Base
 
     async_engine = create_async_engine(
