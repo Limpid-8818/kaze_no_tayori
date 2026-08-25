@@ -22,6 +22,6 @@ class UploadsApi {
       bytes: bytes,
       contentType: contentType,
     );
-    return UploadResponse.fromJson(json);
+    return _client.decode(() => UploadResponse.fromJson(json));
   }
 }

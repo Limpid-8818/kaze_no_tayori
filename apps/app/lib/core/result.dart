@@ -1,8 +1,7 @@
 /// 统一的失败表达。
 ///
-/// 为什么不用异常穿透到 UI：可降级模块（AI / 天气 / 定位）失败时属于**预期路径**，
-/// 界面该温和地退到手动模式，而不是弹一个红色报错。把「失败」变成值，
-/// 就不容易在 UI 层漏掉降级分支。
+/// Dio、协议解析与后端错误先统一映射成 [ApiFailure]；feature controller 再把它
+/// 转成 AsyncValue 或明确的降级状态。UI 不接触 DioException、TypeError 等底层异常。
 library;
 
 /// 后端统一错误体的 code（见 docs/API_CONTRACT.md）。
@@ -20,6 +19,9 @@ enum ApiErrorKind {
 
   /// 漂流池空了。这是叙事状态，不是错误：「暂时没有漂来的信」。
   driftPoolEmpty,
+
+  /// HTTP 成功，但响应形状与冻结契约不一致。不得伪装为空列表。
+  invalidResponse,
   unknown,
 }
 

@@ -6,8 +6,9 @@
 > 现状基线（2026-08-20）：骨架完备、契约冻结（openapi.json 已导出）、质量关卡全绿；
 > 全部 endpoint 与 service 是带契约注释的 stub，**初始迁移与 .env 未生成**。
 >
-> 更新（2026-08-23）：后端 B0–B6 全部完成、B7 已接 weather/geo（`make check` 与 `make check-db` 全绿）；
-> DB 测试已迁移到独立 `test_<name>` schema，与 dev schema 完全隔离。前端 F1 起未动。
+> 更新（2026-08-25）：后端 B0–B7 已完成；前端数据层 F0 与应用基础设施 F1 已完成。
+> F1 补齐了统一页面骨架、权限/定位全局控制器、生命周期入口、Android 权限清单和字体命名空间；
+> 后续 feature 页面不得再各自实现这些能力。
 
 ---
 
@@ -16,7 +17,7 @@
 - **契约先行**：契约已冻结，前端不等后端。后端每完成一个里程碑，前端把 mock 换成真接口即可。
 - **核心循环优先**：写→漂/掘→读→共鸣/回信→通知，任何时刻这条链路的完成度都高于周边功能。
 - **降级路径同步做**：每个可降级模块实装时，同时验证它的关闭分支（不能只写开通路径）。
-- P1 功能（标签、共鸣短句墙、导出图、运营控制台）只在 P0 全链路走通后才动。
+- P1 功能（音乐、标签、自选皮肤、抄本、导出图、共鸣短句墙、运营控制台）只在 P0 全链路走通后才动。
 
 ---
 
@@ -85,56 +86,71 @@
 
 ## 2. 前端路线（apps/app）
 
-依赖链：`F0 数据层 → F1 写信（最大）→ F2 收信 → F3 阅读器 → F4 回信/通知 → F5 我的`，F6 时机特殊，F7 是 P1。
+依赖链：`F0 数据层 → F1 应用基础设施 → F2 写信最小闭环 → F3 阅读器基础 → F4 收信双入口 → F5 回信/通知 → F6 我的信`，F7 汇总 P1 增强。
+
+**开工门槛**：F0/F1 未通过前不得进入业务页面。一个页面若需要定位、权限、生命周期或通用布局，只能消费 F1 的全局能力，不能在 feature 内另起实现。
 
 ### F0 · 数据层与认证引导（0.5 天）
 - [x] `secure_store`：首启生成 device_id（UUIDv4）存安全存储
 - [x] 启动引导：静默 `POST /v1/auth/device` 换 JWT（401 自动重绑一次）
-- [x] `data/api` 按资源补 endpoint 封装（letters/drift/discover/me/ai/uploads）
+- [x] `data/api` 按资源补 endpoint 封装（letters/drift/discover/me/ai/uploads/weather/geo/catalog）
 - [x] 验证 ApiClient 对 **204 无 body 响应**的容错（postJson 现假定 JSON body）
 - [x] 补模型：LetterOwned、NotificationPublic、ThemePublic、TagPublic（现在只有 LetterPublic 一族）
-- **验收**：冷启动无感登录；HealthCard 仍绿；`make check-dart` 过
+- [x] 删除重复的 `AuthApi` 路径与脚手架 `healthProvider`；认证只有 `ApiClient` 一个所有者
+- **验收**：冷启动无感登录；`make check-dart` 过
 
-### F1 · 写信流（1.5–2 天，全 App 最复杂）
-- [ ] `write_controller`（@riverpod）+ 分步流：blocks 图文交替编辑（文字/照片块）→ 主题（`theme_id`）+ 皮肤槽位（`theme_skin`：stamp/postmarkEmblem/decor/postcard）→ 音乐引用 → 落点 → **必选留/投**
-- [ ] 图片：image_picker 选 → 压缩 → uploads → 拼 URL
-- [ ] 落点：geolocator 定位；失败/拒绝 → 手填 place_label（温和降级，不弹红错）
-- [ ] 客户端校验与文案：blocks 1–20 块、照片 ≤3 张、标签 1–3 个（与契约一致，无字数硬限）
-- [ ] 草稿本地暂存（data/local），离开不丢
+### F1 · 应用基础设施（0.5–1 天，全页面阻塞项）
+- [x] `KazeScaffold`：统一天空背景、AppBar、SafeArea、内容宽度与滚动；普通页面不再重复搭壳
+- [x] 通用 `PermissionController`：统一 check/request/open settings 与显式状态；feature 不直接依赖插件
+- [x] 全局 `LocationController`：写信、发掘和首页环境共享坐标；区分服务关闭、拒绝、永久拒绝和失败
+- [x] `AppLifecycle`：回前台刷新已使用过的权限/定位，冷启动不主动弹系统权限
+- [x] Android 主清单声明网络 + 前台粗/精确定位；iOS Info.plist 声明前台定位用途；不提前申请相机/相册/存储权限
+- [x] 设计系统 `TextStyle` 声明 package 命名空间，修复已打包字体静默回落系统字体
+- [x] 设计系统 tokens/components 已拷入并接到 `KazeTheme`；后续只通过 `make sync-ds` 同步上游
+- [x] 架构复核修正：会话预热移到首帧后；Web 定位权限映射为插件实际支持的 `Permission.location`
+- [x] Android 仅 debug 放行局域网 HTTP；iOS 声明本地网络用途并只放行 local networking，release/公网仍要求 HTTPS
+- [x] 2xx 响应严格解析：分页缺 `items`、目录坏项、必填字段错型统一报 `invalidResponse`，不伪装空状态
+- **验收**：controller 单测覆盖权限与定位主要分支；`TextStyle.fontFamily` 与 `FontManifest.json` 一致；Web 与 iOS Simulator 可视确认字体；iOS Simulator 构建/安装/启动通过；`make check-dart` 过
+
+### F2 · 写信最小闭环（1.5–2 天，全 App 最复杂）
+- [ ] `WriteController` + 分步流：blocks 图文编辑 → 落点确认 → **必选留/投**；P0 固定 `theme_id=natsu` 且默认皮肤，不把音乐/标签/皮肤搭配混进首个闭环
+- [ ] 图片 gateway：系统 picker 限长边与质量，按实际字节识别 MIME，顺序上传；用 iOS 真机照片验证 HEIC→JPEG 输出
+- [ ] 建立 `DropPoint(lat, lon, publicLabel)`：消费全局 `LocationController` 的候选值后由用户确认；改地名不改坐标，只有地名时不得提交 stay
+- [ ] 客户端校验镜像产品与契约：整封文字 ≤800、单块 ≤800、blocks 1–20、照片 ≤3、照片手记 ≤200、署名/宛名 ≤32、地点 ≤128
+- [ ] `DraftStore`：版本化 JSON + 应用目录图片引用 + 防抖自动保存；只保证离开/断网不丢编辑，不做离线发送队列
 - [ ] 留/投二选一的 UI 必须是显式一步，不许有默认值悄悄带过（PRD 6.1 必选）
 - **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通
 
-### F2 · 收信双入口（1 天）
-- [ ] drift：抽一封 → 全屏信纸（复用 F3 渲染）；池空展示叙事态「此刻还没有漂来的信」（不是错误弹窗）
-- [ ] discover：定位 → 半径预设（Env.discoverRadiusM）→ 附近信列表（时间序）
-- [ ] 定位权限被拒的降级路径（手输坐标或引导开启）
-- **验收**：双入口并列可达；driftPoolEmpty 呈现为叙事状态
-
-### F3 · 阅读器（1 天）
-- [ ] 信纸渲染：`地点·时间·天气` + blocks 图文交替流 + 短诗（引用体）+ 音乐引用 + `theme_skin` 槽位皮肤 + 计数文案「已被 N 个陌生人接住」
-- [ ] ✦ 共鸣按钮（幂等，本地即时反馈）、回信入口、收进抄本、举报
+### F3 · 阅读器基础（1 天，提前消除汇合风险）
+- [ ] 集中实现 data model → 设计系统 view model 的单向 mapper；图片 resolver 统一走缓存网络图，不在页面散写映射
+- [ ] 信纸渲染：`地点·时间·天气` + blocks 图文流 + 可选短诗/音乐/skin + 计数文案「已被 N 个陌生人接住」
+- [ ] `ReaderController`：加载、markRead 调用边界、✦ 共鸣幂等乐观回显、回信入口、举报
 - [ ] 溯源：parent_letter_id 非空可跳原信（public 才可达，404 就 404）
 - **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位
 
-### F4 · 回信 + 通知（0.5–1 天）
+### F4 · 收信双入口（1 天）
+- [ ] drift：抽信只展示 `Envelope`，用户拆封后 `markRead` 恰一次再进入 F3 阅读器；池空展示叙事态「此刻还没有漂来的信」
+- [ ] discover：定位 → 半径预设（Env.discoverRadiusM）→ 附近信列表（时间序）→ 点开 markRead → F3 阅读器
+- [ ] 定位统一走 `LocationController`；拒绝时允许重试/开启设置或输入真实坐标，禁止默认坐标和仅地名伪成功
+- **验收**：双入口并列可达；收信与已读语义分离；driftPoolEmpty 呈现为叙事状态
+
+### F5 · 回信 + 通知（0.5–1 天）
 - [ ] 回信复用写信流（router 已留 `?parent=`），入口文案「回以一封信」，写完同样选留/投
-- [ ] notifications 列表 + 已读 + 点击跳公开回信；拉取策略：开通知页拉一次 + App 回前台静默拉 `unread_only=true`（不做定时轮询、不建推送基建——契约「P0 只做拉取」）
+- [ ] app 级 `UnreadCountController` 为抽屉角标唯一所有者；notifications feature 只拥有列表/已读，二者单向同步
+- [ ] notifications 列表 + 已读 + 点击跳公开回信；开页与回前台拉取挂到 `AppLifecycle`（不做轮询、不建推送）
 - **验收**：回信发布后，原信作者设备上出现告知并能读到回信
 
-### F5 · 我的信 + 抄本（0.5 天）
+### F6 · 我的信（P0，0.5 天）
 - [ ] 我的信：LetterOwned 渲染 + 状态徽标（pending/public/…）+ 下架确认（非硬删）
-- [ ] 抄本：收藏列表 + 移除
 - **验收**：下架后读者侧 404，回信链不塌
 
-### F6 · 设计系统拷入（0.5–1 天，**时机：F1 完成后立即**）
-- [ ] 按 `packages/natsu_no_tegami/COPY_IN.md`：先拷 tokens 层（上游已稳定），替换 `KazeTempTheme`
-- [ ] components / letters（LetterPaper·Postmark·StampPiece·DeskScene）定稿后拷入，直接用于 reader 与 write
-- **验收**：`make sync-ds` + `make check-dart`；feature 代码零改动（token 纪律的回报点）
+### F7 · P1 表达与留存增强（P0 闭环后）
+- [ ] 写信增强：音乐引用、1–3 标签、皮肤槽位选择；不改变历史信件 skin
+- [ ] 抄本：收藏列表 + 移除
+- [ ] 导出：复用设计系统 `LetterExportBoundary`，移除重复 screenshot 依赖；补“仅添加到相册”能力及对应 iOS 用途说明
+- [ ] 完整离线写作：如确有需要，再设计待发送队列与冲突/重试；不与 P0 草稿自动保存混为一谈
 
-### F7 · 导出图片（P1，0.5 天）
-- [ ] `RepaintBoundary` 把带皮肤的信渲染成图（含 blocks 全部内容/短诗/音乐/落点/计数，**不含作者信息**）→ 存相册
-
-**前端 P0 合计约 5–6 人日。**
+**前端 P0 合计约 5.5–7 人日。**
 
 ---
 
@@ -142,14 +158,15 @@
 
 | 节点 | 前置 | 内容 |
 |---|---|---|
-| J1 | B2 + F1 | 写信端到端：App 写 → 落库 → status 正确 |
-| J2 | B3+B4 + F2–F4 | 双入口收信 + 共鸣 + 回信 + 通知 |
-| J3 | B6 + 全部 | PRD §11 双设备双路径验收（埋信→发掘→共鸣→回信→通知；投递→收到→导出） |
+| J1 | B2 + F2 | 写信端到端：App 写 → 落库 → status 正确 |
+| J2 | B3+B4 + F3–F5 | 双入口收信 + 阅读 + 共鸣 + 回信 + 通知 |
+| J3-P0 | B6 + F2–F6 | 双设备核心验收（埋信→发掘→共鸣→回信→通知；投递→收到→拆封） |
+| J3-P1 | F7 | 增强验收（音乐/标签/皮肤、抄本、导出），不阻塞 P0 判定 |
 
 ### 单人顺序（推荐）
 ```
-B0 → B1 → B2 → F0 → F1 →(J1)→ B3 → B4 → F2 → F3 →(J2)→ B5 → F4 → F5 → B6 →(J3)
-→ F6 → B7/F7 按余量
+B0 → B1 → B2 → F0 → F1 → F2 →(J1)→ B3 → B4 → F3 → F4 → F5 →(J2)→ B5 → F6 → B6 →(J3-P0)
+→ B7/F7 按余量
 ```
 
 ### 双人并行
@@ -159,7 +176,7 @@ B0 → B1 → B2 → F0 → F1 →(J1)→ B3 → B4 → F2 → F3 →(J2)→ B5 
               └──J1──┘    └────J2────┘      └─J3─┘
 ```
 
-按 10 天赛期（2026-08-20 起）：D1 地基+认证 / D2–3 写信前后端 / D4 联调 J1 + 收信后端 / D5 收信前端 + 互动后端 / D6 阅读器 / D7 me 前后端 + J2 / D8 种子 + J3 / D9 设计系统 + P1 / D10 缓冲与打磨。
+按剩余工作量执行，不再用过期自然日倒排：先 F2/J1，再 F3 阅读器基础，随后 F4–F5/J2，最后 F6/J3-P0；任何 P1 项不得插到核心闭环之前。
 
 ---
 
@@ -174,6 +191,10 @@ B0 → B1 → B2 → F0 → F1 →(J1)→ B3 → B4 → F2 → F3 →(J2)→ B5 
 | 5 | cursor 分页未实现（next_cursor 恒 null） | demo 量级无影响 | 契约已留字段，不额外投入 |
 | 6 | 共享库多人同时 `make revision` | 迁移链分叉 | 改 schema 前 `git pull`（CLAUDE.md §6 已立规） |
 | 7 | ~~迁移文件硬编码 `schema="dev_limpid"`~~（已解决：迁移使用连接 `search_path`，PostGIS 固定安装在 public） | — | 新数据库执行 `make migrate` 冒烟验证；DB 业务测试仍用独立 `test_<name>` schema |
+| 8 | ~~页面直接调用定位/权限插件，形成多份当前坐标和拒绝分支~~ | — | F1 全局 controller + gateway；feature 禁止直接 import 插件 |
+| 9 | ~~依赖包字体已打包但 family 带 package 前缀，token 引用无前缀导致回落系统字体~~ | — | token 的 `TextStyle` 显式传 package；构建产物检查 FontManifest |
+| 10 | 真机用 HTTP 局域网 API，发布环境必须 HTTPS | 验收日网络失败或误把明文配置带进 release | Android 仅 debug 放行；iOS 仅 local networking；demo 前核对 API_BASE_URL、图片 public_base_url/S3 与双设备可达性 |
+| 11 | ~~设置页“主题随环境变化”只有持久化、没有实际消费者~~ | — | 已撤下假开关及死存储链路；接入真实天气/时段主题与消费端测试后再恢复 |
 
 ---
 

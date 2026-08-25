@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kazenotayori/core/result.dart';
 import 'package:kazenotayori/data/api/api_client.dart';
 import 'package:kazenotayori/data/local/secure_store.dart';
+import 'package:kazenotayori/data/models/notification.dart';
 
 import '../../fakes/fake_secure_store.dart';
 import '../../fakes/scripted_adapter.dart';
@@ -52,6 +53,73 @@ void main() {
   });
 
   group('错误映射', () {
+    test('模型解析错误 → invalidResponse，不把 TypeError 穿透到 UI', () {
+      final client = _client(
+        ScriptedAdapter(const []),
+        fakeSecureStore({'kaze.access_token': 'tok'}),
+      );
+
+      expect(
+        () => client.decode(() => <String, dynamic>{}['id'] as String),
+        throwsA(
+          isA<ApiFailure>().having(
+            (error) => error.kind,
+            'kind',
+            ApiErrorKind.invalidResponse,
+          ),
+        ),
+      );
+    });
+
+    test('未知枚举值 → invalidResponse，不把 ArgumentError 穿透到 UI', () {
+      final client = _client(
+        ScriptedAdapter(const []),
+        fakeSecureStore({'kaze.access_token': 'tok'}),
+      );
+
+      expect(
+        () => client.decode(
+          () => NotificationPublic.fromJson({
+            'id': 'n-1',
+            'type': 'unknown_type',
+            'letter_id': 'l-2',
+            'parent_letter_id': 'l-1',
+            'parent_place_label': null,
+            'is_read': false,
+            'created_at': '2026-08-25T00:00:00Z',
+          }),
+        ),
+        throwsA(
+          isA<ApiFailure>().having(
+            (error) => error.kind,
+            'kind',
+            ApiErrorKind.invalidResponse,
+          ),
+        ),
+      );
+    });
+
+    test('decodeList 遇到坏项时失败，不静默丢弃', () {
+      final client = _client(
+        ScriptedAdapter(const []),
+        fakeSecureStore({'kaze.access_token': 'tok'}),
+      );
+
+      expect(
+        () => client.decodeList([
+          {'id': 'ok'},
+          'bad',
+        ], (json) => json['id']),
+        throwsA(
+          isA<ApiFailure>().having(
+            (error) => error.kind,
+            'kind',
+            ApiErrorKind.invalidResponse,
+          ),
+        ),
+      );
+    });
+
     test('错误体 code=drift_pool_empty → driftPoolEmpty', () async {
       final store = fakeSecureStore({'kaze.access_token': 'tok'});
       final adapter = ScriptedAdapter([
@@ -102,6 +170,36 @@ void main() {
         expect(e.kind, ApiErrorKind.serviceUnavailable);
         expect(e.isDegradable, isTrue);
       }
+    });
+
+    test('错误体字段错型时仍按 HTTP 状态映射，不泄漏 TypeError', () async {
+      final store = fakeSecureStore({'kaze.access_token': 'tok'});
+      final adapter = ScriptedAdapter([
+        ScriptedResponse.fail(
+          DioException(
+            requestOptions: RequestOptions(path: '/v1/weather/now'),
+            response: Response(
+              requestOptions: RequestOptions(path: '/v1/weather/now'),
+              statusCode: 503,
+              data: {
+                'error': {'code': 503, 'message': <String>[]},
+              },
+            ),
+          ),
+        ),
+      ]);
+      final client = _client(adapter, store);
+
+      await expectLater(
+        client.getJson('/v1/weather/now'),
+        throwsA(
+          isA<ApiFailure>().having(
+            (error) => error.kind,
+            'kind',
+            ApiErrorKind.serviceUnavailable,
+          ),
+        ),
+      );
     });
   });
 

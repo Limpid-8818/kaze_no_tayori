@@ -9,7 +9,7 @@
 ```
 ┌─────────────────────────────────────────┐
 │  Flutter App (apps/app)                 │
-│  Android 主 · Web(edge) 演示兜底         │
+│  iOS / Android 客户端 · Web 演示兜底      │
 │  Riverpod 状态 / go_router 路由 / dio    │
 └──────────────────┬──────────────────────┘
                    │ REST + JWT (Bearer)
@@ -143,22 +143,95 @@ POST /v1/letters/{id}/replies  → 新建 letters 行，parent_letter_id = {id}
 
 ```
 lib/
-├─ app/      router / theme / bootstrap（theme.dart 是唯一 import 设计系统的地方）
+├─ app/      router / theme / bootstrap / lifecycle
+│  ├─ controllers/  应用级状态（permission / location；F5 再加 unread）
+│  ├─ permissions/  权限语义与平台 gateway
+│  └─ widgets/      KazeScaffold 等跨 feature UI
 ├─ core/     env / result / formatters
-├─ data/     api（dio + 各 endpoint）/ models（freezed）/ local（安全存储、草稿）
+├─ data/     api（dio + 各 endpoint）/ models / local（安全存储、草稿）
+│            / device（定位等平台能力的窄接口）
 └─ features/ write · drift · discover · reader · reply
              my_letters · scripbook · notifications · settings
 ```
 
-每个 feature 固定三件套：`*_screen.dart`（UI）+ `*_controller.dart`（`@riverpod` Notifier）+ `widgets/`。
+feature 不强制为目录完整而制造文件：有异步状态时才加 `*_controller.dart`，有两个以上局部组件时才建 `widgets/`。单一远程数据源可由 controller 直接消费窄 API；只有本地持久化、多数据源编排或缓存策略才引入 repository，禁止“每个 feature 必配 repository”的仪式性分层。
 
 - feature 之间**不得互相 import**；共享逻辑上提到 `core/` 或 `data/`。
 - 网络只经 `data/api/api_client.dart`（统一 JWT 拦截器与错误映射）。
 - **禁止字面量颜色/字号/间距**，一律走 `Theme.of(context)` 或设计系统 token——这样上游组件库拷入时不需要改 feature 代码。
 
+### 5.1 应用级基础设施边界
+
+页面开发前必须先完成以下地基，feature 不得自行复制：
+
+| 能力 | 唯一所有者 | feature 可以做 | feature 禁止做 |
+|---|---|---|---|
+| 权限 | `PermissionController` | 在用户触发的场景解释用途并调用 `request` | 直接 import `permission_handler`、自行映射永久拒绝 |
+| 定位 | `LocationController` | 读取共享坐标、触发 `locate`、展示手填降级 | 直接调用 `Geolocator`、另存一份“当前坐标” |
+| 页面骨架 | `KazeScaffold` | 提供标题、正文、actions | 重复搭天空背景/AppBar/SafeArea/宽度约束 |
+| 回前台刷新 | `AppLifecycle` | 注册确有生命周期需求的全局 controller | 每个页面各挂一个 `WidgetsBindingObserver` |
+
+权限与定位的数据流：
+
+```
+用户在写信/发掘页点“使用当前位置”
+  → LocationController.locate(requestPermission: true)
+  → PermissionController（check → 必要时 request）
+  → LocationGateway（仅权限通过后调用 Geolocator）
+  → AppLocationState.ready(coordinate)
+  → 写信 / 发掘 / 首页环境消费同一份坐标
+```
+
+约束：
+
+- 冷启动不自动申请权限；系统权限弹窗必须由清晰的用户动作触发。
+- `denied`、`permanentlyDenied`、定位服务关闭和插件失败是四种显式状态，不得合并成空坐标或吞掉。
+- `LocationController` 只拥有“设备最近一次测得坐标”，不拥有写信表单选择。写信 controller 必须把用户确认过的候选坐标复制成 `DropPoint(lat, lon, publicLabel)`；修改公开地名不等于修改精确落点。
+- 定位失败不阻断写信：用户仍可改选 drift。stay 必须有真实坐标，只有 `place_label` 不能提交；后续地点搜索/地图选择也必须产出明确坐标，禁止用默认坐标伪成功。
+- 回到前台只刷新已经使用过的权限/定位；没有请求过定位时保持 idle。
+- 平台清单只声明当前功能真实使用的权限。Android P0 为 `INTERNET`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`；iOS 为 `NSLocationWhenInUseUsageDescription`。iOS 本地后端调试另声明局域网用途与 `NSAllowsLocalNetworking`；Android 只在 debug manifest 放行明文 HTTP，release 必须 HTTPS。两端都不预申请相机、相册或存储权限。
+
+### 5.2 通用页面骨架
+
+`KazeScaffold` 是普通页面的默认入口，统一负责天空渐变、透明 Material Scaffold、AppBar、SafeArea、480px 内容宽度和滚动容器。首页因包含 Drawer 与独立布局保留定制 Scaffold；信件全屏阅读器若需要特殊画布，可显式使用专用壳，但必须在文件头说明偏离原因。
+
+### 5.3 启动、会话与协议错误
+
+应用启动顺序固定为：同步装配 `SecureStore` / `ApiClient` → `runApp` → 首帧回调中 fire-and-forget 会话预热。不得在 `runApp` 前等待网络或 SharedPreferences。业务请求若早于预热完成，`ApiClient` 的 401 合并重绑负责自愈。
+
+服务端返回 2xx 不代表数据有效：endpoint 模型解析统一经 `ApiClient.decode`，分页 `items` 缺失、列表坏项和必填字段类型错误都映射为 `ApiFailure.invalidResponse`。这些情况是契约漂移，必须展示可重试错误并记录，不能用 `whereType`、默认空列表或吞 TypeError 伪装成“暂无内容”。
+
+feature 异步状态统一使用 Riverpod `AsyncValue` / `AsyncNotifier`：
+
+- loading、可重试 error、业务 empty 是三种状态；`driftPoolEmpty` 属于叙事 empty，不是红色错误。
+- AI、天气、逆地理等明确可降级模块，只在其 API 边界把 `featureDisabled` / `serviceUnavailable` 转成 null；其他错误继续上抛。
+- 在首个真实异步页面落地时再提取共享状态视图，当前不预建无人消费的 `AsyncView`。
+
+### 5.4 草稿、图片与渲染边界
+
+- 草稿自动保存属于 P0 的编辑韧性；“离线提交队列/网络恢复自动发送”仍是 P1，两者不得混写为一个验收项。
+- `DraftStore` 保存带 schema version 的 JSON；原图先复制到应用文档目录再引用，不能长期依赖 iOS picker 临时路径，也不能把图片字节塞进 SharedPreferences。
+- 图片按顺序处理：系统 picker → 长边限制/质量压缩 → 从实际输出识别 JPEG/PNG/WebP → 单张顺序上传。当前 iOS picker 会把 HEIC 输出为 JPEG，无需提前引入第二套转码库；实现时必须用真机照片回归。
+- API `LetterBlock` 与设计系统的渲染 `LetterBlock` 是两套边界模型。F3 阅读器开工前增加一个集中、单向的 view mapper；feature 页面不得各写一份映射。
+
+### 5.5 状态唯一所有者
+
+| 状态 | 唯一所有者 | 持久化/刷新 |
+|---|---|---|
+| JWT / device_id | `ApiClient` + `SecureStore` | 安全存储；401 合并重绑 |
+| 权限 | `PermissionController` | 系统状态；只在用户触发或已使用能力回前台时刷新 |
+| 设备坐标 | `LocationController` | 仅内存；携带精度与测量时间 |
+| 写信落点与表单 | `WriteController` | `DraftStore`；由用户确认，不与设备坐标双向绑定 |
+| 抽信/封筒状态 | `DriftController` | 仅 feature 内；拆封时 markRead 恰一次 |
+| 单信与共鸣回显 | `ReaderController` | 远程真值；允许幂等乐观更新 |
+| 通知未读数 | F5 新增 app 级 controller | 开页/回前台拉取；抽屉只消费 |
+| 设置偏好 | 对应设置 controller | 只有存在真实消费者后才暴露开关，禁止“能保存但不生效” |
+
 ### 设计系统边界
 
-`packages/natsu_no_tegami/` 已于 `6bf5204` 完成拷入，包含 9 个令牌文件、18 个通用组件、17 个信件组件、15 个字体、14 个测试文件。monorepo 内**永不手改**该包——一切改动在上游仓库做，再跑 `make sync-ds`。
+`packages/natsu_no_tegami/` 已于 `6bf5204` 完成拷入，包含 9 个令牌文件、18 个通用组件、17 个信件组件、15 个字体、14 个测试文件。设计系统源改动原则上先落上游，再跑 `make sync-ds`；当前字体 namespace 修复是唯一待回灌上游的同步差异，脚本会拒绝用不含该修复的旧上游覆盖本包。
+
+Flutter 会给依赖包 `pubspec.yaml` 声明的字体 family 加 `packages/natsu_no_tegami/` 命名空间。设计系统的每个 `TextStyle` 因此必须传 `package: 'natsu_no_tegami'`，让主 family 与 fallback 同时命中构建产物；只声明字体文件、不带 package 参数会静默回落到系统字体。字体验收不能只看文件存在，必须核对 `TextStyle.fontFamily` 与构建后的 `FontManifest.json` family 一致，并至少做一次 Web/Android 可视冒烟。
 
 ---
 

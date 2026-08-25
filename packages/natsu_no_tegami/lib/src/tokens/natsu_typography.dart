@@ -13,6 +13,9 @@ import 'natsu_colors.dart';
 /// 回落方向纪律（中文优先）：日文字体覆盖大部分常用汉字且为日式新字体
 /// 字形——JP 排前面时中文渲染成日文字形。所有族 SC 主、JP 回退。
 abstract final class NatsuFontFamilies {
+  /// Flutter 对依赖包字体使用 `packages/<package>/` 命名空间。
+  static const String packageName = 'natsu_no_tegami';
+
   // ---- UI（结构层）-----------------------------------------------------------
   static const String ui = 'NotoSansSC';
   static const List<String> uiFallback = ['NotoSansJP'];
@@ -49,6 +52,7 @@ abstract final class NatsuTypography {
   static const TextStyle display = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w600,
     fontSize: 48,
     height: 60 / 48,
@@ -59,6 +63,7 @@ abstract final class NatsuTypography {
   static const TextStyle heading = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w700,
     fontSize: 32,
     height: 42 / 32,
@@ -69,6 +74,7 @@ abstract final class NatsuTypography {
   static const TextStyle subheading = TextStyle(
     fontFamily: NatsuFontFamilies.uiEn,
     fontFamilyFallback: NatsuFontFamilies.uiEnCjkFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 22,
     height: 32 / 22,
@@ -79,6 +85,7 @@ abstract final class NatsuTypography {
   static const TextStyle body = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 16,
     height: 28 / 16,
@@ -89,6 +96,7 @@ abstract final class NatsuTypography {
   static const TextStyle bodyStrong = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w500,
     fontSize: 16,
     height: 28 / 16,
@@ -99,6 +107,7 @@ abstract final class NatsuTypography {
   static const TextStyle bodySecondary = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 16,
     height: 28 / 16,
@@ -109,6 +118,7 @@ abstract final class NatsuTypography {
   static const TextStyle caption = TextStyle(
     fontFamily: NatsuFontFamilies.uiEn,
     fontFamilyFallback: NatsuFontFamilies.uiEnCjkFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 13,
     height: 20 / 13,
@@ -119,6 +129,7 @@ abstract final class NatsuTypography {
   static const TextStyle kicker = TextStyle(
     fontFamily: NatsuFontFamilies.uiEn,
     fontFamilyFallback: NatsuFontFamilies.uiEnCjkFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 13,
     height: 20 / 13,
@@ -130,6 +141,7 @@ abstract final class NatsuTypography {
   static const TextStyle label = TextStyle(
     fontFamily: NatsuFontFamilies.uiEn,
     fontFamilyFallback: NatsuFontFamilies.uiEnCjkFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 13,
     height: 20 / 13,
@@ -141,6 +153,7 @@ abstract final class NatsuTypography {
   static const TextStyle button = TextStyle(
     fontFamily: NatsuFontFamilies.ui,
     fontFamilyFallback: NatsuFontFamilies.uiFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w600,
     fontSize: 15,
     height: 22 / 15,
@@ -151,6 +164,7 @@ abstract final class NatsuTypography {
   static const TextStyle meta = TextStyle(
     fontFamily: NatsuFontFamilies.uiEn,
     fontFamilyFallback: NatsuFontFamilies.uiEnCjkFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 13,
     height: 20 / 13,
@@ -163,6 +177,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwLetter = TextStyle(
     fontFamily: NatsuFontFamilies.hw,
     fontFamilyFallback: NatsuFontFamilies.hwFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 36,
     height: 54 / 36,
@@ -173,6 +188,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwBody = TextStyle(
     fontFamily: NatsuFontFamilies.hw,
     fontFamilyFallback: NatsuFontFamilies.hwFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 20,
     height: 38 / 20,
@@ -183,6 +199,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwAddress = TextStyle(
     fontFamily: NatsuFontFamilies.hw,
     fontFamilyFallback: NatsuFontFamilies.hwFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 28,
     height: 44 / 28,
@@ -198,6 +215,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwPostscript = TextStyle(
     fontFamily: NatsuFontFamilies.hw,
     fontFamilyFallback: NatsuFontFamilies.hwFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 24,
     height: 38 / 24,
@@ -208,6 +226,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwNote = TextStyle(
     fontFamily: NatsuFontFamilies.hw,
     fontFamilyFallback: NatsuFontFamilies.hwFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 16,
     height: 26 / 16,
@@ -218,6 +237,7 @@ abstract final class NatsuTypography {
   static const TextStyle hwSeal = TextStyle(
     fontFamily: NatsuFontFamilies.seal,
     fontFamilyFallback: NatsuFontFamilies.sealFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 56,
     height: 72 / 56,
@@ -230,6 +250,7 @@ abstract final class NatsuTypography {
   static const TextStyle quoteSerif = TextStyle(
     fontFamily: NatsuFontFamilies.quote,
     fontFamilyFallback: NatsuFontFamilies.quoteFallback,
+    package: NatsuFontFamilies.packageName,
     fontWeight: FontWeight.w400,
     fontSize: 18,
     height: 32 / 18,

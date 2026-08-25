@@ -18,7 +18,7 @@ class AiApi {
       '/v1/ai/polish',
       body: {'content': content},
     );
-    return PolishResponse.fromJson(json);
+    return _client.decode(() => PolishResponse.fromJson(json));
   }
 
   Future<PoemResponse> poem(String content) async {
@@ -26,6 +26,6 @@ class AiApi {
       '/v1/ai/poem',
       body: {'content': content},
     );
-    return PoemResponse.fromJson(json);
+    return _client.decode(() => PoemResponse.fromJson(json));
   }
 }

@@ -6,6 +6,7 @@ import 'package:kazenotayori/data/api/api_client.dart';
 import 'package:kazenotayori/data/api/catalog_api.dart';
 import 'package:kazenotayori/data/api/discover_api.dart';
 import 'package:kazenotayori/data/api/drift_api.dart';
+import 'package:kazenotayori/data/api/geo_api.dart';
 import 'package:kazenotayori/data/api/letters_api.dart';
 import 'package:kazenotayori/data/api/me_api.dart';
 import 'package:kazenotayori/data/api/uploads_api.dart';
@@ -215,6 +216,45 @@ void main() {
       isA<ThemePublic>().having((t) => t.id, 'id', 'natsu'),
     );
     expect(tags.single.color, '#FF6B6B');
+  });
+
+  test('CatalogApi 遇到坏项时报 invalidResponse，不静默过滤', () async {
+    final adapter = ScriptedAdapter([
+      const ScriptedResponse.ok(200, [
+        {'id': 'natsu', 'name': '夏の手紙', 'assets': {}, 'is_default': true},
+        'bad-item',
+      ]),
+    ]);
+
+    await expectLater(
+      CatalogApi(clientWith(adapter)).themes(),
+      throwsA(
+        isA<ApiFailure>().having(
+          (error) => error.kind,
+          'kind',
+          ApiErrorKind.invalidResponse,
+        ),
+      ),
+    );
+  });
+
+  test('GeoApi 解析城市级地点；服务降级时返回 null', () async {
+    final adapter = ScriptedAdapter([
+      const ScriptedResponse.ok(200, {'place_label': '福建省·厦门市'}),
+      ScriptedResponse.fail(
+        DioException(
+          requestOptions: RequestOptions(path: '/v1/geo/reverse'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/v1/geo/reverse'),
+            statusCode: 503,
+          ),
+        ),
+      ),
+    ]);
+    final api = GeoApi(clientWith(adapter));
+
+    expect(await api.reverse(24.48, 118.09), '福建省·厦门市');
+    expect(await api.reverse(24.48, 118.09), isNull);
   });
 
   test('LettersApi.addResonance：resonance_count snake_case 映射', () async {

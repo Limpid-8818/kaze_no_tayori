@@ -22,6 +22,17 @@ if [ ! -d "$UPSTREAM/lib/src/tokens" ]; then
   exit 1
 fi
 
+# Flutter 会把 package 字体注册到 packages/natsu_no_tegami/*。
+# 同步前守住上游修复，避免一次 sync 让所有字体静默回落系统字体。
+TYPOGRAPHY_FILE="$UPSTREAM/lib/src/tokens/natsu_typography.dart"
+FONT_STYLE_COUNT=$(grep -c '^[[:space:]]*fontFamily:' "$TYPOGRAPHY_FILE" || true)
+FONT_PACKAGE_COUNT=$(grep -c '^[[:space:]]*package: NatsuFontFamilies.packageName' "$TYPOGRAPHY_FILE" || true)
+if [ "$FONT_STYLE_COUNT" -eq 0 ] || [ "$FONT_STYLE_COUNT" -ne "$FONT_PACKAGE_COUNT" ]; then
+  echo "[x] upstream typography is missing Flutter package font namespaces"
+  echo "    every custom TextStyle must set package: NatsuFontFamilies.packageName"
+  exit 1
+fi
+
 # 白名单：只拷这些，其余（showcase / 六个平台目录 / design_spec 符号链接）一概不动
 copy_dir() {
   local rel="$1"

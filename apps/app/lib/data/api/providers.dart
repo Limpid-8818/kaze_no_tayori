@@ -10,10 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/secure_store.dart';
 import 'api_client.dart';
 import 'ai_api.dart';
-import 'auth_api.dart';
 import 'catalog_api.dart';
 import 'discover_api.dart';
 import 'drift_api.dart';
+import 'geo_api.dart';
 import 'letters_api.dart';
 import 'me_api.dart';
 import 'uploads_api.dart';
@@ -25,9 +25,6 @@ final apiClientProvider = Provider<ApiClient>(
   (ref) => ApiClient(store: ref.watch(secureStoreProvider)),
 );
 
-final authApiProvider = Provider(
-  (ref) => AuthApi(ref.watch(apiClientProvider)),
-);
 final lettersApiProvider = Provider(
   (ref) => LettersApi(ref.watch(apiClientProvider)),
 );
@@ -48,9 +45,4 @@ final catalogApiProvider = Provider(
 final weatherApiProvider = Provider(
   (ref) => WeatherApi(ref.watch(apiClientProvider)),
 );
-
-/// 脚手架期的连通性探针。功能开发完成后随 HealthCard 一起删掉。
-final healthProvider = FutureProvider<String>((ref) async {
-  final json = await ref.watch(apiClientProvider).getJson('/health');
-  return json['status'] as String? ?? 'unknown';
-});
+final geoApiProvider = Provider((ref) => GeoApi(ref.watch(apiClientProvider)));

@@ -5,7 +5,7 @@ import 'package:kazenotayori/data/models/notification.dart';
 
 void main() {
   group('Page', () {
-    test('解析 items + next_cursor，容忍缺项', () {
+    test('解析 items + next_cursor', () {
       final page = Page.fromJson({
         'items': [
           {'id': 'n-1'},
@@ -17,9 +17,17 @@ void main() {
       expect(page.nextCursor, isNull);
     });
 
-    test('items 缺失时给空列表', () {
-      final page = Page.fromJson({}, (json) => '');
-      expect(page.items, isEmpty);
+    test('items 缺失或含坏项时显式失败，不能伪装空状态', () {
+      expect(
+        () => Page.fromJson({}, (json) => ''),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Page.fromJson({
+          'items': ['bad'],
+        }, (json) => ''),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 

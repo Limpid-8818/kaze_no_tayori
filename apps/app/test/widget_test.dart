@@ -42,9 +42,19 @@ void main() {
   });
 
   testWidgets('主题可构造并渲染', (tester) async {
+    final theme = KazeTheme.light();
+    expect(
+      theme.textTheme.bodyLarge?.fontFamily,
+      'packages/natsu_no_tegami/NotoSansSC',
+    );
+    expect(
+      theme.textTheme.titleLarge?.fontFamily,
+      'packages/natsu_no_tegami/Inter',
+    );
+
     await tester.pumpWidget(
       MaterialApp(
-        theme: KazeTheme.light(),
+        theme: theme,
         home: const Scaffold(body: Text('风信')),
       ),
     );

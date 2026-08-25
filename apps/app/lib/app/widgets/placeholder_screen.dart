@@ -8,6 +8,9 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
+import 'kaze_scaffold.dart';
+
 class PlaceholderScreen extends StatelessWidget {
   const PlaceholderScreen({
     required this.title,
@@ -28,30 +31,23 @@ class PlaceholderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  intent,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  prdRef == null ? '尚未实现' : '尚未实现 · PRD $prdRef',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
+    return KazeScaffold(
+      title: title,
+      scrollable: false,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            intent,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge,
           ),
-        ),
+          const SizedBox(height: KazeSpacing.md),
+          Text(
+            prdRef == null ? '尚未实现' : '尚未实现 · PRD $prdRef',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }

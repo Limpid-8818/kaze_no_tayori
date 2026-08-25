@@ -166,16 +166,6 @@ abstract final class KazeColors {
   static const Color envelope = NatsuColors.envelope;
 }
 
-/// Settings 画布（夏の手紙 v2 · Screen/Settings）的结构尺寸 — 非间距刻度，
-/// 集中于此避免 feature 散落魔法数。
-abstract final class KazeSettingsDims {
-  /// 设置行高（画布标题间 53px 实测）
-  static const double rowH = 53;
-
-  /// 设置行图标（画布 16.5，取整；偏差记录于此）
-  static const double tileIcon = 18;
-}
-
 /// Home 画布（夏の手紙 v2 · Screen/Home）的结构尺寸 — 非间距刻度，
 /// 集中于此避免 feature 散落魔法数。
 abstract final class KazeHomeDims {

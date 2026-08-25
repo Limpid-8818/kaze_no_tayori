@@ -20,13 +20,27 @@ class Page<T> {
   factory Page.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) fromItem,
-  ) => Page(
-    items: (json['items'] as List? ?? const [])
-        .whereType<Map>()
-        .map((e) => fromItem(Map<String, dynamic>.from(e)))
-        .toList(),
-    nextCursor: json['next_cursor'] as String?,
-  );
+  ) {
+    final rawItems = json['items'];
+    if (rawItems is! List) {
+      throw const FormatException('分页响应缺少 items 数组');
+    }
+
+    final items = <T>[];
+    for (var index = 0; index < rawItems.length; index++) {
+      final rawItem = rawItems[index];
+      if (rawItem is! Map) {
+        throw FormatException('items[$index] 不是 JSON 对象');
+      }
+      items.add(fromItem(Map<String, dynamic>.from(rawItem)));
+    }
+
+    final nextCursor = json['next_cursor'];
+    if (nextCursor != null && nextCursor is! String) {
+      throw const FormatException('next_cursor 必须是字符串或 null');
+    }
+    return Page(items: items, nextCursor: nextCursor as String?);
+  }
 
   final List<T> items;
   final String? nextCursor;
@@ -49,8 +63,8 @@ class TokenResponse {
   @JsonKey(name: 'access_token')
   final String accessToken;
 
-  /// 恒为 "bearer"；后端缺省时兜底，避免解析炸裂。
-  @JsonKey(name: 'token_type', defaultValue: 'bearer')
+  /// 恒为 "bearer"；字段属于契约必填，缺失时必须显式报协议错误。
+  @JsonKey(name: 'token_type')
   final String tokenType;
 
   @JsonKey(name: 'user_id')

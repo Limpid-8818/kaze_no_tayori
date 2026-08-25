@@ -16,14 +16,14 @@ class LettersApi {
   /// 写信 / 投信。返回本人视角（含 status：pending/public/…）。
   Future<LetterOwned> create(LetterCreateRequest req) async {
     final json = await _client.postJson('/v1/letters', body: req.toJson());
-    return LetterOwned.fromJson(json);
+    return _client.decode(() => LetterOwned.fromJson(json));
   }
 
   /// 读一封公开信。非 public 一律 404（pending 不泄漏存在性）。
   /// 纯读无副作用——开信上报另调 [markRead]。
   Future<LetterPublic> get(String letterId) async {
     final json = await _client.getJson('/v1/letters/$letterId');
-    return LetterPublic.fromJson(json);
+    return _client.decode(() => LetterPublic.fromJson(json));
   }
 
   /// 开信上报（收信 ≠ 已读）。204；幂等：首开 read_count+1，重复开不再计。
@@ -46,13 +46,13 @@ class LettersApi {
       '/v1/letters/$parentLetterId/replies',
       body: req.toJson(),
     );
-    return LetterOwned.fromJson(json);
+    return _client.decode(() => LetterOwned.fromJson(json));
   }
 
   /// 某封信的公开回信列表。
   Future<Page<LetterPublic>> listReplies(String letterId) async {
     final json = await _client.getJson('/v1/letters/$letterId/replies');
-    return Page.fromJson(json, LetterPublic.fromJson);
+    return _client.decode(() => Page.fromJson(json, LetterPublic.fromJson));
   }
 
   /// ✦ 共鸣。幂等：重复调用不涨计数。note 携带时另计 voice。
@@ -64,6 +64,6 @@ class LettersApi {
       '/v1/letters/$letterId/resonance',
       body: ResonanceRequest(note: note).toJson(),
     );
-    return ResonanceResponse.fromJson(json);
+    return _client.decode(() => ResonanceResponse.fromJson(json));
   }
 }

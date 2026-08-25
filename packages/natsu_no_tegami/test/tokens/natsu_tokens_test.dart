@@ -31,19 +31,24 @@ void main() {
   });
 
   group('字体三角色（中文优先回落链）', () {
+    const prefix = 'packages/natsu_no_tegami/';
+
     test('UI = sans，标题不再是衬线', () {
-      expect(NatsuTypography.display.fontFamily, 'NotoSansSC');
+      expect(NatsuTypography.display.fontFamily, '${prefix}NotoSansSC');
       expect(
         NatsuTypography.display.fontFamilyFallback,
-        contains('NotoSansJP'),
+        contains('${prefix}NotoSansJP'),
       );
-      expect(NatsuTypography.heading.fontFamily, 'NotoSansSC');
-      expect(NatsuTypography.body.fontFamily, 'NotoSansSC');
+      expect(NatsuTypography.heading.fontFamily, '${prefix}NotoSansSC');
+      expect(NatsuTypography.body.fontFamily, '${prefix}NotoSansSC');
     });
 
     test('手写 = LXGW WenKai + KleeOne 回退', () {
-      expect(NatsuTypography.hwBody.fontFamily, 'LXGWWenKai');
-      expect(NatsuTypography.hwBody.fontFamilyFallback, contains('KleeOne'));
+      expect(NatsuTypography.hwBody.fontFamily, '${prefix}LXGWWenKai');
+      expect(
+        NatsuTypography.hwBody.fontFamilyFallback,
+        contains('${prefix}KleeOne'),
+      );
       expect(
         NatsuTypography.hwPostscript.fontFamily,
         NatsuTypography.hwAddress.fontFamily,
@@ -51,10 +56,10 @@ void main() {
     });
 
     test('衬线只活在 quoteSerif 一处', () {
-      expect(NatsuTypography.quoteSerif.fontFamily, 'NotoSerifSC');
+      expect(NatsuTypography.quoteSerif.fontFamily, '${prefix}NotoSerifSC');
       expect(
         NatsuTypography.quoteSerif.fontFamilyFallback,
-        contains('NotoSerifJP'),
+        contains('${prefix}NotoSerifJP'),
       );
       final allStyles = <TextStyle>[
         NatsuTypography.display,
@@ -78,7 +83,7 @@ void main() {
       for (final s in allStyles) {
         expect(
           s.fontFamily,
-          isNot('NotoSerifSC'),
+          isNot('${prefix}NotoSerifSC'),
           reason: '衬线越界：${s.fontFamily}',
         );
       }

@@ -17,8 +17,27 @@ abstract final class Env {
     defaultValue: 1000,
   );
 
-  /// 信件正文上限，与后端 CHECK 约束保持一致。
+  /// 产品要求的整封正文上限（PRD 6.1）。
   static const int letterMaxChars = 800;
+
+  /// 协议对单个文字块的防御性上限。当前与整封上限相同，但语义不同。
+  static const int textBlockMaxChars = 800;
+
+  static const int letterMaxBlocks = 20;
+
+  static const int photoNoteMaxChars = 200;
+
+  static const int letterMaxTags = 3;
+
+  static const int signatureMaxChars = 32;
+
+  static const int addresseeMaxChars = 32;
+
+  static const int placeLabelMaxChars = 128;
+
+  static const int musicNameMaxChars = 128;
+
+  static const int musicLyricsMaxChars = 200;
 
   /// 附图上限（明信片式，1 张为主）。
   static const int letterMaxImages = 3;

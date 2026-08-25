@@ -98,9 +98,13 @@ class ApiClient {
       data: {'device_id': deviceId},
     );
     final body = _bodyOrEmpty(resp.data);
-    final token = body['access_token'] as String?;
-    if (token == null || token.isEmpty) {
-      throw ApiFailure(ApiErrorKind.unknown, '认证响应缺少 access_token');
+    final token = body['access_token'];
+    if (token is! String || token.isEmpty) {
+      throw ApiFailure(
+        ApiErrorKind.invalidResponse,
+        '认证响应缺少 access_token',
+        code: 'invalid_response',
+      );
     }
     await _store.writeToken(token);
   }
@@ -152,7 +156,11 @@ class ApiClient {
       final data = resp.data;
       if (data is List) return data;
       if (data is String && data.trim().isEmpty) return const [];
-      throw ApiFailure(ApiErrorKind.unknown, '响应格式异常');
+      throw const ApiFailure(
+        ApiErrorKind.invalidResponse,
+        '响应格式异常',
+        code: 'invalid_response',
+      );
     });
   }
 
@@ -195,7 +203,55 @@ class ApiClient {
     if (data is Map<String, dynamic>) return data;
     if (data is String && data.trim().isEmpty) return const {};
     if (data is Map) return Map<String, dynamic>.from(data);
-    throw ApiFailure(ApiErrorKind.unknown, '响应格式异常');
+    throw const ApiFailure(
+      ApiErrorKind.invalidResponse,
+      '响应格式异常',
+      code: 'invalid_response',
+    );
+  }
+
+  /// 把 endpoint 模型解析错误收束为稳定的协议失败，避免 TypeError 穿透到 UI，
+  /// 也避免坏列表项被静默丢弃成“暂无内容”。
+  T decode<T>(T Function() parse) {
+    try {
+      return parse();
+    } on ApiFailure {
+      rethrow;
+    } on FormatException catch (error) {
+      throw ApiFailure(
+        ApiErrorKind.invalidResponse,
+        '服务响应与客户端契约不一致：${error.message}',
+        code: 'invalid_response',
+      );
+    } on ArgumentError catch (error) {
+      // json_serializable 的 enum 解码在服务端返回未知值时抛 ArgumentError。
+      throw ApiFailure(
+        ApiErrorKind.invalidResponse,
+        '服务响应与客户端契约不一致：$error',
+        code: 'invalid_response',
+      );
+    } on TypeError catch (error) {
+      throw ApiFailure(
+        ApiErrorKind.invalidResponse,
+        '服务响应与客户端契约不一致：$error',
+        code: 'invalid_response',
+      );
+    }
+  }
+
+  List<T> decodeList<T>(
+    List<dynamic> items,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    return decode(() {
+      return [
+        for (var index = 0; index < items.length; index++)
+          if (items[index] case final Map item)
+            fromJson(Map<String, dynamic>.from(item))
+          else
+            throw FormatException('列表第 $index 项不是 JSON 对象'),
+      ];
+    });
   }
 
   /// 把 Dio 异常翻译成 [ApiFailure]，让 UI 能区分「该降级」与「该报错」。
@@ -214,8 +270,10 @@ class ApiClient {
     String? message;
     if (data is Map && data['error'] is Map) {
       final err = data['error'] as Map;
-      code = err['code'] as String?;
-      message = err['message'] as String?;
+      final rawCode = err['code'];
+      final rawMessage = err['message'];
+      if (rawCode is String) code = rawCode;
+      if (rawMessage is String) message = rawMessage;
     }
 
     // 后端统一错误体的 code 优先（见 docs/API_CONTRACT.md）
@@ -250,6 +308,7 @@ class ApiClient {
     ApiErrorKind.featureDisabled => '这个能力暂时关闭了',
     ApiErrorKind.serviceUnavailable => '服务暂时不可用，稍后再试',
     ApiErrorKind.driftPoolEmpty => '此刻还没有漂来的信',
+    ApiErrorKind.invalidResponse => '服务返回了无法识别的内容',
     ApiErrorKind.unknown => '出了点意外',
   };
 }

@@ -18,6 +18,6 @@ class DriftApi {
   /// 「此刻还没有漂来的信」，UI 不得当错误弹窗处理。
   Future<LetterPublic> next() async {
     final json = await _client.getJson('/v1/drift/next');
-    return LetterPublic.fromJson(json);
+    return _client.decode(() => LetterPublic.fromJson(json));
   }
 }

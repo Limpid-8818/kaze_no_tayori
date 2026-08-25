@@ -20,7 +20,8 @@ class WeatherApi {
         query: {'lat': lat, 'lon': lon},
       );
       if (json.isEmpty) return null;
-      return Weather.fromJson(json);
+      final weather = _client.decode(() => Weather.fromJson(json));
+      return weather;
     } on ApiFailure catch (e) {
       // 可降级模块失败时温和返回 null，不弹红框
       if (e.isDegradable) return null;

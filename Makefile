@@ -4,6 +4,7 @@
 SHELL := /bin/bash
 API_DIR := services/api
 APP_DIR := apps/app
+DESIGN_SYSTEM_DIR := packages/natsu_no_tegami
 UV := uv
 UV_RUN := $(UV) run --frozen
 API_BASE_URL ?= http://localhost:8000
@@ -14,7 +15,7 @@ else
 APP_DEVICE ?= chrome
 endif
 
-.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android gen gen-watch \
+.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android app-ios gen gen-watch \
         revision migrate downgrade seed check check-py check-dart check-db openapi sync-ds clean
 
 # 终端输出一律 ASCII：Windows 控制台默认 GBK 代码页，中文会显示成乱码。
@@ -28,6 +29,7 @@ help:
 	@echo "  make api          run backend (reload)"
 	@echo "  make app          run app on web (APP_DEVICE=$(APP_DEVICE))"
 	@echo "  make app-android  run app on Android device"
+	@echo "  make app-ios IOS_DEVICE=<id>  run app on iOS device/simulator"
 	@echo "  make gen          Flutter codegen (freezed / riverpod)"
 	@echo "  make revision m=\"...\"  Alembic autogenerate (REVIEW the output)"
 	@echo "  make migrate      Alembic upgrade head"
@@ -91,6 +93,12 @@ app:
 app-android:
 	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=$(API_BASE_URL)
 
+app-ios:
+ifndef IOS_DEVICE
+	$(error missing iOS device id: run "flutter devices", then make app-ios IOS_DEVICE=<id>)
+endif
+	cd $(APP_DIR) && flutter run -d "$(IOS_DEVICE)" --dart-define=API_BASE_URL=$(API_BASE_URL)
+
 # build_runner 2.x 已移除 --delete-conflicting-outputs（传了只会警告）
 gen:
 	cd $(APP_DIR) && dart run build_runner build
@@ -111,6 +119,9 @@ check-dart:
 	cd $(APP_DIR) && dart format --set-exit-if-changed lib test
 	cd $(APP_DIR) && flutter analyze
 	cd $(APP_DIR) && flutter test
+	cd $(DESIGN_SYSTEM_DIR) && dart format --set-exit-if-changed lib test
+	cd $(DESIGN_SYSTEM_DIR) && flutter analyze
+	cd $(DESIGN_SYSTEM_DIR) && flutter test test/tokens test/components
 
 # ---------- 杂项 ----------
 sync-ds:

@@ -13,6 +13,7 @@
 | GNU Make | 3.81+ | 统一通过仓库根目录的 `Makefile` 执行常用命令 |
 | Git | 2.49+ | |
 | Docker + Compose v2 | 可选 | 推荐用于运行本机 PostGIS；API 与 App 仍在宿主机运行 |
+| Xcode + CocoaPods | 仅 iOS | `flutter doctor -v` 必须显示 Xcode 可用；真机还需要 Apple 开发签名 |
 
 本机有 Docker 时，推荐只用它运行 PostGIS，避免依赖共享云数据库。Web 调试设备由 `make app` 自动选择：Windows 优先 Edge，其他平台优先 Chrome；也可用 `APP_DEVICE` 覆盖。
 
@@ -28,6 +29,8 @@ make migrate              # 应用迁移
 make seed                 # 灌入本地开发种子数据
 make api                  # → http://localhost:8000/docs
 make app                  # → 浏览器打开 App
+# macOS：flutter devices 取得设备 ID 后
+make app-ios IOS_DEVICE=<id>
 ```
 
 后端不连数据库也能启动（`/health` 只表示进程存活），但业务接口和 `/health/db` 需要数据库。PostGIS 数据保存在 Docker volume 中，`make db-stop` 不会删除数据。
@@ -118,12 +121,22 @@ Windows 控制台默认 GBK 代码页。这也是为什么所有终端输出都�
 **`make app` 没选到正确浏览器**
 先用 `flutter devices` 查看设备 ID，再显式运行 `make app APP_DEVICE=chrome` 或 `make app APP_DEVICE=edge`。
 
+**iOS 怎么启动**
+先打开 Simulator 或连接已信任并完成开发者签名的 iPhone，运行 `flutter devices` 取得设备 ID，再执行 `make app-ios IOS_DEVICE=<id>`。iOS 模拟器访问 Mac 后端可用 `API_BASE_URL=http://127.0.0.1:8000`；iPhone 真机必须改为 Mac 的局域网地址。
+
 **真机调试时 App 连不上后端**
 `API_BASE_URL` 不能用 `localhost`（那是手机自己）。改成电脑的局域网 IP：
 ```bash
 make app-android API_BASE_URL=http://192.168.x.x:8000
+# 或
+make app-ios IOS_DEVICE=<id> API_BASE_URL=http://192.168.x.x:8000
 ```
-并确认后端以 `--host 0.0.0.0` 起（Makefile 已如此）、防火墙放行 8000。
+并确认后端以 `--host 0.0.0.0` 起（Makefile 已如此）、防火墙放行 8000。Android 只在 debug manifest 放行明文 HTTP；iOS 只放行局域网资源，首次访问会出现“本地网络”系统授权。拒绝后需到系统设置重新开启。release 与公网 API 一律使用 HTTPS。
+
+若 `STORAGE_BACKEND=local`，后端的 `PUBLIC_BASE_URL` 也必须设成设备可访问的局域网地址；否则 API 虽可访问，返回的图片仍会指向手机自己的 `localhost`。演示环境优先使用 HTTPS API + 对象存储公网 URL。
+
+**Web 定位不弹或始终失败**
+浏览器 Geolocation 需要 secure context。`localhost` 可用于本机调试；通过局域网 IP 给其他设备打开 Web 时必须使用 HTTPS。权限网关在 Web 使用插件支持的 `location` 权限，不使用移动端专属的 `locationWhenInUse`。
 
 **Android 构建失败**
 仓库刻意放在纯 ASCII 路径（`D:\CodeRepository\misc\kazenotayori`）——中文路径下 Gradle/NDK 有已知构建失败风险。**不要把仓库移回含中文的目录。**

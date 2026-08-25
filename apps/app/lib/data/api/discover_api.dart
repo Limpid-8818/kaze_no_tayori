@@ -23,6 +23,6 @@ class DiscoverApi {
     if (radiusM != null) query['radius_m'] = radiusM;
     if (limit != null) query['limit'] = limit;
     final json = await _client.getJson('/v1/discover', query: query);
-    return Page.fromJson(json, LetterPublic.fromJson);
+    return _client.decode(() => Page.fromJson(json, LetterPublic.fromJson));
   }
 }

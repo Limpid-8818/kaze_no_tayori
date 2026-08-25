@@ -14,17 +14,11 @@ class CatalogApi {
   /// 裸数组响应，不带 Page 包装。
   Future<List<ThemePublic>> themes() async {
     final list = await _client.getList('/v1/themes');
-    return list
-        .whereType<Map>()
-        .map((e) => ThemePublic.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return _client.decodeList(list, ThemePublic.fromJson);
   }
 
   Future<List<TagPublic>> tags() async {
     final list = await _client.getList('/v1/tags');
-    return list
-        .whereType<Map>()
-        .map((e) => TagPublic.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return _client.decodeList(list, TagPublic.fromJson);
   }
 }

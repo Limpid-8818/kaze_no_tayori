@@ -20,7 +20,7 @@ class MeApi {
       '/v1/me/letters',
       query: limit == null ? null : {'limit': limit},
     );
-    return Page.fromJson(json, LetterOwned.fromJson);
+    return _client.decode(() => Page.fromJson(json, LetterOwned.fromJson));
   }
 
   /// 下架我的信（taken_down，非硬删）。回信链不塌。
@@ -34,7 +34,7 @@ class MeApi {
       '/v1/me/scripbook',
       query: limit == null ? null : {'limit': limit},
     );
-    return Page.fromJson(json, LetterPublic.fromJson);
+    return _client.decode(() => Page.fromJson(json, LetterPublic.fromJson));
   }
 
   /// 收进抄本。204。
@@ -59,7 +59,9 @@ class MeApi {
       '/v1/me/notifications',
       query: query.isEmpty ? null : query,
     );
-    return Page.fromJson(json, NotificationPublic.fromJson);
+    return _client.decode(
+      () => Page.fromJson(json, NotificationPublic.fromJson),
+    );
   }
 
   /// 标记已读。204。

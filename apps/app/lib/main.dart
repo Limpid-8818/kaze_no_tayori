@@ -1,44 +1,43 @@
 /// 风信 Kaze no tayori —— 应用入口。
 ///
-/// 启动：make app（Web / Edge）或 make app-android。
-/// 冷启动先静默登录（device_id → JWT），失败不挡首帧。
+/// 启动：make app（Web）、make app-android 或 make app-ios。
+/// 首帧绘制后再静默登录（device_id → JWT），离线不会阻塞应用壳。
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/bootstrap.dart';
+import 'app/app_lifecycle.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'data/api/api_client.dart';
 import 'data/api/providers.dart';
 import 'data/local/secure_store.dart';
-import 'features/settings/data/settings_repository.dart';
-import 'features/settings/providers/settings_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final store = SecureStore();
   final client = ApiClient(store: store);
-  await ensureSession(client);
-
-  // 初始化 SharedPreferences 并注入 SettingsRepository，
-  // 使 settingsRepositoryProvider 在生产环境可用。
-  final prefs = await SharedPreferences.getInstance();
-  final settingsRepo = SettingsRepository(prefs);
 
   runApp(
     ProviderScope(
       overrides: [
         secureStoreProvider.overrideWithValue(store),
         apiClientProvider.overrideWithValue(client),
-        settingsRepositoryProvider.overrideWithValue(settingsRepo),
       ],
       child: const KazeApp(),
     ),
   );
+
+  // UI 不依赖会话是否已换到 JWT；后续请求遇到 401 也会自动重绑。
+  // 放到首帧之后启动，避免离线时网络超时把启动页卡住。
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(ensureSession(client));
+  });
 }
 
 class KazeApp extends StatelessWidget {
@@ -51,6 +50,7 @@ class KazeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: KazeTheme.light(),
       routerConfig: router,
+      builder: (context, child) => AppLifecycle(child: child!),
     );
   }
 }

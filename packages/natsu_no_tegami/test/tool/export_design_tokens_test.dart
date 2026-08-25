@@ -68,7 +68,11 @@ Map<String, Object> _shadow(List<BoxShadow> shadows, String description) => {
 Map<String, Object> _typographyFrom(TextStyle s, String description) => {
   '\$type': 'typography',
   '\$value': {
-    'fontFamily': [s.fontFamily!, ...?s.fontFamilyFallback],
+    // package 前缀是 Flutter 运行时寻址细节，不进入跨平台设计令牌。
+    'fontFamily': [
+      _unscopedFontFamily(s.fontFamily!),
+      ...?s.fontFamilyFallback?.map(_unscopedFontFamily),
+    ],
     'fontWeight': '${(s.fontWeight ?? FontWeight.w400).value}',
     'fontSize': '${_trimNum(s.fontSize!)}px',
     'lineHeight': '${_trimNum(s.height! * s.fontSize!)}px',
@@ -76,6 +80,11 @@ Map<String, Object> _typographyFrom(TextStyle s, String description) => {
   },
   '\$description': description,
 };
+
+String _unscopedFontFamily(String family) {
+  const prefix = 'packages/natsu_no_tegami/';
+  return family.startsWith(prefix) ? family.substring(prefix.length) : family;
+}
 
 String _trimNum(num v) =>
     v == v.roundToDouble() ? v.round().toString() : v.toString();

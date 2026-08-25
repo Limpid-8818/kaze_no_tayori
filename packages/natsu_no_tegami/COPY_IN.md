@@ -1,7 +1,9 @@
 # 设计系统拷入契约
 
-> 本包当前是**空壳**。真实的令牌与组件在上游独立仓库开发，成形后按本文整体拷入。
+> 本包是上游设计系统在 monorepo 中的同步副本，按本文白名单整体拷入。
 > **monorepo 内永不手改本包** —— 一切改动在上游做，再跑 `make sync-ds`。
+
+> 当前例外（2026-08-25）：本仓库已先修复 `NatsuTypography` 的 Flutter package 字体命名空间，并同步更新测试；该修复必须回灌上游后再执行下一次同步。`sync_design_system.sh` 已加前置守卫，旧上游不会覆盖当前正确版本。
 
 ## 上游
 
@@ -52,6 +54,8 @@
 同步脚本**按目录整体拷贝、不做扁平化**，别把这两个合并。
 
 **字体文件曾经损坏过。** 上游 git log 有一条 `fix: 修复损坏的 RobotoMono 字体文件导致的 web 加载崩溃`。拷入后先跑一次 `flutter run -d edge` 确认字体能加载。
+
+**依赖包字体必须带 package 命名空间。** Flutter 会把本包声明的 family 注册成 `packages/natsu_no_tegami/<family>`。`NatsuTypography` 中所有 `TextStyle` 必须传 `package: NatsuFontFamilies.packageName`；否则文件虽然进入产物，运行时仍会静默回落到系统字体。同步脚本会在拷贝前检查这一条件并拒绝旧上游，避免覆盖回退。
 
 ## 时机建议
 
