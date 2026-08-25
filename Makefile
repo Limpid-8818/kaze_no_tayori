@@ -29,6 +29,7 @@ help:
 	@echo "  make api          run backend (reload)"
 	@echo "  make app          run app on web (APP_DEVICE=$(APP_DEVICE))"
 	@echo "  make app-android  run app on Android device"
+	@echo "  make app-android-emulator  run app on Android Emulator (10.0.2.2)"
 	@echo "  make app-ios IOS_DEVICE=<id>  run app on iOS device/simulator"
 	@echo "  make gen          Flutter codegen (freezed / riverpod)"
 	@echo "  make revision m=\"...\"  Alembic autogenerate (REVIEW the output)"
@@ -92,6 +93,11 @@ app:
 
 app-android:
 	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=$(API_BASE_URL)
+
+# Android Emulator 专用：10.0.2.2 是 Emulator 访问宿主机 localhost 的别名。
+# 物理真机仍用 make app-android API_BASE_URL=http://<LAN_IP>:8000。
+app-android-emulator:
+	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 
 app-ios:
 ifndef IOS_DEVICE

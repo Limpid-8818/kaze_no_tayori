@@ -33,8 +33,8 @@ class GeolocatorLocationGateway implements LocationGateway {
   Future<GeoCoordinate> current() async {
     final position = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 30),
       ),
     );
     return GeoCoordinate(

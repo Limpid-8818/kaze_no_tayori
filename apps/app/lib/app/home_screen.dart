@@ -10,23 +10,23 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../core/day_period.dart';
+import 'controllers/home_environment_controller.dart';
 import 'router.dart';
 import 'theme.dart';
 
-class HomeScreen extends StatelessWidget {
-  // 非 const 构造：now 默认取当前时间（非编译期常量）。
+class HomeScreen extends ConsumerWidget {
   HomeScreen({super.key, DateTime? now}) : now = now ?? DateTime.now();
 
-  /// 时钟注入点 — 默认取当前时间，测试传固定值使问候语可断言。
   final DateTime now;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DecoratedBox(
       // 环境是夏日天空，纸只在「信」的时候出现
       decoration: const BoxDecoration(gradient: KazeTheme.skyGradient),
@@ -63,15 +63,16 @@ class HomeScreen extends StatelessWidget {
 }
 
 /// 问候语 + 引导语 + 环境行。
-class _TitleSection extends StatelessWidget {
+class _TitleSection extends ConsumerWidget {
   const _TitleSection({required this.now});
 
   final DateTime now;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final period = dayPeriodOf(now);
+    final envState = ref.watch(homeEnvironmentControllerProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,27 +81,49 @@ class _TitleSection extends StatelessWidget {
         const SizedBox(height: KazeSpacing.sm),
         Text('把此刻写下来，寄给远方', style: theme.textTheme.bodyMedium),
         const SizedBox(height: KazeSpacing.sm),
-        _EnvironmentRow(period: period),
+        _EnvironmentRow(period: period, envState: envState),
       ],
     );
   }
 }
 
+// ---------- 天气 icon 映射 ----------
+
+IconData _weatherIconFor(String? icon) {
+  switch (icon) {
+    case 'rainy':
+      return Icons.water_drop_outlined;
+    case 'cloudy':
+      return Icons.cloud_outlined;
+    case 'snowy':
+      return Icons.ac_unit_outlined;
+    case 'windy':
+      return Icons.air_outlined;
+    case 'foggy':
+      return Icons.blur_on_outlined;
+    case 'thunder':
+      return Icons.flash_on_outlined;
+    case 'sunny':
+    default:
+      return Icons.wb_sunny_outlined;
+  }
+}
+
 /// 环境行：地点 · 时段 · 天气。
 ///
-/// v1 只渲染时段芯片（恒可得的本地推导）；地点/天气芯片待后端
-/// 逆地理与天气服务（现为可降级桩）可用后按下述槽位补入：
-/// [地点 pin(leaf 色) + 地名] · [时段图标(coral) + 朝/昼/夕/夜] · [太阳 + 天气]，
+/// 地点/天气芯片在数据未就绪或后端降级时隐藏，仅时段芯片恒显示；
 /// 芯片间以 3px 小圆点分隔。
 class _EnvironmentRow extends StatelessWidget {
-  const _EnvironmentRow({required this.period});
+  const _EnvironmentRow({required this.period, this.envState});
 
   final KazeDayPeriod period;
+  final HomeEnvironmentState? envState;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final icon = switch (period) {
+
+    final periodIcon = switch (period) {
       // 珊瑚色配给：时段图标属「旅行标记」语义
       KazeDayPeriod.morning => Icons.wb_twilight,
       KazeDayPeriod.noon => Icons.wb_sunny,
@@ -108,12 +131,102 @@ class _EnvironmentRow extends StatelessWidget {
       KazeDayPeriod.night => Icons.nights_stay_outlined,
     };
 
-    return Row(
+    // 地点芯片（leaf 色）：placeLabel 非空时显示
+    final placeChip = envState?.placeLabel != null
+        ? _EnvChip(
+            icon: Icons.location_on_outlined,
+            label: envState!.placeLabel!,
+            iconColor: KazeColors.leaf,
+          )
+        : null;
+
+    // 天气芯片（sunlightYellow 色）：weather 非空时显示，仅展示描述文本，不含温度
+    final weatherChip = envState?.weather != null
+        ? _EnvChip(
+            icon: _weatherIconFor(envState!.weather!.icon),
+            label: envState!.weather!.text,
+            iconColor: NatsuColors.sunlightYellow,
+          )
+        : null;
+
+    // 时段芯片（coral 色）：恒显示
+    final periodChip = _EnvChip(
+      icon: periodIcon,
+      label: dayPeriodLabel(period),
+      iconColor: theme.colorScheme.tertiary,
+    );
+
+    // 分隔符：窄竖线 + 两侧留白，避免与 icon 视觉粘连
+    Widget separator() => const Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 15, color: theme.colorScheme.tertiary),
-        const SizedBox(width: KazeSpacing.xs + 1),
-        Text(dayPeriodLabel(period), style: theme.textTheme.labelMedium),
+        SizedBox(width: 2),
+        VerticalDivider(thickness: 1, width: 5),
+        SizedBox(width: 2),
       ],
+    );
+
+    final chips = <Widget>[];
+    var hasPrev = false;
+
+    if (placeChip != null) {
+      chips.add(placeChip);
+      hasPrev = true;
+    }
+    if (hasPrev || weatherChip != null) {
+      if (hasPrev) chips.add(separator());
+      chips.add(weatherChip!);
+      hasPrev = true;
+    }
+    if (hasPrev) chips.add(separator());
+    chips.add(periodChip);
+
+    return Row(mainAxisSize: MainAxisSize.min, children: chips);
+  }
+}
+
+/// 单个环境信息芯片：图标 + 标签。
+class _EnvChip extends StatelessWidget {
+  const _EnvChip({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: iconColor),
+        const SizedBox(width: KazeSpacing.xs + 1),
+        Text(label, style: theme.textTheme.labelMedium),
+      ],
+    );
+  }
+}
+
+/// 环境行小圆点分隔符。
+class Dot extends StatelessWidget {
+  const Dot({required this.radius});
+
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: KazeSpacing.xs),
+      child: Icon(
+        Icons.circle,
+        size: radius * 2,
+        color: theme.colorScheme.tertiary,
+      ),
     );
   }
 }

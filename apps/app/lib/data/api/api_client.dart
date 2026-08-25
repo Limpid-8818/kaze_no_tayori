@@ -4,6 +4,7 @@
 /// 超时、401 自动重绑都在这里统一处理，散出去就没法保证降级行为一致。
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../../core/env.dart';
@@ -47,6 +48,19 @@ class ApiClient {
         },
       ),
     );
+
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: true,
+          responseBody: true,
+          error: true,
+        ),
+      );
+    }
   }
 
   final Dio _dio;
