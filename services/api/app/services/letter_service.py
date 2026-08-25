@@ -42,6 +42,8 @@ async def create_letter(
     letter = Letter(
         blocks=[b.model_dump() for b in payload.blocks],
         poem=payload.poem,
+        signature=payload.signature,
+        addressee=payload.addressee,
         theme_id=payload.theme_id,
         theme_skin=payload.theme_skin.model_dump(by_alias=True) if payload.theme_skin else None,
         music_ref=payload.music_ref.model_dump() if payload.music_ref else None,

@@ -49,6 +49,10 @@ enum PhotoMood {
 }
 
 /// 单块——正文段或照片块。
+///
+/// 可空字段一律 `includeIfNull: false`：后端 Pydantic 的 PhotoBlock.mood
+/// 是必填 str，序列化出 `"mood": null` 会被拒成 422；旧信的反序列化
+/// （fromJson 容忍缺失）不受影响。
 @JsonSerializable()
 class LetterBlock {
   const LetterBlock({
@@ -63,9 +67,13 @@ class LetterBlock {
       _$LetterBlockFromJson(json);
 
   final String type; // 'text' | 'photo'
+  @JsonKey(includeIfNull: false)
   final String? text;
+  @JsonKey(includeIfNull: false)
   final String? ref;
+  @JsonKey(includeIfNull: false)
   final PhotoMood? mood;
+  @JsonKey(includeIfNull: false)
   final String? note;
 
   Map<String, dynamic> toJson() => _$LetterBlockToJson(this);
@@ -176,6 +184,8 @@ class LetterPublic {
     required this.counts,
     required this.createdAt,
     this.poem,
+    this.signature,
+    this.addressee,
     this.themeSkin,
     this.musicRef,
     this.placeLabel,
@@ -192,6 +202,12 @@ class LetterPublic {
 
   /// AI 短诗，≤4 行。可为 null（AI 关闭或用户没采纳）。
   final String? poem;
+
+  /// 信尾署名，写信人自填（可空 = 不署名）。内容物，非作者标识。
+  final String? signature;
+
+  /// 宛名（封筒封面收信人），写信人自填。内容物，非读者标识。
+  final String? addressee;
 
   /// 基础主题 ID（如 "natsu"），指向 themes 表。
   @JsonKey(name: 'theme_id')
@@ -238,6 +254,8 @@ class LetterOwned extends LetterPublic {
     required super.counts,
     required super.createdAt,
     super.poem,
+    super.signature,
+    super.addressee,
     super.themeSkin,
     super.musicRef,
     super.placeLabel,
@@ -267,6 +285,8 @@ class LetterCreateRequest {
   const LetterCreateRequest({
     required this.blocks,
     this.poem,
+    this.signature,
+    this.addressee,
     required this.themeId,
     this.themeSkin,
     this.musicRef,
@@ -283,6 +303,12 @@ class LetterCreateRequest {
 
   final List<LetterBlock> blocks;
   final String? poem;
+
+  /// 信尾署名（可空 = 不署名）。内容物，非作者标识。
+  final String? signature;
+
+  /// 宛名（封筒封面收信人，可空）。内容物，非读者标识。
+  final String? addressee;
   @JsonKey(name: 'theme_id')
   final String themeId;
   @JsonKey(name: 'theme_skin')

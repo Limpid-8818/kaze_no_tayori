@@ -89,6 +89,18 @@
         "additionalProperties": false,
         "description": "写信（PRD 6.1）。",
         "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
           "blocks": {
             "items": {
               "discriminator": {
@@ -174,6 +186,18 @@
             ],
             "title": "Poem"
           },
+          "signature": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
           "tags": {
             "items": {
               "type": "string"
@@ -219,6 +243,17 @@
       "LetterOwned": {
         "description": "本人视角，仅 /v1/me/* 路径返回。\n\n比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——\n自己不需要看自己的 id。",
         "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
           "blocks": {
             "items": {
               "discriminator": {
@@ -321,6 +356,17 @@
             ],
             "title": "Poem"
           },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
           "status": {
             "$ref": "#/components/schemas/LetterStatus"
           },
@@ -371,6 +417,17 @@
       "LetterPublic": {
         "description": "对外信件响应——**唯一允许返回给读者的信件形状**。\n\n刻意缺席的字段：\n- owner_user_id / 任何作者标识（匿名铁律）\n- lat / lon 精确坐标（只给 place_label，避免反查作者活动位置，PRD §8.1）\n- status（读者只会看到 public 的信）",
         "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
           "blocks": {
             "items": {
               "discriminator": {
@@ -450,6 +507,17 @@
               }
             ],
             "title": "Poem"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
           },
           "tags": {
             "items": {
@@ -1149,7 +1217,7 @@
     },
     "/v1/ai/poem": {
       "post": {
-        "description": "从正文提取意象生成 ≤4 行短诗，与正文同屏展示。",
+        "description": "从正文提取意象生成俳句（默认体裁），与正文同屏展示。",
         "operationId": "poem_v1_ai_poem_post",
         "requestBody": {
           "content": {
@@ -1398,6 +1466,69 @@
         "summary": "Next Letter",
         "tags": [
           "drift"
+        ]
+      }
+    },
+    "/v1/geo/reverse": {
+      "get": {
+        "description": "按坐标查询城市级地点名。返回 null 表示取不到（降级）。",
+        "operationId": "reverse_geocode_endpoint_v1_geo_reverse_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "title": "Lon",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Reverse Geocode Endpoint V1 Geo Reverse Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reverse Geocode Endpoint",
+        "tags": [
+          "geo"
         ]
       }
     },
@@ -2188,6 +2319,66 @@
         "summary": "Upload Image",
         "tags": [
           "uploads"
+        ]
+      }
+    },
+    "/v1/weather/now": {
+      "get": {
+        "description": "按坐标查询当前天气。返回 null 表示取不到（降级）。",
+        "operationId": "get_current_weather_v1_weather_now_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "title": "Lon",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Weather"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Current Weather V1 Weather Now Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Current Weather",
+        "tags": [
+          "weather"
         ]
       }
     }

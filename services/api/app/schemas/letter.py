@@ -126,6 +126,10 @@ class LetterCreate(_BlocksMixin):
     """写信（PRD 6.1）。"""
 
     poem: str | None = None
+    # 信尾署名（可空 = 不署名）。内容物，非作者标识
+    signature: str | None = Field(default=None, max_length=32)
+    # 宛名（封筒封面收信人，可空）。内容物，非读者标识
+    addressee: str | None = Field(default=None, max_length=32)
     # 基础主题 ID（如 "natsu"），指向 themes 表
     theme_id: str = Field(default="natsu", max_length=32)
     # 皮肤搭配（可选，不传则全默认）
@@ -157,6 +161,8 @@ class LetterPublic(_BlocksMixin):
 
     id: str  # UUID serialized as string
     poem: str | None = None
+    signature: str | None = None
+    addressee: str | None = None
     theme_id: str
     theme_skin: LetterSkin | None = None
     music_ref: MusicRef | None = None
@@ -175,6 +181,8 @@ class LetterPublic(_BlocksMixin):
             id=str(letter.id),
             blocks=letter.blocks,
             poem=letter.poem,
+            signature=letter.signature,
+            addressee=letter.addressee,
             theme_id=letter.theme_id,
             theme_skin=letter.theme_skin,
             music_ref=letter.music_ref,

@@ -46,6 +46,10 @@ class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     )
     # AI 短诗，≤4 行
     poem: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 信尾署名（写信人自填，可空 = 不署名）。内容物，非作者标识
+    signature: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # 宛名（封筒封面收信人，写信人自填）。内容物，非读者标识
+    addressee: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # ---------- 皮肤搭配（PRD 6.9）----------
     # theme_id 指向 themes 表的基础主题（如 "natsu"），theme_skin 是槽位搭配的 jsonb
     # 两者一旦写入永久绑定单信，禁止批量 UPDATE（CLAUDE.md 红线 6）

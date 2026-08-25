@@ -30,6 +30,8 @@
 | id | UUID PK | |
 | blocks | jsonb NOT NULL DEFAULT `'[]'` | 图文交替流数组，见下 |
 | poem | text NULL | AI 短诗，≤4 行 |
+| signature | varchar(32) NULL | 信尾署名，写信人自填（可空 = 不署名）。内容物，非作者标识 |
+| addressee | varchar(32) NULL | 宛名（封筒封面收信人），写信人自填。内容物，非读者标识 |
 | theme_id | varchar(32) NOT NULL DEFAULT `'natsu'` | 基础主题 ID，指向 themes 表 |
 | theme_skin | jsonb NULL | 皮肤搭配，见下。**全 null = 全默认**（不携带皮肤的信） |
 | music_ref | jsonb NULL | `{album, song, lyrics}`，**不许加 url** |
@@ -119,6 +121,8 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
     {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
   ],
   "poem": "……",
+  "signature": "海边的风",
+  "addressee": "远方的你",
   "theme_id": "natsu",
   "theme_skin": {"stamp": "stamp-summer-01", "decor": ["decor-firefly"]},
   "music_ref": {"album": "二人称", "song": "早朝、郵便受け", "lyrics": "……"},
@@ -170,6 +174,8 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
     {"type": "photo", "ref": "https://…", "mood": "overexposed", "note": "正午的海"}
   ],
   "poem": null,
+  "signature": "海边的风",
+  "addressee": "远方的你",
   "theme_id": "natsu",
   "theme_skin": {"stamp": "stamp-summer-01", "decor": ["decor-firefly"]},
   "music_ref": {"album": "…", "song": "…", "lyrics": "…"},
@@ -186,9 +192,15 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/v1/ai/polish` | `{content}` → `{polished}`。保留原意，用户可选采纳 |
-| POST | `/v1/ai/poem` | `{content}` → `{poem}`。≤4 行 |
+| POST | `/v1/ai/poem` | `{content}` → `{poem}`。从正文提取意象生成俳句（默认体裁），≤4 行，与正文同屏展示 |
 
 `FEATURE_AI=false` 时返回 `503 {"error":{"code":"ai_disabled"}}`，前端降级为纯手动，**不阻断写信**。
+
+### 环境服务（B7 可降级，失败返回 null / 503 不阻断写信）
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/v1/weather/now?lat=&lon=` | 当前天气 `{text, temp_c, icon}`；取不到返回 null |
+| GET | `/v1/geo/reverse?lat=&lon=` | 逆地理：`{place_label}`（城市级，隐私截断）；取不到返回 null |
 
 ### 随机漂流（PRD 6.3）
 | 方法 | 路径 | 说明 |
@@ -290,3 +302,4 @@ P0 只做拉取，不做推送。
 | 5 | `music_ref`/`weather`/`tags`/`theme_skin` 用 jsonb 而非独立表 | 均为值对象、无需独立查询，jsonb 在 10 天赛期内更省事。若 P1 需要按标签聚合再抽表。 |
 | 6 | `content` + `images` 合并为 `blocks` 图文交替流 | 上游设计系统采用 sealed class `LetterBlock`（TextBlock / PhotoBlock）替代 flat 字段，前端渲染与数据模型一致。 |
 | 7 | `theme` 拆分为 `theme_id` + `theme_skin` | 基础主题 ID 指向 themes 表，皮肤搭配（stamp/postmarkEmblem/decor/postcard）是 jsonb 槽位搭配。空槽 = 默认，全空 = 不携带皮肤。 |
+| 8 | 新增 `signature` / `addressee` 可空列 | PRD 6.1 未列的写信人自填内容物：信尾署名（信纸右下手写位）与宛名（封筒封面竖排收信人，PRD 6.3 信封呈现的数据源）。与正文同级，非作者/读者标识，匿名铁律不受影响；不持久化则 UI 输入无意义。 |
