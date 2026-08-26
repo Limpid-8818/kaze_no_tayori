@@ -139,7 +139,7 @@ void main() {
         routes: [
           GoRoute(
             path: Routes.home,
-            builder: (_, __) => HomeScreen(now: fixedNow),
+            builder: (_, _) => HomeScreen(now: fixedNow),
           ),
           _stubRoute(Routes.drift, 'drift'),
           _stubRoute(Routes.discover, 'discover'),
@@ -292,7 +292,7 @@ void main() {
 GoRoute _stubRoute(String path, String key) {
   return GoRoute(
     path: path,
-    builder: (_, __) => Scaffold(
+    builder: (_, _) => Scaffold(
       key: Key(key),
       body: Center(child: Text(key)),
     ),

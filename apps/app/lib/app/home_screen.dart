@@ -211,26 +211,6 @@ class _EnvChip extends StatelessWidget {
   }
 }
 
-/// 环境行小圆点分隔符。
-class Dot extends StatelessWidget {
-  const Dot({required this.radius});
-
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: KazeSpacing.xs),
-      child: Icon(
-        Icons.circle,
-        size: radius * 2,
-        color: theme.colorScheme.tertiary,
-      ),
-    );
-  }
-}
-
 /// 三张入口卡：两条收信入口（并列的一等公民）+ 写信。
 class _CardsSection extends StatelessWidget {
   const _CardsSection();
