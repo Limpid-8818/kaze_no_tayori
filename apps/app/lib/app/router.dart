@@ -8,6 +8,7 @@ library;
 
 import 'package:go_router/go_router.dart';
 
+import '../features/about/about_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/drift/drift_screen.dart';
 import '../features/my_letters/my_letters_screen.dart';
@@ -17,7 +18,6 @@ import '../features/scripbook/scripbook_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/write/write_screen.dart';
 import 'home_screen.dart';
-import 'widgets/placeholder_screen.dart';
 
 abstract final class Routes {
   static const home = '/';
@@ -64,13 +64,7 @@ final router = GoRouter(
     ),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
 
-    // 关于页：产品理念与红线，内容 P1 再填
-    GoRoute(
-      path: Routes.about,
-      builder: (_, _) => const PlaceholderScreen(
-        title: '关于风信',
-        intent: '产品理念与红线（匿名 · 漂流 · 不追踪）。',
-      ),
-    ),
+    // 关于页：一张信纸卡承载品牌、致谢与出处（版本号读 pubspec）
+    GoRoute(path: Routes.about, builder: (_, _) => const AboutScreen()),
   ],
 );

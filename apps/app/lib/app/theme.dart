@@ -193,3 +193,23 @@ abstract final class KazeHomeDims {
   /// 环境行小圆点直径
   static const double envDot = 3;
 }
+
+/// About 画布（夏の手紙 v2 · Screen/About）的结构尺寸 — 非间距刻度，
+/// 集中于此避免 feature 散落魔法数。
+abstract final class KazeAboutDims {
+  /// App Logo（88×88）
+  static const double logo = 88;
+
+  /// App Logo 圆角
+  static const double logoRadius = 20;
+
+  /// 团队 Logo（85×32）
+  static const double teamLogoW = 85;
+  static const double teamLogoH = 32;
+
+  /// 灵感来源专辑封面（48×48）
+  static const double album = 48;
+
+  /// 专辑封面圆角
+  static const double albumRadius = 4;
+}

@@ -46,6 +46,9 @@ dependencies:
   # 信件导出为图片（PRD 6.11，前端 RepaintBoundary，不走后端）
   screenshot: ^3.0.0
 
+  # 版本号展示（关于页）：构建期从 pubspec version 注入，运行时读取
+  package_info_plus: ^10.2.1
+
   intl: ^0.20.3
 
   # 设计系统。当前是空壳，见 packages/natsu_no_tegami/COPY_IN.md
@@ -56,6 +59,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+  # 启动图标生成（构建期工具，不进 App bundle；源图在 icon/，重生成：
+  # dart run flutter_launcher_icons）
+  flutter_launcher_icons: ^0.14.4
 
   # 测试 fakes 用它换内存 platform instance（版本随 flutter_secure_storage 锁定）
   flutter_secure_storage_platform_interface: ^2.0.3
@@ -82,3 +89,19 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+
+# 启动图标：源画布 Screen/About 的 AppLogo（风中信纸）。
+# legacy 全出血白底图 + 自适应前景（logo 缩至 66% 安全区，背景近白与 logo 底色一致）。
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "icon/app_logo_legacy.png"
+  adaptive_icon_background: "#FEFEFE"
+  adaptive_icon_foreground: "icon/app_logo_foreground.png"
+  web:
+    generate: true
+    image_path: "icon/app_logo_legacy.png"
+    background_color: "#FEFEFE"
+    theme_color: "#FEFEFE"
