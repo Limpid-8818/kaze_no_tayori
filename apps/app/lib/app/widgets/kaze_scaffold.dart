@@ -10,6 +10,7 @@ class KazeScaffold extends StatelessWidget {
     required this.body,
     this.title,
     this.actions,
+    this.bottom,
     this.centerTitle = true,
     this.scrollable = true,
     this.padding = const EdgeInsets.all(KazeSpacing.lg),
@@ -19,6 +20,11 @@ class KazeScaffold extends StatelessWidget {
 
   final Widget body;
   final String? title;
+
+  /// Scaffold.bottomNavigationBar —— 阅读页这类「内容滚动 + 底部常驻动作」的
+  /// 布局用；普通页面不传。
+  final Widget? bottom;
+
   final List<Widget>? actions;
   final bool centerTitle;
   final bool scrollable;
@@ -45,6 +51,7 @@ class KazeScaffold extends StatelessWidget {
                 title: Text(title!),
                 actions: actions,
               ),
+        bottomNavigationBar: bottom,
         body: SafeArea(
           child: scrollable
               ? SingleChildScrollView(child: content)

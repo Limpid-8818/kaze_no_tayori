@@ -17,6 +17,7 @@ import 'package:dio/dio.dart';
 
 class MockApiAdapter implements HttpClientAdapter {
   int _seq = 1;
+  int _resonanceCount = 2;
 
   @override
   Future<ResponseBody> fetch(
@@ -46,6 +47,31 @@ class MockApiAdapter implements HttpClientAdapter {
         (path == '/v1/letters' ||
             RegExp(r'^/v1/letters/[^/]+/replies$').hasMatch(path))) {
       return _json(201, _letterOwned(options));
+    }
+    // 读一封公开信：固定 id「mock_letter_1」可读，其余 404（读信空态可测）
+    final letterMatch = RegExp(r'^/v1/letters/([^/]+)$').firstMatch(path);
+    if (method == 'GET' && letterMatch != null) {
+      return letterMatch.group(1) == 'mock_letter_1'
+          ? _json(200, _letterPublic())
+          : _json(404, const {
+              'error': {
+                'code': 'letter_not_found',
+                'message': '信不存在或尚未漂到公开水域',
+                'detail': null,
+              },
+            });
+    }
+    if (method == 'POST' &&
+        RegExp(r'^/v1/letters/[^/]+/read$').hasMatch(path)) {
+      return _json(204, null);
+    }
+    if (method == 'POST' &&
+        RegExp(r'^/v1/letters/[^/]+/report$').hasMatch(path)) {
+      return _json(204, null);
+    }
+    if (method == 'POST' &&
+        RegExp(r'^/v1/letters/[^/]+/resonance$').hasMatch(path)) {
+      return _json(201, {'resonance_count': ++_resonanceCount});
     }
     if (method == 'GET' && path == '/v1/weather/now') {
       return _json(200, const {'text': '晴', 'temp_c': 27.5, 'icon': 'clear'});
@@ -98,6 +124,42 @@ class MockApiAdapter implements HttpClientAdapter {
       'status': 'pending',
       'lat': body['lat'],
       'lon': body['lon'],
+    };
+  }
+
+  /// 固定种子信（mock_letter_1）——含文本/照片交替流，读信页 mock 数据源。
+  Map<String, Object?> _letterPublic() {
+    return {
+      'id': 'mock_letter_1',
+      'blocks': const [
+        {'type': 'text', 'text': '傍晚的海边风很大，把想说的话都吹散了。'},
+        {
+          'type': 'photo',
+          'ref': 'https://mock.kaze.local/uploads/photo_seed.jpg',
+          'mood': 'backlit',
+          'note': '逆光的防波堤',
+        },
+        {'type': 'text', 'text': '就把它们写进信里，交给风。'},
+      ],
+      'poem': null,
+      'signature': '赶海的人',
+      'addressee': null,
+      'theme_id': 'natsu',
+      'theme_skin': null,
+      'music_ref': null,
+      'place_label': '浙江 · 舟山',
+      'weather': const {'text': '多云', 'temp_c': 26.0, 'icon': 'cloudy'},
+      'tags': const <String>[],
+      'delivery_mode': 'drift',
+      'parent_letter_id': null,
+      'counts': {
+        'read': 3,
+        'resonance': _resonanceCount,
+        'voice': 0,
+        'reply': 0,
+        'saved': 0,
+      },
+      'created_at': DateTime.now().toIso8601String(),
     };
   }
 

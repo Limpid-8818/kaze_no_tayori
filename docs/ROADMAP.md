@@ -9,6 +9,9 @@
 > 更新（2026-08-25）：后端 B0–B7 已完成；前端数据层 F0 与应用基础设施 F1 已完成。
 > F1 补齐了统一页面骨架、权限/定位全局控制器、生命周期入口、Android 权限清单和字体命名空间；
 > 后续 feature 页面不得再各自实现这些能力。
+>
+> 更新（2026-08-27）：F2 写信闭环与 F3 阅读器已完成（均过真实接口 E2E）。F3 留下集中
+> mapper（`letter_view.dart`）与 `INITIAL_ROUTE` 调试直通车，F4 收信双入口直接复用。
 
 ---
 
@@ -122,11 +125,11 @@
 - **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通 —— ✅ 2026-08-26 模拟器 E2E：drift（正文+3 图+署名宛名）与 stay（定位落点+天气）均落库；杀进程草稿恢复；`USE_MOCK_API` 无后端寄出。附带修复后端 `letter_service` weather 未 model_dump 进 JSONB 的 503
 
 ### F3 · 阅读器基础（1 天，提前消除汇合风险）
-- [ ] 集中实现 data model → 设计系统 view model 的单向 mapper；图片 resolver 统一走缓存网络图，不在页面散写映射
-- [ ] 信纸渲染：`地点·时间·天气` + blocks 图文流 + 可选短诗/音乐/skin + 计数文案「已被 N 个陌生人接住」
-- [ ] `ReaderController`：加载、markRead 调用边界、✦ 共鸣幂等乐观回显、回信入口、举报
-- [ ] 溯源：parent_letter_id 非空可跳原信（public 才可达，404 就 404）
-- **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位
+- [x] 集中实现 data model → 设计系统 view model 的单向 mapper（`features/reader/letter_view.dart`，短诗/音乐/skin 本阶段丢弃）；图片 resolver 统一走缓存网络图，不在页面散写映射
+- [x] 信纸渲染：`地点·时间·天气` + blocks 图文流 + 共鸣句子式计数（组件库 `NatsuResonance.sentence`）。短诗/音乐/skin 的专门展示位顺延
+- [x] `ReaderController`：加载（loading/ready/notFound/error 四态 + 空态文案）、markRead 调用边界（失败静默）、✦ 共鸣幂等乐观回显（乐观落章→服务端校正→失败回滚）、回信入口（带 parent 跳 F2）、举报（AppBar「⋯」菜单 + 预设理由弹层）
+- [x] 溯源：parent_letter_id 非空可跳原信（public 才可达，404 就 404）
+- **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位 —— ✅ 2026-08-27 真实接口 E2E（种子信）：图文流/meta 渲染、共鸣计数 0→1 且重启幂等、回信跳 F2、举报 204、404 空态；`make check-dart` 全绿。另：KazeScaffold 增加 `bottom` 槽位、router 支持 `INITIAL_ROUTE` dart-define 调试直通车（F4 接 UI 入口前的 E2E 手段）、MockApiAdapter 补读信端点
 
 ### F4 · 收信双入口（1 天）
 - [ ] drift：抽信只展示 `Envelope`，用户拆封后 `markRead` 恰一次再进入 F3 阅读器；池空展示叙事态「此刻还没有漂来的信」

@@ -35,7 +35,12 @@ abstract final class Routes {
 }
 
 final router = GoRouter(
-  initialLocation: Routes.home,
+  // 调试直通车：--dart-define=INITIAL_ROUTE=/letters/<id> 可直接打开
+  // 尚没有 UI 入口的页面（如 F3 阅读器，入口在 F4 才接上）。默认首页。
+  initialLocation: const String.fromEnvironment(
+    'INITIAL_ROUTE',
+    defaultValue: Routes.home,
+  ),
   routes: [
     GoRoute(path: Routes.home, builder: (_, _) => HomeScreen()),
 
