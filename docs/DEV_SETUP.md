@@ -152,6 +152,26 @@ make app-ios IOS_DEVICE=<id> API_BASE_URL=http://192.168.x.x:8000
 
 ---
 
+## 6a. Android 模拟器 E2E 排障（2026-08 实测）
+
+用 adb/MCP 脚本化操作模拟器做端到端验证时的坑，全部在本机（Git Bash + API 36 模拟器）踩过：
+
+**`adb shell input text` 不支持中文**（直接 NPE）。Gboard 处于中文模式时，纯字母还会被当成拼音组合，落在输入框里的是候选词而非原文。绕法：输入内容带数字/大写（如 `Kaze9`）可阻止组合；需要真中文时装 ADBKeyboard（`ime set com.android.adbkeyboard/.AdbIME` 后 `am broadcast -a ADB_INPUT_TEXT --es msg …`，注意 Windows shell 传中文需先把命令写进 UTF-8 文件 push 到设备再 `sh` 执行）。
+
+**软键盘开着时点 image_picker 的入口无反应**：IME 关闭动画超时会挡住 picker Activity 的启动（logcat 可见 `ImeTracker … STATUS_TIMEOUT`）。先收起键盘（点空白处/BACK 一次）再点选图入口。产品代码后续可在唤起 picker 前 `unfocus()` 规避。
+
+**`adb shell uiautomator dump` 看不到 Flutter 内容**：Flutter 语义树默认不进系统无障碍视图。用 android-emulator MCP 的 `android_ui_describe` / `android_ui_resolve`（能拿到 Flutter Semantics 的文本与坐标）；坐标取元素 bounds 的中心点再 `input tap`。
+
+**Git Bash 下 adb 远端路径被转义**：`/sdcard/...` 会被展开成本地 Git 路径。远端路径写双斜杠 `//sdcard/...`，或 `MSYS_NO_PATHCONV=1`。
+
+**`adb exec-out screencap -p` 经 Git Bash 重定向会得到坏 PNG**（CRLF 转换）。用 MCP 的 screenshot 工具，或 `adb shell screencap -p //sdcard/x.png` 再 `pull`。
+
+**模拟器定位**：`adb emu geo fix <lon> <lat>`（注意经度在前），设完 App 内 LocationController 直接可用。
+
+**杀进程后验证**：`am force-stop <pkg>` 后 `am start -W -n <pkg>/.MainActivity`，`LaunchState: COLD` 确认是真冷启。
+
+---
+
 ## 7. 提交前
 
 ```bash

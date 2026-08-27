@@ -104,7 +104,11 @@ scripts/       跨语言的仓库级脚本
 
 **Dart**：flutter_lints + riverpod_lint + `dart format`。
 - **禁止字面量颜色/字号/间距**，一律走 `Theme.of(context)` 或设计系统 token。这样上游组件库拷入后不需要改 feature 代码。
-- `packages/natsu_no_tegami` 只许被 `apps/app/lib/app/theme.dart` import。
+- **画布（Ardot 设计稿）定布局与结构，组件库定信件内容物**：两者冲突时以 `natsu_no_tegami`
+  现有组件为准（信纸质感、排版节奏、photo/stamp/seal 的归属都是组件库说了算），偏差在代码注释里
+  记录；结构性尺寸（卡片高、行高、圆角）收进 `theme.dart` 的 `Kaze*Dims`，不散落 feature。
+- `packages/natsu_no_tegami` 只许被 `apps/app/lib/app/theme.dart` import（内容物组件
+  `components/letters/`、`components/` 除外，feature 可直接用；手写体 hw* 令牌沿 about_screen 先例）。
 - 改了 freezed / riverpod 注解必须跑 `make gen`。
 - feature 之间不得互相 import。
 

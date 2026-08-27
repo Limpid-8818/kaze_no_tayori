@@ -16,6 +16,11 @@ core/         配置、DB、JWT、依赖、错误
 - **router 里不写业务逻辑，不直接写 SQL。** 三行以上的判断就该下沉到 service。
 - **DB 访问只经 `get_session` 依赖**，不要自建 session（自检脚本例外，见 `api/v1/health.py` 的注释）。
 - service 层抛 `core/errors.py` 里的 `AppError` 子类，**不要手写 `HTTPException`**——统一错误体靠全局 handler。
+- **Pydantic 模型进 JSONB 前必须 `model_dump()`**。`json.dumps` 不认 BaseModel，
+  直接把 schema 对象塞给 JSONB 列会在 INSERT 时炸成 `StatementError` → 被统一 503 掩盖
+  （2026-08-26 weather 字段的实例：建信带天气一律 503，无天气正常，极难定位）。
+  新增带嵌套 JSONB 的字段时，测试必须覆盖**携带该嵌套体**的请求路径——全 None 的
+  happy path 测不出这类错。
 
 ## 类型与检查
 
@@ -59,3 +64,8 @@ core/         配置、DB、JWT、依赖、错误
 ## 终端输出用英文
 
 Windows 控制台默认 GBK 代码页，`print` 中文会乱码。`scripts/` 下的输出一律英文；注释和 docstring 保持中文。
+
+## 本机开发陷阱
+
+- **`uvicorn --reload` 偶发只打 "Reloading..." 不换 worker**（WatchFiles 在 Windows 上）：
+  改了后端代码但行为没变时，先杀掉进程硬重启 `make api` 再排查，别急着怀疑代码。

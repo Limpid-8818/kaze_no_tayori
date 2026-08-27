@@ -36,6 +36,29 @@ lib/features/  write drift discover reader reply my_letters scripbook notificati
 界面应退到可用状态而非弹红色报错：AI 关了就纯手动写信，天气取不到就不显示天气。
 `driftPoolEmpty` 是叙事状态——「此刻还没有漂来的信」，不是错误。
 
+## 控制器纪律（feature `*_controller.dart`）
+
+- **异步续段必须 `ref.mounted` 守卫**（riverpod 3.4）：任何 `await` 之后写 `state` 前先检查，
+  否则页面退出后飞行中的上传/请求会打到已 dispose 的 Ref 上炸成跨测试污染。
+- **控制器不持有 `BuildContext`**：面向用户的一次性提示（toast 文案）经 state 里
+  带 `seq` 的 record（如 `WriteNotice`）转发，视图层 `ref.listen` 消费——同一句话连发
+  两次也要能触发。
+- 跨页共享的交互件放 `lib/app/widgets/`；只在单个 feature 用的放该 feature 的 `widgets/`。
+
+## 测试纪律（本机实测的坑）
+
+- **testWidgets 的 FakeAsync 区里 dart:io 异步调用会挂死**（`Directory.createTemp` 永不完成，
+  Windows 实测）：临时目录一律 `createTempSync`/`deleteSync`；必须执行真实文件 IO 的交互
+  （如草稿落盘）包 `tester.runAsync(...)`。plain `test()` 不受影响。
+- flutter_riverpod 3.4 的 `Override` **类型不可直接命名引用**——测试里用类型推断或闭包传递
+  overrides 列表，别写 `List<Override>`。
+- 控制器有防抖 Timer、组件库 toast 有 2.4s 停留 Timer：widget test 收尾要
+  `pump(700ms)` + `pump(3s)` 冲掉，否则「Timer 仍挂起」报错。
+- `pumpAndSettle` 遇 `NatsuSpinner`（无限旋转）或聚焦 TextField 的光标闪烁会永不收敛——
+  涉及它们时用有界 `pump(时长)`。
+- 视口外的按钮 `tap` 会静默落空（只有 warnIfMissed 警告）：先
+  `await tester.ensureVisible(...)` 再点。
+
 ## 平台
 
 - 只有 android + web。Web 用 `make app`（走 `-d edge`，**本机无 Chrome**）。
