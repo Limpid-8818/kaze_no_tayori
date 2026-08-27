@@ -5,6 +5,10 @@
 
 > 当前例外（2026-08-25）：本仓库已先修复 `NatsuTypography` 的 Flutter package 字体命名空间，并同步更新测试；该修复必须回灌上游后再执行下一次同步。`sync_design_system.sh` 已加前置守卫，旧上游不会覆盖当前正确版本。
 
+## 待上游化清单（app 侧暂放组件）
+
+- `apps/app/lib/app/widgets/letter_summary_card.dart`（2026-08-27，F4）——信件摘要卡：俳句三行衬线排版（quoteSerif）+ 无诗回退手写预览 + meta 行「距离/地点 · 时间」。跨 feature 复用（发掘/我的信/抄本），上游化时建议落位 `lib/src/components/letters/`，参数保持纯字符串。
+
 ## 上游
 
 | 项 | 值 |

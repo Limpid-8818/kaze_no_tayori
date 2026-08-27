@@ -158,6 +158,17 @@ abstract final class KazeLetterShadows {
   static const List<BoxShadow> resting = NatsuShadows.letterResting;
 }
 
+/// 信的温度层文字桥 — 手写体（hw*）与衬线不进 TextTheme（见上），
+/// 页面上出现的「信件语境文字」（摘要卡俳句、漂流副标题等）沿
+/// about_screen 先例经此取用。
+abstract final class KazeLetterType {
+  /// AI 短诗/歌词 — quoteSerif，系统中唯一的衬线样式
+  static const TextStyle poem = NatsuTypography.quoteSerif;
+
+  /// 手写正文最近档（hwBody 20）——卡片预览等小号手写场景在此基础上缩放
+  static const TextStyle warmBody = NatsuTypography.hwBody;
+}
+
 /// 少量无 ColorScheme 槽位的具名色 — 全部源自令牌层，feature 经此类取用。
 abstract final class KazeColors {
   /// 次级墨 — 说明文字（ColorScheme.onSurfaceVariant 同源，图标等场景用）
@@ -246,4 +257,23 @@ abstract final class KazeWriteDims {
 
   /// 图片托盘缩略图/加号格边长
   static const double trayThumb = 72;
+}
+
+/// Drift 画布（夏の手紙 v2 · Screen/Drift）的结构尺寸 — 非间距刻度。
+/// 画布裁剪记录：中央信封图案、「纯随机 · 不做加权」hint 不实现（用户指示），
+/// 按钮从画布 r26 胶囊改为令牌小圆角（NatsuButton 默认 r6）。
+abstract final class KazeDriftDims {
+  /// 封筒显示宽（组件高 = 宽 × 2.2，竖形封筒比例）
+  static const double envelopeW = 200;
+}
+
+/// Discover 画布（夏の手紙 v2 · Screen/Discover）的结构尺寸 — 非间距刻度。
+/// 偏差记录：画布卡片 ±1° 歪斜与大标题头部为设计疏漏（用户裁决），不实现；
+/// 卡片距离槽留待后端补字段（本阶段以地点名占位）。
+abstract final class KazeDiscoverDims {
+  /// 定位卡行高
+  static const double locCardH = 56;
+
+  /// 定位卡圆角（画布 8，与 Write 选择卡同档）
+  static const double locCardRadius = 8;
 }
