@@ -8,6 +8,7 @@ import logging
 
 from app.core.config import get_settings
 from app.models.enums import LetterStatus
+from app.services.ai_service import REASONING_MAX_TOKENS
 from app.services.llm_client import chat_completion
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,8 @@ async def _moderate_by_llm(text: str) -> LetterStatus | None:
             {"role": "system", "content": MODERATION_SYSTEM_PROMPT},
             {"role": "user", "content": text},
         ],
-        max_tokens=1024,  # 推理型模型先产 reasoning_content，预算太小会导致 content 为空
+        # 推理型模型先产 reasoning_content，预算太小会导致 content 为空
+        max_tokens=REASONING_MAX_TOKENS,
         temperature=0.0,
     )
     if result is None:

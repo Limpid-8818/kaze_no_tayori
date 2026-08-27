@@ -29,6 +29,11 @@ POEM_SYSTEM_PROMPT = (
 
 _DISABLE_MESSAGE = "AI 辅助当前不可用，可以直接手写这封信"
 
+# 推理模型（deepseek 等）的思考过程也计入 max_tokens（B7 结论），
+# 实测思考可轻松吃掉上千 token（finish_reason=length、content 为空），
+# 所以统一给足预算；网关不支持 enable_thinking=false。
+REASONING_MAX_TOKENS = 4096
+
 
 def _require_enabled() -> None:
     if not get_settings().feature_ai:
@@ -66,9 +71,10 @@ async def polish(blocks: list[dict]) -> str:
 
     契约：调用失败/超时时同样抛 FeatureDisabled，让前端降级，**不要抛 500**。
     """
-    return await _generate(POLISH_SYSTEM_PROMPT, blocks, max_tokens=2048)
+    return await _generate(POLISH_SYSTEM_PROMPT, blocks, max_tokens=REASONING_MAX_TOKENS)
 
 
 async def compose_poem(blocks: list[dict]) -> str:
     """从正文提取意象生成俳句（默认体裁，三行）。失败时同上降级。"""
-    return await _generate(POEM_SYSTEM_PROMPT, blocks, max_tokens=256)
+    # 推理模型的思考过程也消耗 max_tokens（B7 结论），给足预算避免 content 为空
+    return await _generate(POEM_SYSTEM_PROMPT, blocks, max_tokens=REASONING_MAX_TOKENS)
