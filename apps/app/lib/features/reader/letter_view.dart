@@ -24,6 +24,7 @@ class LetterView {
     this.signature,
     this.place,
     this.weatherText,
+    this.weatherIcon,
     this.parentLetterId,
     this.resonanceCount = 0,
   });
@@ -34,6 +35,10 @@ class LetterView {
   final String? signature;
   final String? place;
   final String? weatherText;
+
+  /// 天气归类档（sunny/cloudy/rainy）—— 读信页天空以信携带的天色为准；
+  /// null = 信没带天气（背景回退默认昼·晴）。
+  final String? weatherIcon;
   final String? parentLetterId;
   final int resonanceCount;
 
@@ -62,6 +67,7 @@ class LetterView {
       signature: letter.signature,
       place: letter.placeLabel,
       weatherText: _weatherText(letter.weather),
+      weatherIcon: letter.weather?.icon,
       parentLetterId: letter.parentLetterId,
       resonanceCount: letter.counts.resonance,
     );

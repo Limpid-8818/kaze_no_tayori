@@ -11,11 +11,25 @@ import 'package:go_router/go_router.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../app/router.dart';
+import '../../app/theme.dart';
 import '../../app/widgets/kaze_scaffold.dart';
 import 'letter_view.dart';
 import 'reader_controller.dart';
 import 'widgets/reader_action_bar.dart';
 import 'widgets/reader_empty_state.dart';
+
+/// 读信页天空以信为准 —— 信携带的天气 × 信落笔时刻的时段查表
+/// （「环境光随信」）；没带天气或还没读进来 → 默认昼·晴。
+/// 显式传给 [KazeScaffold] 后不吃全局天色联动。
+Gradient _skyFor(LetterView? view) {
+  if (view == null || view.weatherIcon == null) {
+    return KazeSky.defaultGradient;
+  }
+  return KazeSky.of(
+    KazeSky.fromIcon(view.weatherIcon),
+    KazeSky.daypartOf(view.createdAt),
+  );
+}
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({required this.letterId, super.key});
@@ -53,6 +67,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return KazeScaffold(
       title: '读一封信',
+      backgroundGradient: _skyFor(view),
       // 记入抄本 / 查看原信 / 举报在 AppBar「⋯」菜单；仅 ready 态可用
       actions: state.phase == ReaderPhase.ready ? [_moreMenu(view)] : null,
       // ready 内容随信纸长度滚动；空态/错误态不滚动，垂直居中

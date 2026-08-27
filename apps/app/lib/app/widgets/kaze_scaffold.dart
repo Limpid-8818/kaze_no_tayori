@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'kaze_sky_box.dart';
 
 class KazeScaffold extends StatelessWidget {
   const KazeScaffold({
@@ -15,6 +16,7 @@ class KazeScaffold extends StatelessWidget {
     this.scrollable = true,
     this.padding = const EdgeInsets.all(KazeSpacing.lg),
     this.maxContentWidth = 480,
+    this.backgroundGradient,
     super.key,
   });
 
@@ -31,6 +33,9 @@ class KazeScaffold extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final double maxContentWidth;
 
+  /// 页面自带的天空 —— 读信页锁定信件天色专用；null 时跟随全局天色联动。
+  final Gradient? backgroundGradient;
+
   @override
   Widget build(BuildContext context) {
     final content = Center(
@@ -40,8 +45,8 @@ class KazeScaffold extends StatelessWidget {
       ),
     );
 
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: KazeTheme.skyGradient),
+    return KazeSkyBox(
+      gradient: backgroundGradient,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: title == null

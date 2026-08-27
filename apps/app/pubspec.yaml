@@ -57,6 +57,10 @@ dependencies:
   # 路径拼接（草稿图片目录/文件名），平台分隔符安全
   path: ^1.9.0
 
+  # 设备本地轻量偏好（F8 天色联动开关）。纪律：不阻塞 runApp，
+  # 首帧用默认值，ensureLoaded 异步完成后经 provider 通知消费方。
+  shared_preferences: ^2.5.3
+
   # 设计系统。当前是空壳，见 packages/natsu_no_tegami/COPY_IN.md
   natsu_no_tegami:
     path: ../../packages/natsu_no_tegami

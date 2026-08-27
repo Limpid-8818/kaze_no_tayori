@@ -18,6 +18,7 @@ import 'package:kazenotayori/data/device/location_gateway.dart';
 import 'package:kazenotayori/features/discover/discover_screen.dart';
 
 import '../../fakes/fake_secure_store.dart';
+import '../../fakes/frozen_home_environment.dart';
 import '../../fakes/scripted_adapter.dart';
 
 class _FakePermissionGateway implements PermissionGateway {
@@ -83,12 +84,8 @@ Map<String, dynamic> _stayJson(
   'created_at': DateTime.now().subtract(ago).toIso8601String(),
 };
 
-// 首页环境控制器会在列表就绪后静默拉逆地理/天气——脚本补两条，
-// 即便并发顺序错位也只是优雅降级（HomeEnvironment 自吞 ApiFailure）。
-final List<ScriptedResponse> _envExtras = [
-  ScriptedResponse.ok(200, {'place_label': '上海 · 徐汇'}),
-  ScriptedResponse.ok(200, {'text': '多云', 'temp_c': 28.0, 'icon': 'cloudy'}),
-];
+// 环境链路（逆地理/天气）已被 frozenHomeEnvironmentOverride 冻结成静止替身
+//（见 fakes/frozen_home_environment.dart），脚本只需覆盖 discover 列表本身。
 
 class _Harness {
   _Harness({
@@ -122,6 +119,7 @@ class _Harness {
     addTearDown(router.dispose);
     return ProviderScope(
       overrides: [
+        frozenHomeEnvironmentOverride,
         permissionGatewayProvider.overrideWithValue(permissions),
         locationGatewayProvider.overrideWithValue(location),
         apiClientProvider.overrideWithValue(
@@ -156,7 +154,6 @@ void main() {
           ],
           'next_cursor': null,
         }),
-        ..._envExtras,
       ],
     );
     await tester.pumpWidget(h.app());
@@ -176,7 +173,6 @@ void main() {
           'items': [_stayJson('stay_a', ago: const Duration(hours: 5))],
           'next_cursor': null,
         }),
-        ..._envExtras,
       ],
     );
     await tester.pumpWidget(h.app());

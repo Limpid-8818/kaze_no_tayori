@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -9,6 +10,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:kazenotayori/app/router.dart';
 import 'package:kazenotayori/app/theme.dart';
 import 'package:kazenotayori/features/about/about_screen.dart';
+
+import '../../fakes/frozen_home_environment.dart';
 
 void main() {
   setUpAll(() {
@@ -34,7 +37,13 @@ void main() {
 
   Future<void> pumpAbout(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: buildRouter(), theme: KazeTheme.light()),
+      ProviderScope(
+        overrides: [frozenHomeEnvironmentOverride],
+        child: MaterialApp.router(
+          routerConfig: buildRouter(),
+          theme: KazeTheme.light(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
   }

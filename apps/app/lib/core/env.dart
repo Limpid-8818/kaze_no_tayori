@@ -25,6 +25,11 @@ abstract final class Env {
     defaultValue: false,
   );
 
+  /// debug 天色强制档（验收/演示用）：12 键 camelCase，如 nightRainy /
+  /// duskCloudy，见 KazeSky.parseForce。仅 debug 构建生效；非法值忽略，
+  /// 生产构建不传即恒空。
+  static const String skyForce = String.fromEnvironment('SKY_FORCE');
+
   /// 产品要求的整封正文上限（PRD 6.1）。
   static const int letterMaxChars = 800;
 

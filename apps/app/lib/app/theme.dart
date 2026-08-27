@@ -15,6 +15,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
+import '../core/day_period.dart';
+
 abstract final class KazeTheme {
   /// 夏日天空渐变。环境是天空，纸只在「信」的时候出现。
   /// （读信时随信携带的天气×时段切换，见 NatsuWeatherLight；此为默认昼·晴。）
@@ -130,6 +132,74 @@ abstract final class KazeTheme {
     labelMedium: NatsuTypography.meta,
     labelSmall: NatsuTypography.label,
   );
+}
+
+/// 动效速记 — 值源自 [NatsuMotion]。环境级过渡（天色切换等）统一
+/// 走 drift：480ms、漂流缓动——「天色是被风送来的」。
+abstract final class KazeMotion {
+  static const Duration drift = NatsuMotion.drift;
+  static const Curve driftEasing = NatsuMotion.driftEasing;
+}
+
+/// 天气档 — 后端 `/v1/weather/now` 的 icon 三档归类口径
+/// （后端兜底档为 cloudy；null / mock 'clear' 一律按晴）。
+enum KazeWeather { sunny, cloudy, rainy }
+
+/// 天色时段档 — 与库内 [NatsuTimeOfDay] 对齐（夕 = dusk）。
+/// 边界沿用 `core/day_period` 的朝 5–11 / 昼 11–17 / 夕 17–22 / 其余夜。
+enum KazeDaypart { morning, noon, dusk, night }
+
+/// 天色联动桥 — 「天气 × 时段 → 12 档天空预设」的唯一出借口。
+///
+/// 档位本体在包令牌层（[NatsuWeatherLight]，全 const + 对比度全矩阵
+/// 锁定），feature 只见本枚举与渐变；动画插值发生在消费端 widget 层
+/// （两端都是 const 预设，不违反令牌层「零运行时色算」纪律）。
+abstract final class KazeSky {
+  /// 默认天空 = 昼·晴，回归基准（= [NatsuColors.skyGradient]）。
+  static const LinearGradient defaultGradient = NatsuColors.skyGradient;
+
+  /// 查表 — 组合必然存在。
+  static LinearGradient of(KazeWeather weather, KazeDaypart time) =>
+      NatsuWeatherLight.of(
+        switch (weather) {
+          KazeWeather.sunny => NatsuWeather.sunny,
+          KazeWeather.cloudy => NatsuWeather.cloudy,
+          KazeWeather.rainy => NatsuWeather.rainy,
+        },
+        switch (time) {
+          KazeDaypart.morning => NatsuTimeOfDay.morning,
+          KazeDaypart.noon => NatsuTimeOfDay.noon,
+          KazeDaypart.dusk => NatsuTimeOfDay.dusk,
+          KazeDaypart.night => NatsuTimeOfDay.night,
+        },
+      ).gradient;
+
+  /// weather.icon 字符串 → 档位。未知的值兜底按晴（宁亮勿暗）。
+  static KazeWeather fromIcon(String? icon) => switch (icon) {
+    'rainy' => KazeWeather.rainy,
+    'cloudy' => KazeWeather.cloudy,
+    _ => KazeWeather.sunny,
+  };
+
+  /// 本地时钟 → 时段。时段是降级纪律的「恒显示」部分，永远可推导。
+  static KazeDaypart daypartOf(DateTime now) => switch (dayPeriodOf(now)) {
+    KazeDayPeriod.morning => KazeDaypart.morning,
+    KazeDayPeriod.noon => KazeDaypart.noon,
+    KazeDayPeriod.evening => KazeDaypart.dusk,
+    KazeDayPeriod.night => KazeDaypart.night,
+  };
+
+  /// debug 强制档解析 — 12 键 camelCase（如 nightRainy / duskCloudy），
+  /// 与令牌层预设命名一致；非法值返回 null（忽略覆盖）。
+  static (KazeWeather, KazeDaypart)? parseForce(String raw) {
+    for (final w in KazeWeather.values) {
+      final capW = '${w.name[0].toUpperCase()}${w.name.substring(1)}';
+      for (final t in KazeDaypart.values) {
+        if (raw == '${t.name}$capW') return (w, t);
+      }
+    }
+    return null;
+  }
 }
 
 /// 间距速记 — feature 不许 import 令牌、不许写字面量间距，经此中转。

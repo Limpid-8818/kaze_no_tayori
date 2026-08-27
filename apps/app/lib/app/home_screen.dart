@@ -20,6 +20,7 @@ import 'controllers/home_environment_controller.dart';
 import 'controllers/unread_count_controller.dart';
 import 'router.dart';
 import 'theme.dart';
+import 'widgets/kaze_sky_box.dart';
 
 class HomeScreen extends ConsumerWidget {
   HomeScreen({super.key, DateTime? now}) : now = now ?? DateTime.now();
@@ -28,9 +29,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DecoratedBox(
-      // 环境是夏日天空，纸只在「信」的时候出现
-      decoration: const BoxDecoration(gradient: KazeTheme.skyGradient),
+    return KazeSkyBox(
+      // 环境是夏日天空，纸只在「信」的时候出现 —— 天色随当地天气×时段联动
       child: Scaffold(
         // 透明底让渐变从 body 一直透到 AppBar 之下
         backgroundColor: Colors.transparent,
@@ -339,8 +339,9 @@ class _HomeDrawer extends ConsumerWidget {
         // 与首页同一天空渐变（用户决定；环境是天空，抽屉是天空的一部分）
         backgroundColor: Colors.transparent,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(gradient: KazeTheme.skyGradient),
+        child: KazeSkyBox(
+          // 与首页同一天空（用户决定；环境是天空，抽屉是天空的一部分）
+          // —— watch 同一全局天色，随主屏同步过渡
           // 透明 Material：给 InkWell 提供绘制墨水的表面。没有它，
           // 波纹会画在 Drawer 自带的 Material 上、被这层渐变盖住。
           child: Material(
