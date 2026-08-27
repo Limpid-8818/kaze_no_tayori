@@ -10,11 +10,15 @@
 ///
 /// meta 行左侧是「位置信息槽」：后端因匿名铁律暂不下发距离，当前由
 /// 地点名占位；`distanceLabel` 已预留，后端补字段后 mapper 一处接线。
+/// `statusLabel`（F6 我的信）贴右、时间左侧，用设计系统 NatsuTag(sm)
+/// 纯文字呈现——不启用语义点：NatsuTag 文档把 dot 配给场景/情绪/旅行
+/// 三种用途，状态不在其列，配色纪律优先于信息密度。参数保持纯字符串。
 /// 偏差记录：画布 meta 字号 11 → 令牌 labelMedium 13；内边距 18/16、
 /// 行距 10 → 最近刻度 md/sm。
 library;
 
 import 'package:flutter/material.dart';
+import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../theme.dart';
 
@@ -25,7 +29,9 @@ class LetterSummaryCard extends StatelessWidget {
     this.previewText,
     this.placeLabel,
     this.distanceLabel,
+    this.statusLabel,
     this.onTap,
+    this.onLongPress,
     super.key,
   });
 
@@ -43,7 +49,11 @@ class LetterSummaryCard extends StatelessWidget {
   /// 距离（如「230m」）——后端补齐 discover 距离字段后接线。
   final String? distanceLabel;
 
+  /// 状态徽标文案（我的信：审核中/公开中/…）；null = 不渲染（发掘列表不受影响）。
+  final String? statusLabel;
+
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   /// 俳句展示上限：三行诗形态。
   static const int _maxPoemLines = 3;
@@ -70,6 +80,7 @@ class LetterSummaryCard extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: KazeSpacing.md,
@@ -120,7 +131,12 @@ class LetterSummaryCard extends StatelessWidget {
           ),
         ),
         // 时间贴右：Expanded 吸收全部剩余空间，时间用普通子节点收在行尾
-        // （此前 Flexible 会与 Expanded 平分空间，标签悬在半程）
+        // （此前 Flexible 会与 Expanded 平分空间，标签悬在半程）。
+        // 状态徽标再往左一位（我的信），无 statusLabel 时整段不出现。
+        if (statusLabel != null) ...[
+          NatsuTag(label: statusLabel!, size: NatsuTagSize.sm),
+          const SizedBox(width: KazeSpacing.sm),
+        ],
         Text(timeLabel, style: metaStyle),
       ],
     );

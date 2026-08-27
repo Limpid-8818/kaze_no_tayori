@@ -81,8 +81,38 @@ void main() {
     );
     expect(geo['place_label'], isNotNull);
     final me = await _decode(_dio().get('/v1/me/letters'));
-    expect(me['items'], isEmpty);
+    // F6：四种状态各一封种子信，徽标与下架链路可离线走通
+    final items = List<Map<String, dynamic>>.from(me['items'] as List);
+    expect(items, hasLength(4));
+    expect([
+      for (final item in items) item['status'],
+    ], containsAll(['pending', 'public', 'rejected', 'taken_down']));
     expect(me['next_cursor'], isNull);
+  });
+  test('下架我的信：DELETE 置 taken_down 非硬删，未知 id 404（F6）', () async {
+    final dio = _dio();
+    final before = await _decode(dio.get('/v1/me/letters'));
+    await expectLater(dio.delete('/v1/me/letters/mock_mine_1'), completes);
+
+    final after = await _decode(dio.get('/v1/me/letters'));
+    final flipped = [
+      for (final item in (after['items'] as List))
+        Map<String, dynamic>.from(item),
+    ].firstWhere((item) => item['id'] == 'mock_mine_1');
+    expect(flipped['status'], 'taken_down');
+    // 列表不移除——下架后仍能在「我的信」里看到下场
+    expect(after['items'], hasLength((before['items'] as List).length));
+
+    await expectLater(
+      dio.delete('/v1/me/letters/mock_unknown'),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          404,
+        ),
+      ),
+    );
   });
   test('未覆盖的路由 404 且带统一错误体（不静默成功）', () async {
     final dio = _dio();

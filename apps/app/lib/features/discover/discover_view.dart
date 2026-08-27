@@ -4,6 +4,7 @@
 /// （匿名铁律），`distanceLabel` 留空——后端补齐后在 from() 一处接线。
 library;
 
+import '../../core/letter_preview.dart';
 import '../../core/relative_time.dart';
 import '../../data/models/letter.dart';
 
@@ -31,28 +32,10 @@ class DiscoverLetterView {
     return DiscoverLetterView(
       id: letter.id,
       timeLabel: relativeTimeLabel(letter.createdAt),
-      poemLines: _poemLines(letter.poem),
-      previewText: _preview(letter),
+      poemLines: poemLinesOf(letter.poem),
+      previewText: previewTextOf(letter),
       placeLabel: letter.placeLabel,
       // distanceLabel：待后端 discover 响应补距离后在此接线
     );
-  }
-
-  static List<String> _poemLines(String? poem) => (poem ?? '')
-      .trim()
-      .split('\n')
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty)
-      .toList();
-
-  /// 首个文字块的摘录；纯照片信用一句平实占位，不假装有文字。
-  static String? _preview(LetterPublic letter) {
-    for (final block in letter.blocks) {
-      if (block.type == 'text' && (block.text?.trim().isNotEmpty ?? false)) {
-        return block.text;
-      }
-    }
-    if (letter.blocks.isNotEmpty) return '（一张照片）';
-    return null;
   }
 }

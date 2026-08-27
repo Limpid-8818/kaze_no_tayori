@@ -16,6 +16,11 @@
 > 更新（2026-08-27）：F4 收信双入口与 F5 回信/通知已完成。F5 留下 app 级
 > `UnreadCountController`（抽屉角标唯一所有者，开页/回前台经 AppLifecycle 拉取），
 > F6 我的信直接复用 MeApi；J2 联调节点达成。
+>
+> 更新（2026-08-27）：F6 我的信已完成——信件操作统一为长按弹底部交互区
+> （`LetterSummaryCard.onLongPress` 能力全列表可用，本阶段只在 /me/letters 接线），
+> `core/letter_preview.dart` 为摘要抽取共享口径。前端 P0 全部完成，仅剩 J3-P0
+> 双设备核心验收。
 
 ---
 
@@ -148,8 +153,8 @@
 - **验收**：回信发布后，原信作者设备上出现告知并能读到回信 —— ✅ 2026-08-27 真实后端跨设备：curl 设备 A 创建原信 → App（INITIAL_ROUTE 直通车）回信落库（`POST replies 201`）→ 设备 A notifications 出现未读告知、回信公开可读 → unread_only 1 条 → markRead 204 归零。附：`core/relative_time.dart` 共享相对时间、mock 补 notifications 路由与回信种子（含 dio queryParameters bool 原始类型坑修复）；`make check` 全绿
 
 ### F6 · 我的信（P0，0.5 天）
-- [ ] 我的信：LetterOwned 渲染 + 状态徽标（pending/public/…）+ 下架确认（非硬删）
-- **验收**：下架后读者侧 404，回信链不塌
+- [x] 我的信：LetterOwned 渲染 + 状态徽标（pending/public/…）+ 下架确认（非硬删）（操作信件的交互形式为**长按弹底部交互区**——用户裁决；非公开信点按也弹同区解释而非阅读器 404，公开信保留点按直读）
+- **验收**：下架后读者侧 404，回信链不塌 —— ✅ 2026-08-27 双轨验收：真实后端 curl 六步（设备 A 投信 public → 设备 B 回信落库 → 作者 DELETE 204 → 读者侧 GET 404 → 回信本体仍 200 → my_letters 落库 taken_down 且保留落点）；模拟器 mock E2E 四态徽标列表 → 长按操作区（状态句 + destructive）→ 两段式确认 → 徽标原地翻「已下架」→ 已下架卡点按弹解释区。附：`MeApi.myLetters/deleteLetter` 首次接入 UI、共享 `core/letter_preview.dart` 抽取口径（discover_view 同步改调用）、`LetterSummaryCard` 补 `statusLabel`(NatsuTag sm 纯文字)/`onLongPress`（发掘列表不受影响，COPY_IN 已更新）、mock 补 me/letters 四态种子 + DELETE + 本人公开信详情白名单（下架后 mock 详情同样 404）；app 165 测试 + 组件库 105 测试全绿
 
 ### F7 · P1 表达与留存增强（P0 闭环后）
 - [ ] 写信增强：音乐引用、1–3 标签、皮肤槽位选择；不改变历史信件 skin

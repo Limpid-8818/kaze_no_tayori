@@ -130,8 +130,26 @@ class MockApiAdapter implements HttpClientAdapter {
     if (method == 'GET' && path == '/v1/geo/reverse') {
       return _json(200, const {'place_label': '浙江 · 杭州'});
     }
+    // 我的信（F6）：四种状态各一封，徽标/长按下架链路可离线验收
     if (method == 'GET' && path == '/v1/me/letters') {
-      return _json(200, const {'items': <Object>[], 'next_cursor': null});
+      return _json(200, {'items': _ownedSeeds, 'next_cursor': null});
+    }
+    final ownedMatch = RegExp(r'^/v1/me/letters/([^/]+)$').firstMatch(path);
+    if (method == 'DELETE' && ownedMatch != null) {
+      final id = ownedMatch.group(1)!;
+      final index = _ownedSeeds.indexWhere((json) => json['id'] == id);
+      // 服务端语义：非本人或不存在一律 not_found；命中则置 taken_down 非硬删
+      if (index < 0) {
+        return _json(404, const {
+          'error': {
+            'code': 'not_found',
+            'message': '信不存在或你没有权限操作此信',
+            'detail': null,
+          },
+        });
+      }
+      _ownedSeeds[index] = {..._ownedSeeds[index], 'status': 'taken_down'};
+      return _json(204, null);
     }
     if (method == 'GET' && path == '/health') {
       return _json(200, const {'status': 'ok'});
@@ -347,6 +365,91 @@ class MockApiAdapter implements HttpClientAdapter {
     ),
   ];
 
+  /// 我的信种子（F6）：四种 LetterStatus 各占一封，覆盖徽标全形态与
+  /// 「长按 → 两段确认 → 下架」离线链路。公开的那封可从列表点进阅读器；
+  /// 下架会把它翻成 taken_down（非硬删，仍在列表）。
+  late final List<Map<String, Object?>> _ownedSeeds = [
+    _ownedSeed(
+      id: 'mock_mine_1',
+      status: 'public',
+      ago: const Duration(hours: 2),
+      poem: '候鸟排成人字\n把我的问候带走\n往更南的南方',
+      placeLabel: '浙江 · 舟山',
+      weather: const {'text': '晴', 'temp_c': 29.0, 'icon': 'clear'},
+      blocks: const [
+        {'type': 'text', 'text': '在海堤上写完这封，浪来过两次，纸角湿了一点。'},
+        {'type': 'text', 'text': '希望捡到它的人，今天也恰好有风。'},
+      ],
+      signature: '赶海的人',
+    ),
+    _ownedSeed(
+      id: 'mock_mine_2',
+      status: 'pending',
+      ago: const Duration(minutes: 40),
+      placeLabel: '浙江 · 杭州',
+      weather: const {'text': '多云', 'temp_c': 28.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '刚写下的一封还在路上：先交给审核，再交给风。'},
+      ],
+    ),
+    _ownedSeed(
+      id: 'mock_mine_3',
+      status: 'rejected',
+      ago: const Duration(days: 2),
+      placeLabel: '上海 · 武康路',
+      weather: const {'text': '阴', 'temp_c': 24.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '这一封没能通过审核——只有你自己看得见它。'},
+      ],
+    ),
+    _ownedSeed(
+      id: 'mock_mine_4',
+      status: 'taken_down',
+      ago: const Duration(days: 5),
+      placeLabel: '江苏 · 南京',
+      weather: const {'text': '多云', 'temp_c': 27.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '这一封已经被收回来了，但写给它的回信都还在。'},
+      ],
+    ),
+  ];
+
+  /// 组一封 LetterOwned 形状的本人信（在 [_seedLetter] 上补状态与落点坐标）。
+  Map<String, Object?> _ownedSeed({
+    required String id,
+    required String status,
+    required List<Object?> blocks,
+    double lat = 30.0,
+    double lon = 121.0,
+    Duration ago = const Duration(hours: 2),
+    Object? poem,
+    String? addressee,
+    Map<String, Object?>? skin,
+    required String placeLabel,
+    required Map<String, Object?> weather,
+    String signature = '不具名',
+    String? parentLetterId,
+  }) {
+    return {
+      ..._seedLetter(
+        id: id,
+        blocks: blocks,
+        deliveryMode: 'drift',
+        ago: ago,
+        poem: poem,
+        addressee: addressee,
+        skin: skin,
+        placeLabel: placeLabel,
+        weather: weather,
+        signature: signature,
+        parentLetterId: parentLetterId,
+      ),
+      'status': status,
+      'lat': lat,
+      'lon': lon,
+    };
+  }
+
   /// 回信告知种子（F5）：最新在前；两条各指向一封可读的种子回信。
   late final List<Map<String, Object?>> _notifications = [
     _notification(
@@ -387,8 +490,14 @@ class MockApiAdapter implements HttpClientAdapter {
 
   /// 详情白名单：mock_letter_1 行为不变（共鸣计数联动），其余种子信
   /// 静态回放——保证从漂流/发掘/告知点开能进真实 F3 阅读器。
+  /// 本人公开种子（F6）也在此列，但只在 public 时可读：下架后读者侧
+  /// 与服务端一样回 404，「我的信」点开即见阅读器的叙事空态。
   Map<String, Object?>? _publicLetterById(String id) {
     if (id == 'mock_letter_1') return _letterPublic();
+    final owned = _ownedSeeds.where((json) => json['id'] == id).toList();
+    if (owned.isNotEmpty) {
+      return owned.single['status'] == 'public' ? owned.single : null;
+    }
     return [..._driftSeeds, ..._staySeeds, ..._replySeeds]
         .cast<Map<String, Object?>?>()
         .firstWhere((json) => json!['id'] == id, orElse: () => null);

@@ -7,7 +7,7 @@
 
 ## 待上游化清单（app 侧暂放组件）
 
-- `apps/app/lib/app/widgets/letter_summary_card.dart`（2026-08-27，F4）——信件摘要卡：俳句三行衬线排版（quoteSerif）+ 无诗回退手写预览 + meta 行「距离/地点 · 时间」。跨 feature 复用（发掘/我的信/抄本），上游化时建议落位 `lib/src/components/letters/`，参数保持纯字符串。
+- `apps/app/lib/app/widgets/letter_summary_card.dart`（2026-08-27，F4；F6 补 `statusLabel`/`onLongPress`）——信件摘要卡：俳句三行衬线排版（quoteSerif）+ 无诗回退手写预览 + meta 行「距离/地点 · 时间」+ 状态徽标（NatsuTag sm 纯文字，不启用语义点——dot 配色按配给制只归场景/情绪/旅行）。跨 feature 复用（发掘/我的信/抄本），上游化时建议落位 `lib/src/components/letters/`，参数保持纯字符串。
 
 ## 上游
 
