@@ -179,4 +179,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.pushed, ['/write?parent=letter_1']);
   });
+
+  testWidgets('「更多」菜单：记入抄本常驻，选中后 POST 落库并冒提示', (tester) async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+      const ScriptedResponse.ok(204),
+    ]);
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('更多'));
+    await tester.pumpAndSettle();
+    expect(find.text('记入抄本'), findsOneWidget);
+    expect(find.text('举报'), findsOneWidget);
+
+    await tester.tap(find.text('记入抄本'));
+    // 菜单退场 + 保存往返落地（不做全量 settle，好抓 toast 在场瞬间）
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final request = h.adapter.requests.last;
+    expect(request.method, 'POST');
+    expect(request.uri.path, '/v1/me/scripbook');
+    expect(find.byType(NatsuToast), findsOneWidget);
+
+    // 收尾把 toast 的定时器走完，避免测试悬挂计时器报错
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
 }

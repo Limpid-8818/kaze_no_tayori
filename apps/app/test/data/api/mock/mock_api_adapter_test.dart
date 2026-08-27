@@ -114,6 +114,52 @@ void main() {
       ),
     );
   });
+  test('抄本（F7）：初始带诗/无诗各一封；收进去重且最新在前，移出/未知 id 404', () async {
+    final dio = _dio();
+    final before = await _decode(dio.get('/v1/me/scripbook'));
+    final beforeItems = List<Map<String, dynamic>>.from(
+      before['items'] as List,
+    );
+    expect(before['next_cursor'], isNull);
+    expect(beforeItems, hasLength(2));
+    // 摘要卡两种形态都在场：一封有诗、一封无诗
+    expect([
+      for (final item in beforeItems) (item['poem'] as String?)?.isNotEmpty,
+    ], contains(true));
+
+    // 收进漂流种子信：重复收不膨胀列表，最新收进的排最前
+    await expectLater(
+      dio.post('/v1/me/scripbook', data: {'letter_id': 'mock_drift_2'}),
+      completes,
+    );
+    await dio.post('/v1/me/scripbook', data: {'letter_id': 'mock_drift_2'});
+    final after = await _decode(dio.get('/v1/me/scripbook'));
+    final ids = [for (final item in after['items'] as List) item['id']];
+    expect(ids, hasLength(3));
+    expect(ids.first, 'mock_drift_2');
+
+    await expectLater(
+      dio.post('/v1/me/scripbook', data: {'letter_id': 'mock_unknown'}),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          404,
+        ),
+      ),
+    );
+    await expectLater(dio.delete('/v1/me/scripbook/mock_drift_2'), completes);
+    await expectLater(
+      dio.delete('/v1/me/scripbook/mock_unknown'),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          404,
+        ),
+      ),
+    );
+  });
   test('未覆盖的路由 404 且带统一错误体（不静默成功）', () async {
     final dio = _dio();
     await expectLater(

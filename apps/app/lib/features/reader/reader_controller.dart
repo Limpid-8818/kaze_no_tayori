@@ -122,6 +122,26 @@ class ReaderController extends Notifier<ReaderState> {
     }
   }
 
+  /// 记入抄本（PRD 6.10，个人行为）。服务端幂等（PK 冲突忽略、
+  /// saved_count 不重复加），且「是否已收藏」不下发——菜单项恒可点，
+  /// 重复记一次只是再听到一声回响。
+  Future<void> saveToScripbook() async {
+    final letterId = _letterId;
+    if (letterId == null) return;
+    try {
+      await ref
+          .read(meApiProvider)
+          .addScripbook(ScripbookAddRequest(letterId: letterId));
+      state = state.copyWith(
+        notice: (message: '已收进抄本', seq: (state.notice?.seq ?? 0) + 1),
+      );
+    } on ApiFailure {
+      state = state.copyWith(
+        notice: (message: '没能收进抄本，再试一次', seq: (state.notice?.seq ?? 0) + 1),
+      );
+    }
+  }
+
   /// 举报。理由由页面弹层收集（≤32 字）。
   Future<void> report({required String reason, String? detail}) async {
     final letterId = _letterId;

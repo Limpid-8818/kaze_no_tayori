@@ -165,6 +165,39 @@ void main() {
     h.dispose();
   });
 
+  test('记入抄本：POST 带 letter_id，成功 notice「已收进抄本」', () async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+      const ScriptedResponse.ok(204),
+    ]);
+    await h.controller.start('letter_1');
+
+    await h.controller.saveToScripbook();
+
+    expect(h.state.notice?.message, '已收进抄本');
+    final request = h.adapter.requests.last;
+    expect(request.method, 'POST');
+    expect(request.uri.path, '/v1/me/scripbook');
+    expect((request.data as Map<String, dynamic>)['letter_id'], 'letter_1');
+    h.dispose();
+  });
+
+  test('记入抄本失败：notice 提示，phase 保持 ready 不抛错', () async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+      ScriptedResponse.fail(_server('/v1/me/scripbook')),
+    ]);
+    await h.controller.start('letter_1');
+
+    await h.controller.saveToScripbook();
+
+    expect(h.state.phase, ReaderPhase.ready);
+    expect(h.state.notice?.message, '没能收进抄本，再试一次');
+    h.dispose();
+  });
+
   test('举报：204 → notice「已举报」', () async {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),

@@ -53,7 +53,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return KazeScaffold(
       title: '读一封信',
-      // 举报 / 查看原信在 AppBar「⋯」菜单；仅 ready 态可用
+      // 记入抄本 / 查看原信 / 举报在 AppBar「⋯」菜单；仅 ready 态可用
       actions: state.phase == ReaderPhase.ready ? [_moreMenu(view)] : null,
       // ready 内容随信纸长度滚动；空态/错误态不滚动，垂直居中
       scrollable: state.phase == ReaderPhase.ready,
@@ -101,14 +101,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  /// AppBar「⋯」：查看它回应的那封信（仅 parent 非空）/ 举报。
-  /// 原信 404 由新页面的空态兜住。
+  /// AppBar「⋯」：记入抄本 / 查看它回应的那封信（仅 parent 非空）/
+  /// 举报。原信 404 由新页面的空态兜住。
   Widget _moreMenu(LetterView? view) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz),
       tooltip: '更多',
       onSelected: (value) {
         switch (value) {
+          case 'scripbook':
+            ref.read(readerControllerProvider.notifier).saveToScripbook();
           case 'parent':
             context.push(Routes.readerOf(view!.parentLetterId!));
           case 'report':
@@ -116,6 +118,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         }
       },
       itemBuilder: (_) => [
+        const PopupMenuItem(value: 'scripbook', child: Text('记入抄本')),
         if (view?.parentLetterId != null)
           const PopupMenuItem(value: 'parent', child: Text('查看它回应的那封信')),
         const PopupMenuItem(value: 'report', child: Text('举报')),

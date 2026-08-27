@@ -21,6 +21,10 @@
 > （`LetterSummaryCard.onLongPress` 能力全列表可用，本阶段只在 /me/letters 接线），
 > `core/letter_preview.dart` 为摘要抽取共享口径。前端 P0 全部完成，仅剩 J3-P0
 > 双设备核心验收。
+>
+> 更新（2026-08-27）：F7 抄本已完成——收藏列表 + 移出（两段式确认：读过的信
+> 不会再漂流回来）。入口在读信页「⋯」菜单「记入抄本」（后端幂等、菜单项恒可点），
+> 列表页复用 MyLetters 四相骨架与 letter_preview 口径；mock 补三条 scripbook 路由。
 
 ---
 
@@ -158,7 +162,7 @@
 
 ### F7 · P1 表达与留存增强（P0 闭环后）
 - [ ] 写信增强：音乐引用、1–3 标签、皮肤槽位选择；不改变历史信件 skin
-- [ ] 抄本：收藏列表 + 移除
+- [x] 抄本：收藏列表 + 移除 —— ✅ 2026-08-27：后端三端点已就位零改动；前端 ScripbookScreen/ScripbookController 按 MyLetters 骨架落地（四相 + RouteAware 静默刷新 + 长按两段式移出），入口挂 reader「⋯」菜单 `saveToScripbook`（幂等恒可点 + notice toast），MockApiAdapter 补 GET/POST/DELETE scripbook 与种子；app 184 测试全绿。note 字段暂不开 UI，导出留后续
 - [ ] 导出：复用设计系统 `LetterExportBoundary`，移除重复 screenshot 依赖；补“仅添加到相册”能力及对应 iOS 用途说明
 - [ ] 完整离线写作：如确有需要，再设计待发送队列与冲突/重试；不与 P0 草稿自动保存混为一谈
 

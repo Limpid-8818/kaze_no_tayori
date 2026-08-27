@@ -151,6 +151,43 @@ class MockApiAdapter implements HttpClientAdapter {
       _ownedSeeds[index] = {..._ownedSeeds[index], 'status': 'taken_down'};
       return _json(204, null);
     }
+    // 抄本（F7）：初始两封收藏（带诗 + 无诗），收进幂等去重、移出不
+    // 存在回 404——对齐服务端语义，收藏/移出整链路可离线验收。
+    if (method == 'GET' && path == '/v1/me/scripbook') {
+      return _json(200, {'items': _scripbookSeeds, 'next_cursor': null});
+    }
+    if (method == 'POST' && path == '/v1/me/scripbook') {
+      final body = options.data is Map<String, dynamic>
+          ? options.data as Map<String, dynamic>
+          : const <String, dynamic>{};
+      final letterId = body['letter_id'] as String?;
+      final letter = letterId == null ? null : _publicLetterById(letterId);
+      if (letter == null) {
+        return _json(404, const {
+          'error': {
+            'code': 'letter_not_found',
+            'message': '信不存在或尚未漂到公开水域',
+            'detail': null,
+          },
+        });
+      }
+      if (!_scripbookSeeds.any((json) => json['id'] == letterId)) {
+        _scripbookSeeds.insert(0, {...letter});
+      }
+      return _json(204, null);
+    }
+    final scripMatch = RegExp(r'^/v1/me/scripbook/([^/]+)$').firstMatch(path);
+    if (method == 'DELETE' && scripMatch != null) {
+      final id = scripMatch.group(1)!;
+      final index = _scripbookSeeds.indexWhere((json) => json['id'] == id);
+      if (index < 0) {
+        return _json(404, const {
+          'error': {'code': 'not_found', 'message': '抄本中没有这封信', 'detail': null},
+        });
+      }
+      _scripbookSeeds.removeAt(index);
+      return _json(204, null);
+    }
     if (method == 'GET' && path == '/health') {
       return _json(200, const {'status': 'ok'});
     }
@@ -449,6 +486,14 @@ class MockApiAdapter implements HttpClientAdapter {
       'lon': lon,
     };
   }
+
+  /// 抄本种子（F7）：带诗 + 无诗各一封的拷贝，覆盖摘要卡两种形态。
+  /// 收进/移出直接增删这份内存列表——与服务端一样幂等、可反复横跳；
+  /// 最新收进的排最前（added_at DESC）。
+  late final List<Map<String, Object?>> _scripbookSeeds = [
+    {..._driftSeeds.first},
+    {..._staySeeds.first},
+  ];
 
   /// 回信告知种子（F5）：最新在前；两条各指向一封可读的种子回信。
   late final List<Map<String, Object?>> _notifications = [
