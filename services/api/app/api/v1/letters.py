@@ -5,26 +5,35 @@ router 只做 HTTP ↔ service 转换，业务逻辑一律在 app/services/。
 
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
+from app.core.config import get_settings
 from app.core.deps import CurrentUser, OptionalUser, Session
+from app.models.enums import LetterStatus
 from app.schemas.common import ReportRequest
 from app.schemas.letter import LetterCreate, LetterOwned, LetterPublic
-from app.services import letter_service
+from app.services import letter_service, poem_service
 
 router = APIRouter(tags=["letters"])
 
 
 @router.post("/letters", response_model=LetterOwned, status_code=201)
 async def create_letter(
-    payload: LetterCreate, session: Session, user_id: CurrentUser
+    payload: LetterCreate, background_tasks: BackgroundTasks, session: Session, user_id: CurrentUser
 ) -> LetterOwned:
     """写一封信并投放。
 
     delivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。
     提交后入审，默认 status=pending。
+    审核通过的公开信在响应后由后台任务自动补写 AI 短诗
+    （客户端已自带 poem 或 FEATURE_AI 关闭时跳过）。
     """
     letter = await letter_service.create_letter(session, payload, owner_user_id=user_id)
+    # 后台写诗任务用独立连接读库，必须先把信提交落库
+    # （get_session 的统一 commit 在响应发送后才执行，那时后台任务可能已在跑）
+    await session.commit()
+    if letter.status == LetterStatus.PUBLIC and payload.poem is None and get_settings().feature_ai:
+        background_tasks.add_task(poem_service.generate_and_save_poem, letter.id)
     return LetterOwned.from_letter(letter, lat=payload.lat, lon=payload.lon)
 
 
