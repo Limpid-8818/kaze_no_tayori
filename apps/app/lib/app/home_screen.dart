@@ -348,8 +348,8 @@ class _HomeDrawer extends ConsumerWidget {
             type: MaterialType.transparency,
             child: SafeArea(
               right: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
