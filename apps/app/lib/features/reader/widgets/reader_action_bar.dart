@@ -1,4 +1,4 @@
-/// 读信页固定底部操作栏：✦ 共鸣 | 回一封信。
+/// 读信页固定底部操作栏：✦ 共鸣 | 回以一封信。
 ///
 /// 常驻底部：长信滚到底操作也始终可达。共鸣用设计系统的 NatsuResonance
 /// 受控组件（句子式计数自带）；回信是主行动，每屏至多一个 primary。
@@ -55,7 +55,7 @@ class ReaderActionBar extends StatelessWidget {
               NatsuButton(
                 variant: NatsuButtonVariant.primary,
                 onPressed: onReply,
-                child: const Text('回一封信'),
+                child: const Text('回以一封信'),
               ),
             ],
           ),

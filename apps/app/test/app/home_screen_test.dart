@@ -16,6 +16,7 @@ import 'package:kazenotayori/data/device/location_gateway.dart';
 import 'package:kazenotayori/data/models/letter.dart';
 import 'package:kazenotayori/app/controllers/location_controller.dart';
 import 'package:kazenotayori/app/controllers/permission_controller.dart';
+import 'package:kazenotayori/app/controllers/unread_count_controller.dart';
 import 'package:kazenotayori/app/permissions/app_permission.dart';
 
 // ---- 测试替身 ----
@@ -72,6 +73,16 @@ class _FakeGeoApi implements GeoApi {
   Future<String?> reverse(double lat, double lon) async => result;
 }
 
+/// 固定未读数替身：抽屉只消费计数，本测试不需要真的去拉接口。
+class _FixedUnread extends UnreadCountController {
+  _FixedUnread(this.count);
+
+  final int count;
+
+  @override
+  int build() => count;
+}
+
 // ---- 容器工厂 ----
 
 ProviderScope _envScope({
@@ -79,6 +90,7 @@ ProviderScope _envScope({
   bool serviceEnabled = true,
   String? geoResult,
   Weather? weatherResult,
+  int unreadCount = 0,
   required Widget child,
 }) {
   return ProviderScope(
@@ -92,6 +104,9 @@ ProviderScope _envScope({
       geoApiProvider.overrideWithValue(_FakeGeoApi(result: geoResult)),
       weatherApiProvider.overrideWithValue(
         _FakeWeatherApi(result: weatherResult),
+      ),
+      unreadCountControllerProvider.overrideWith(
+        () => _FixedUnread(unreadCount),
       ),
     ],
     child: child,
@@ -133,6 +148,7 @@ void main() {
       bool serviceEnabled = true,
       String? geoResult,
       Weather? weatherResult,
+      int unreadCount = 0,
     }) {
       final testRouter = GoRouter(
         initialLocation: Routes.home,
@@ -157,6 +173,7 @@ void main() {
         serviceEnabled: serviceEnabled,
         geoResult: geoResult,
         weatherResult: weatherResult,
+        unreadCount: unreadCount,
         child: MaterialApp.router(
           routerConfig: testRouter,
           theme: KazeTheme.light(),
@@ -284,6 +301,45 @@ void main() {
       expect(find.text('多云'), findsOneWidget);
       expect(find.textContaining('18.5'), findsNothing);
       expect(find.textContaining('°C'), findsNothing);
+    });
+
+    // ---- 新增：回信告知未读角标（F5）----
+
+    testWidgets('抽屉未读数：一位数正圆，两位数胶囊，无未读不出现', (tester) async {
+      await tester.pumpWidget(pumpApp(unreadCount: 3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3'), findsOneWidget);
+      // 一位数是正圆
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+        ),
+        findsOneWidget,
+      );
+
+      // 两位数：胶囊仍显示数字（先卸载整树，避免抽屉开合状态被复用）
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(pumpApp(unreadCount: 12));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      expect(find.text('12'), findsOneWidget);
+
+      // 重新挂载无未读的首页
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(pumpApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0'), findsNothing);
     });
   });
 }

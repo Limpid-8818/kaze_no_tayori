@@ -216,6 +216,18 @@ abstract final class KazeHomeDims {
 
   /// 环境行小圆点直径
   static const double envDot = 3;
+
+  /// 抽屉未读数圆标直径（一位数正圆）
+  static const double badgeDiameter = 24;
+
+  /// 抽屉未读数胶囊最小宽度（两位数起横向展开）
+  static const double badgePillMinW = 32;
+
+  /// 抽屉未读数胶囊全圆角
+  static const double badgeRadius = 999;
+
+  /// 告知条目未读圆点直径
+  static const double noticeDot = 6;
 }
 
 /// About 画布（夏の手紙 v2 · Screen/About）的结构尺寸 — 非间距刻度，

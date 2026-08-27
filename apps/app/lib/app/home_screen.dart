@@ -17,6 +17,7 @@ import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../core/day_period.dart';
 import 'controllers/home_environment_controller.dart';
+import 'controllers/unread_count_controller.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -322,12 +323,15 @@ class _HomeEntryCard extends StatelessWidget {
 /// 左侧抽屉：品牌区 + 「我的」导航 + 关于。
 ///
 /// 底部刻意不放任何文本（用户决定，保持干净）。
-class _HomeDrawer extends StatelessWidget {
+/// 「回信告知」的未读圆标只**消费** UnreadCountController——
+/// 计数的拉取与增减都归该控制器所有（F5 状态唯一所有权）。
+class _HomeDrawer extends ConsumerWidget {
   const _HomeDrawer();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final unreadCount = ref.watch(unreadCountControllerProvider);
 
     return SizedBox(
       width: KazeHomeDims.drawerW,
@@ -377,6 +381,9 @@ class _HomeDrawer extends StatelessWidget {
                   _DrawerItem(
                     icon: Icons.notifications_none,
                     label: '回信告知',
+                    trailing: unreadCount > 0
+                        ? _UnreadBadge(count: unreadCount)
+                        : null,
                     onTap: () => _push(context, Routes.notifications),
                   ),
                   _DrawerItem(
@@ -409,15 +416,58 @@ class _HomeDrawer extends StatelessWidget {
   }
 }
 
+/// 未读数字圆标：一位数画正圆；两位数起横向展成胶囊（契约上限 50，
+/// 两位数封顶）。珊瑚印章底 + 反色数字。
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final singleDigit = count < 10;
+    return Container(
+      height: KazeHomeDims.badgeDiameter,
+      padding: EdgeInsets.symmetric(
+        horizontal: singleDigit ? 0 : KazeSpacing.sm,
+      ),
+      constraints: BoxConstraints(
+        minWidth: singleDigit
+            ? KazeHomeDims.badgeDiameter
+            : KazeHomeDims.badgePillMinW,
+      ),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.tertiary,
+        shape: singleDigit ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: singleDigit
+            ? null
+            : BorderRadius.circular(KazeHomeDims.badgeRadius),
+      ),
+      child: Text(
+        '$count',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onTertiary,
+        ),
+      ),
+    );
+  }
+}
+
 class _DrawerItem extends StatelessWidget {
   const _DrawerItem({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
+
+  /// 行尾插槽（未读数圆标等）；空则不占位。
+  final Widget? trailing;
   final VoidCallback onTap;
 
   @override
@@ -442,7 +492,8 @@ class _DrawerItem extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: KazeSpacing.sm + KazeSpacing.xs),
-              Text(label, style: theme.textTheme.bodyLarge),
+              Expanded(child: Text(label, style: theme.textTheme.bodyLarge)),
+              ?trailing,
             ],
           ),
         ),

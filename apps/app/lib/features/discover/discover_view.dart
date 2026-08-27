@@ -4,6 +4,7 @@
 /// （匿名铁律），`distanceLabel` 留空——后端补齐后在 from() 一处接线。
 library;
 
+import '../../core/relative_time.dart';
 import '../../data/models/letter.dart';
 
 /// 一张摘要卡的视图模型。
@@ -29,7 +30,7 @@ class DiscoverLetterView {
   static DiscoverLetterView from(LetterPublic letter) {
     return DiscoverLetterView(
       id: letter.id,
-      timeLabel: _timeLabel(letter.createdAt),
+      timeLabel: relativeTimeLabel(letter.createdAt),
       poemLines: _poemLines(letter.poem),
       previewText: _preview(letter),
       placeLabel: letter.placeLabel,
@@ -53,14 +54,5 @@ class DiscoverLetterView {
     }
     if (letter.blocks.isNotEmpty) return '（一张照片）';
     return null;
-  }
-
-  static String _timeLabel(DateTime created) {
-    final diff = DateTime.now().difference(created);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
-    return '${created.month}月${created.day}日';
   }
 }

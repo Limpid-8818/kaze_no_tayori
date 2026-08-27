@@ -74,6 +74,28 @@ class MockApiAdapter implements HttpClientAdapter {
       ];
       return _json(200, {'items': items, 'next_cursor': null});
     }
+    // 回信告知（F5）：一条未读 + 一条已读；unread_only 按 is_read 过滤
+    if (method == 'GET' && path == '/v1/me/notifications') {
+      // dio 的 queryParameters 保留原始类型：bool 就是 bool，不落字符串
+      final unreadOnly =
+          options.queryParameters['unread_only'].toString() == 'true';
+      final items = [
+        for (final n in _notifications)
+          if (!unreadOnly || n['is_read'] == false) n,
+      ];
+      return _json(200, {'items': items, 'next_cursor': null});
+    }
+    final notifReadMatch = RegExp(r'^/v1/me/notifications/([^/]+)/read$')
+        .firstMatch(path);
+    if (method == 'POST' && notifReadMatch != null) {
+      final id = notifReadMatch.group(1)!;
+      for (var i = 0; i < _notifications.length; i++) {
+        if (_notifications[i]['id'] == id) {
+          _notifications[i] = {..._notifications[i], 'is_read': true};
+        }
+      }
+      return _json(204, null);
+    }
     // 读一封公开信：种子信可读，其余 404（读信空态可测）
     final letterMatch = RegExp(r'^/v1/letters/([^/]+)$').firstMatch(path);
     if (method == 'GET' && letterMatch != null) {
@@ -207,6 +229,7 @@ class MockApiAdapter implements HttpClientAdapter {
     required String placeLabel,
     required Map<String, Object?> weather,
     String signature = '不具名',
+    String? parentLetterId,
   }) {
     return {
       'id': id,
@@ -221,7 +244,7 @@ class MockApiAdapter implements HttpClientAdapter {
       'weather': weather,
       'tags': const <String>[],
       'delivery_mode': deliveryMode,
-      'parent_letter_id': null,
+      'parent_letter_id': parentLetterId,
       'counts': const {
         'read': 0,
         'resonance': 1,
@@ -293,11 +316,80 @@ class MockApiAdapter implements HttpClientAdapter {
     ),
   ];
 
+  /// 回信种子（F5）：都是 mock_stay_1 收到的独立回信作品，
+  /// 告知条目点开能进真实阅读器读到完整信纸。
+  List<Map<String, Object?>> get _replySeeds => [
+    _seedLetter(
+      id: 'mock_reply_2',
+      deliveryMode: 'drift',
+      ago: const Duration(hours: 3),
+      parentLetterId: 'mock_stay_1',
+      poem: '风把长椅吹干净\n你留下的那句话\n被下一个人捡到了',
+      placeLabel: '浙江 · 杭州',
+      signature: '坐在长椅另一头的人',
+      weather: const {'text': '晴', 'temp_c': 30.0, 'icon': 'clear'},
+      blocks: const [
+        {'type': 'text', 'text': '也在那张长椅上坐了一个下午，替你把便条读了两遍。'},
+        {'type': 'text', 'text': '换我留半句话给风：别急着和这座城市道别。'},
+      ],
+    ),
+    _seedLetter(
+      id: 'mock_reply_1',
+      deliveryMode: 'drift',
+      ago: const Duration(days: 1),
+      parentLetterId: 'mock_stay_1',
+      placeLabel: '江苏 · 南京',
+      signature: '路过的人',
+      weather: const {'text': '多云', 'temp_c': 27.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '歇脚的时候读到你的字。辛苦是会过去的，风都知道。'},
+      ],
+    ),
+  ];
+
+  /// 回信告知种子（F5）：最新在前；两条各指向一封可读的种子回信。
+  late final List<Map<String, Object?>> _notifications = [
+    _notification(
+      id: 'mock_notif_2',
+      letterId: 'mock_reply_2',
+      parentId: 'mock_stay_1',
+      placeLabel: '浙江 · 杭州',
+      ago: const Duration(hours: 3),
+    ),
+    _notification(
+      id: 'mock_notif_1',
+      letterId: 'mock_reply_1',
+      parentId: 'mock_stay_1',
+      placeLabel: '浙江 · 杭州',
+      isRead: true,
+      ago: const Duration(days: 1),
+    ),
+  ];
+
+  Map<String, Object?> _notification({
+    required String id,
+    required String letterId,
+    required String parentId,
+    required String placeLabel,
+    Duration ago = const Duration(hours: 1),
+    bool isRead = false,
+  }) {
+    return {
+      'id': id,
+      'type': 'reply',
+      'letter_id': letterId,
+      'parent_letter_id': parentId,
+      'parent_place_label': placeLabel,
+      'is_read': isRead,
+      'created_at': DateTime.now().subtract(ago).toIso8601String(),
+    };
+  }
+
   /// 详情白名单：mock_letter_1 行为不变（共鸣计数联动），其余种子信
-  /// 静态回放——保证从漂流/发掘点开能进真实 F3 阅读器。
+  /// 静态回放——保证从漂流/发掘/告知点开能进真实 F3 阅读器。
   Map<String, Object?>? _publicLetterById(String id) {
     if (id == 'mock_letter_1') return _letterPublic();
-    return [..._driftSeeds, ..._staySeeds]
+    return [..._driftSeeds, ..._staySeeds, ..._replySeeds]
         .cast<Map<String, Object?>?>()
         .firstWhere((json) => json!['id'] == id, orElse: () => null);
   }

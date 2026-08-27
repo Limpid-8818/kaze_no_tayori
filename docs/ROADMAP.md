@@ -12,6 +12,10 @@
 >
 > 更新（2026-08-27）：F2 写信闭环与 F3 阅读器已完成（均过真实接口 E2E）。F3 留下集中
 > mapper（`letter_view.dart`）与 `INITIAL_ROUTE` 调试直通车，F4 收信双入口直接复用。
+>
+> 更新（2026-08-27）：F4 收信双入口与 F5 回信/通知已完成。F5 留下 app 级
+> `UnreadCountController`（抽屉角标唯一所有者，开页/回前台经 AppLifecycle 拉取），
+> F6 我的信直接复用 MeApi；J2 联调节点达成。
 
 ---
 
@@ -138,10 +142,10 @@
 - **验收**：双入口并列可达；收信与已读语义分离；driftPoolEmpty 呈现为叙事状态 —— ✅ 2026-08-27 mock E2E：抽信→封筒（宛名/邮戳/皮肤）→开信→阅读器；换一封→池空叙事；发掘定位卡（复用逆地理地名 + 半径/计数）→俳句卡/预览卡→点开进阅读器，读完返回列表已排除该信（RouteAware didPopNext 整页重刷）；漂流重进即重置到第一幕。附：共享 `LetterSummaryCard`（俳句三行衬线排版，距离槽留待后端补字段，已记 COPY_IN 待上游化）、`NarrativeCard`、mock 补 drift/discover 路由与已读排除。画布偏差（用户裁决）：中央信封图案、「纯随机 · 不做加权」hint、卡片歪斜与大标题头不实现；按钮 r26→令牌小圆角
 
 ### F5 · 回信 + 通知（0.5–1 天）
-- [ ] 回信复用写信流（router 已留 `?parent=`），入口文案「回以一封信」，写完同样选留/投
-- [ ] app 级 `UnreadCountController` 为抽屉角标唯一所有者；notifications feature 只拥有列表/已读，二者单向同步
-- [ ] notifications 列表 + 已读 + 点击跳公开回信；开页与回前台拉取挂到 `AppLifecycle`（不做轮询、不建推送）
-- **验收**：回信发布后，原信作者设备上出现告知并能读到回信
+- [x] 回信复用写信流（router 已留 `?parent=`），入口文案「回以一封信」，写完同样选留/投（F2/F3 已预埋 parentLetterId/createReply/`reply_<parent>` 草稿键，本阶段补齐文案统一）
+- [x] app 级 `UnreadCountController` 为抽屉角标唯一所有者；notifications feature 只拥有列表/已读，二者单向同步（markRead 成功后 `decrement()`；unread_only=true&limit=50，v1 无 total 字段、条数即计数；失败静默保留旧值）
+- [x] notifications 列表 + 已读 + 点击跳公开回信；开页与回前台拉取挂到 `AppLifecycle`（不做轮询、不建推送）（列表顶对齐为用户裁决：条目少时不浮在屏幕中部；角标一位数正圆、两位数胶囊）
+- **验收**：回信发布后，原信作者设备上出现告知并能读到回信 —— ✅ 2026-08-27 真实后端跨设备：curl 设备 A 创建原信 → App（INITIAL_ROUTE 直通车）回信落库（`POST replies 201`）→ 设备 A notifications 出现未读告知、回信公开可读 → unread_only 1 条 → markRead 204 归零。附：`core/relative_time.dart` 共享相对时间、mock 补 notifications 路由与回信种子（含 dio queryParameters bool 原始类型坑修复）；`make check` 全绿
 
 ### F6 · 我的信（P0，0.5 天）
 - [ ] 我的信：LetterOwned 渲染 + 状态徽标（pending/public/…）+ 下架确认（非硬删）

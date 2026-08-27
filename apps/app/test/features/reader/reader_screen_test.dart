@@ -121,7 +121,7 @@ void main() {
     expect(find.text('傍晚的海边风很大'), findsOneWidget);
     expect(find.text('赶海的人'), findsOneWidget);
     expect(find.byType(NatsuResonance), findsOneWidget);
-    expect(find.text('回一封信'), findsOneWidget);
+    expect(find.text('回以一封信'), findsOneWidget);
   });
 
   testWidgets('404：空态文案居中大卡片，无中间按钮，返回交给 AppBar', (tester) async {
@@ -133,7 +133,7 @@ void main() {
     expect(find.text('可能已被删除或下架'), findsOneWidget);
     expect(find.text('返回'), findsNothing);
     expect(find.text('再试一次'), findsNothing);
-    expect(find.text('回一封信'), findsNothing);
+    expect(find.text('回以一封信'), findsNothing);
   });
 
   testWidgets('服务错误：空态 + 再试一次可恢复', (tester) async {
@@ -167,7 +167,7 @@ void main() {
     expect(find.text('3 个陌生人也曾有过这样的时刻'), findsOneWidget);
   });
 
-  testWidgets('回一封信：带 parent 跳写信路由', (tester) async {
+  testWidgets('回以一封信：带 parent 跳写信路由', (tester) async {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
@@ -175,7 +175,7 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('回一封信'));
+    await tester.tap(find.text('回以一封信'));
     await tester.pumpAndSettle();
     expect(h.pushed, ['/write?parent=letter_1']);
   });
