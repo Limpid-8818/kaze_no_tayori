@@ -132,10 +132,10 @@
 - **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位 —— ✅ 2026-08-27 真实接口 E2E（种子信）：图文流/meta 渲染、共鸣计数 0→1 且重启幂等、回信跳 F2、举报 204、404 空态；`make check-dart` 全绿。另：KazeScaffold 增加 `bottom` 槽位、router 支持 `INITIAL_ROUTE` dart-define 调试直通车（F4 接 UI 入口前的 E2E 手段）、MockApiAdapter 补读信端点
 
 ### F4 · 收信双入口（1 天）
-- [ ] drift：抽信只展示 `Envelope`，用户拆封后 `markRead` 恰一次再进入 F3 阅读器；池空展示叙事态「此刻还没有漂来的信」
-- [ ] discover：定位 → 半径预设（Env.discoverRadiusM）→ 附近信列表（时间序）→ 点开 markRead → F3 阅读器
-- [ ] 定位统一走 `LocationController`；拒绝时允许重试/开启设置或输入真实坐标，禁止默认坐标和仅地名伪成功
-- **验收**：双入口并列可达；收信与已读语义分离；driftPoolEmpty 呈现为叙事状态
+- [x] drift：抽信只展示 `Envelope`，用户拆封后 `markRead` 恰一次再进入 F3 阅读器；池空展示叙事态「此刻还没有漂来的信」（实现口径：markRead 由 ReaderController 进入即幂等上报，drift/discover 侧不重复调；开信走 `pushReplacement`——拆封是一次性仪式）
+- [x] discover：定位 → 半径预设（Env.discoverRadiusM）→ 附近信列表（时间序）→ 点开 markRead → F3 阅读器
+- [x] 定位统一走 `LocationController`；拒绝时允许重试/开启设置或输入真实坐标，禁止默认坐标和仅地名伪成功（本阶段做「重试 + 去系统设置」，手动输坐标留待需要时再加）
+- **验收**：双入口并列可达；收信与已读语义分离；driftPoolEmpty 呈现为叙事状态 —— ✅ 2026-08-27 mock E2E：抽信→封筒（宛名/邮戳/皮肤）→开信→阅读器；换一封→池空叙事；发掘定位卡（复用逆地理地名 + 半径/计数）→俳句卡/预览卡→点开进阅读器，读完返回列表已排除该信（RouteAware didPopNext 整页重刷）；漂流重进即重置到第一幕。附：共享 `LetterSummaryCard`（俳句三行衬线排版，距离槽留待后端补字段，已记 COPY_IN 待上游化）、`NarrativeCard`、mock 补 drift/discover 路由与已读排除。画布偏差（用户裁决）：中央信封图案、「纯随机 · 不做加权」hint、卡片歪斜与大标题头不实现；按钮 r26→令牌小圆角
 
 ### F5 · 回信 + 通知（0.5–1 天）
 - [ ] 回信复用写信流（router 已留 `?parent=`），入口文案「回以一封信」，写完同样选留/投

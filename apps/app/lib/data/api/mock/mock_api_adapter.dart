@@ -18,6 +18,10 @@ import 'package:dio/dio.dart';
 class MockApiAdapter implements HttpClientAdapter {
   int _seq = 1;
   int _resonanceCount = 2;
+  int _driftCursor = 0;
+
+  /// 已拆封的信——发掘/漂流池不再回给同一台设备（对齐服务端语义）。
+  final Set<String> _openedIds = {};
 
   @override
   Future<ResponseBody> fetch(
@@ -48,11 +52,34 @@ class MockApiAdapter implements HttpClientAdapter {
             RegExp(r'^/v1/letters/[^/]+/replies$').hasMatch(path))) {
       return _json(201, _letterOwned(options));
     }
-    // 读一封公开信：固定 id「mock_letter_1」可读，其余 404（读信空态可测）
+    // 随机漂流：按序吐两封种子信（其一含三行俳句），随后池空——
+    // 「抽一封 → 换一封 → 叙事空态」整链路可在 mock 下验收。
+    if (method == 'GET' && path == '/v1/drift/next') {
+      final index = _driftCursor++;
+      return index < _driftSeeds.length
+          ? _json(200, _driftSeeds[index])
+          : _json(404, const {
+              'error': {
+                'code': 'drift_pool_empty',
+                'message': '此刻还没有漂来的信',
+                'detail': null,
+              },
+            });
+    }
+    // 就地发掘：不校验坐标，回一封带诗 + 一封无诗；已拆封的不再出现
+    if (method == 'GET' && path == '/v1/discover') {
+      final items = [
+        for (final letter in _staySeeds)
+          if (!_openedIds.contains(letter['id'])) letter,
+      ];
+      return _json(200, {'items': items, 'next_cursor': null});
+    }
+    // 读一封公开信：种子信可读，其余 404（读信空态可测）
     final letterMatch = RegExp(r'^/v1/letters/([^/]+)$').firstMatch(path);
     if (method == 'GET' && letterMatch != null) {
-      return letterMatch.group(1) == 'mock_letter_1'
-          ? _json(200, _letterPublic())
+      final json = _publicLetterById(letterMatch.group(1)!);
+      return json != null
+          ? _json(200, json)
           : _json(404, const {
               'error': {
                 'code': 'letter_not_found',
@@ -63,6 +90,8 @@ class MockApiAdapter implements HttpClientAdapter {
     }
     if (method == 'POST' &&
         RegExp(r'^/v1/letters/[^/]+/read$').hasMatch(path)) {
+      final readMatch = RegExp(r'^/v1/letters/([^/]+)/read$').firstMatch(path);
+      if (readMatch != null) _openedIds.add(readMatch.group(1)!);
       return _json(204, null);
     }
     if (method == 'POST' &&
@@ -161,6 +190,116 @@ class MockApiAdapter implements HttpClientAdapter {
       },
       'created_at': DateTime.now().toIso8601String(),
     };
+  }
+
+  // ---------- 收信双入口的种子信（F4） ----------
+
+  /// 组一封 LetterPublic 形状的公开信。时间以 now 往前回退，
+  /// 让列表卡能呈现「N 小时前 / N 天前」。
+  Map<String, Object?> _seedLetter({
+    required String id,
+    required List<Object?> blocks,
+    required String deliveryMode,
+    Duration ago = const Duration(hours: 2),
+    Object? poem,
+    String? addressee,
+    Map<String, Object?>? skin,
+    required String placeLabel,
+    required Map<String, Object?> weather,
+    String signature = '不具名',
+  }) {
+    return {
+      'id': id,
+      'blocks': blocks,
+      'poem': poem,
+      'signature': signature,
+      'addressee': addressee,
+      'theme_id': 'natsu',
+      'theme_skin': skin,
+      'music_ref': null,
+      'place_label': placeLabel,
+      'weather': weather,
+      'tags': const <String>[],
+      'delivery_mode': deliveryMode,
+      'parent_letter_id': null,
+      'counts': const {
+        'read': 0,
+        'resonance': 1,
+        'voice': 0,
+        'reply': 0,
+        'saved': 0,
+      },
+      'created_at': DateTime.now().subtract(ago).toIso8601String(),
+    };
+  }
+
+  /// 漂流池：第一封带宛名+俳句（封面竖排字与阅读器短诗可验），
+  /// 第二封带皮肤+纯文本。抽完即 drift_pool_empty。
+  List<Map<String, Object?>> get _driftSeeds => [
+    _seedLetter(
+      id: 'mock_drift_1',
+      deliveryMode: 'drift',
+      addressee: '拾到它的人',
+      poem: '风穿过堤岸\n把下午吹得很轻\n浪只说了一半',
+      placeLabel: '浙江 · 舟山',
+      weather: const {'text': '多云', 'temp_c': 26.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '傍晚的海边风很大，把想说的话都吹散了。'},
+        {'type': 'text', 'text': '就把它们写进信里，交给风。'},
+      ],
+    ),
+    _seedLetter(
+      id: 'mock_drift_2',
+      deliveryMode: 'drift',
+      ago: const Duration(days: 3),
+      skin: const {
+        'stamp': 'stamp.sea-01',
+        'postmarkEmblem': 'postmark.cicada-01',
+      },
+      placeLabel: '福建 · 厦门',
+      weather: const {'text': '晴', 'temp_c': 31.0, 'icon': 'clear'},
+      blocks: const [
+        {'type': 'text', 'text': '风从骑楼的廊柱间穿过的时候，整条老街都在轻轻摇晃。'},
+        {'type': 'text', 'text': '如果你在第七个路口闻到桂花，就当是我打过招呼。'},
+      ],
+      signature: '八市买鱼的人',
+    ),
+  ];
+
+  /// 发掘结果：一封带诗 + 一封无诗（无诗走两行手写预览位）。
+  List<Map<String, Object?>> get _staySeeds => [
+    _seedLetter(
+      id: 'mock_stay_1',
+      deliveryMode: 'stay',
+      poem: '梧桐叶的缝隙\n漏下来的光斑\n替我读完了信',
+      placeLabel: '浙江 · 杭州',
+      signature: '西湖边写生的人',
+      weather: const {'text': '晴', 'temp_c': 29.0, 'icon': 'clear'},
+      blocks: const [
+        {'type': 'text', 'text': '把这张便条压在长椅底下的人说，坐下来歇脚的你辛苦了。'},
+      ],
+    ),
+    _seedLetter(
+      id: 'mock_stay_2',
+      deliveryMode: 'stay',
+      ago: const Duration(minutes: 40),
+      placeLabel: '上海 · 武康路',
+      weather: const {'text': '多云', 'temp_c': 28.0, 'icon': 'cloudy'},
+      blocks: const [
+        {'type': 'text', 'text': '风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。'},
+        {'type': 'text', 'text': '陪你走路的那个人先别急着道别。'},
+      ],
+      signature: '街角咖啡师',
+    ),
+  ];
+
+  /// 详情白名单：mock_letter_1 行为不变（共鸣计数联动），其余种子信
+  /// 静态回放——保证从漂流/发掘点开能进真实 F3 阅读器。
+  Map<String, Object?>? _publicLetterById(String id) {
+    if (id == 'mock_letter_1') return _letterPublic();
+    return [..._driftSeeds, ..._staySeeds]
+        .cast<Map<String, Object?>?>()
+        .firstWhere((json) => json!['id'] == id, orElse: () => null);
   }
 
   ResponseBody _json(int status, Object? data) {

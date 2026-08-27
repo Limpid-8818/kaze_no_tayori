@@ -6,6 +6,7 @@
 /// **刻意不存在的路由**：作者主页、关注列表、热门榜、私信会话（见根 CLAUDE.md §2）。
 library;
 
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/about/about_screen.dart';
@@ -18,6 +19,10 @@ import '../features/scripbook/scripbook_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/write/write_screen.dart';
 import 'home_screen.dart';
+
+/// 页面返回感知（如发掘页从阅读器回来要整页重刷）。挂到 router 的
+/// observers 上，页面用 RouteAware 订阅。
+final routeObserver = RouteObserver<ModalRoute<Object?>>();
 
 abstract final class Routes {
   static const home = '/';
@@ -41,6 +46,7 @@ final router = GoRouter(
     'INITIAL_ROUTE',
     defaultValue: Routes.home,
   ),
+  observers: [routeObserver],
   routes: [
     GoRoute(path: Routes.home, builder: (_, _) => HomeScreen()),
 
