@@ -13,7 +13,6 @@ import 'app/bootstrap.dart';
 import 'app/app_lifecycle.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
-import 'data/api/api_client.dart';
 import 'data/api/providers.dart';
 import 'data/local/secure_store.dart';
 
@@ -21,7 +20,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final store = SecureStore();
-  final client = ApiClient(store: store);
+  // mock 开关（USE_MOCK_API）在这里与 provider 层同规则分叉
+  final client = createApiClient(store: store);
 
   runApp(
     ProviderScope(

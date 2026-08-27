@@ -15,7 +15,7 @@ else
 APP_DEVICE ?= chrome
 endif
 
-.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android app-ios gen gen-watch \
+.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android app-android-emulator app-android-emulator-mock app-ios gen gen-watch \
         revision migrate downgrade seed check check-py check-dart check-db openapi sync-ds clean
 
 # 终端输出一律 ASCII：Windows 控制台默认 GBK 代码页，中文会显示成乱码。
@@ -30,6 +30,7 @@ help:
 	@echo "  make app          run app on web (APP_DEVICE=$(APP_DEVICE))"
 	@echo "  make app-android  run app on Android device"
 	@echo "  make app-android-emulator  run app on Android Emulator (10.0.2.2)"
+	@echo "  make app-android-emulator-mock  run app on Emulator with mock API (no backend)"
 	@echo "  make app-ios IOS_DEVICE=<id>  run app on iOS device/simulator"
 	@echo "  make gen          Flutter codegen (freezed / riverpod)"
 	@echo "  make revision m=\"...\"  Alembic autogenerate (REVIEW the output)"
@@ -98,6 +99,11 @@ app-android:
 # 物理真机仍用 make app-android API_BASE_URL=http://<LAN_IP>:8000。
 app-android-emulator:
 	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+
+# Emulator + 运行时 mock（USE_MOCK_API）：全部网络走 MockApiAdapter，
+# 不需要本地后端也能走通写信闭环。
+app-android-emulator-mock:
+	cd $(APP_DIR) && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000 --dart-define=USE_MOCK_API=true
 
 app-ios:
 ifndef IOS_DEVICE

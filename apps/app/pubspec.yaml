@@ -51,6 +51,12 @@ dependencies:
 
   intl: ^0.20.3
 
+  # 写信草稿落盘（版本化 JSON + 应用目录图片副本，F2 DraftStore）
+  path_provider: ^2.1.5
+
+  # 路径拼接（草稿图片目录/文件名），平台分隔符安全
+  path: ^1.9.0
+
   # 设计系统。当前是空壳，见 packages/natsu_no_tegami/COPY_IN.md
   natsu_no_tegami:
     path: ../../packages/natsu_no_tegami

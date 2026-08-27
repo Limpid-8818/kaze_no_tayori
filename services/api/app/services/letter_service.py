@@ -50,7 +50,8 @@ async def create_letter(
         tags=list(payload.tags),
         location=location,
         place_label=payload.place_label,
-        weather=payload.weather,
+        # Pydantic 模型不能直接进 JSONB（json.dumps 不认），与上面两个嵌套体一致先 dump
+        weather=payload.weather.model_dump() if payload.weather else None,
         delivery_mode=payload.delivery_mode,
         status=await moderation_service.moderate([b.model_dump() for b in payload.blocks]),
         owner_user_id=owner_user_id,

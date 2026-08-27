@@ -17,6 +17,14 @@ abstract final class Env {
     defaultValue: 1000,
   );
 
+  /// 运行时 mock 开关：true 时全部网络走本地 [MockApiAdapter]
+  /// （data/api/mock/），不起后端也能走通写信闭环。
+  /// `make app-android-emulator-mock`。
+  static const bool useMockApi = bool.fromEnvironment(
+    'USE_MOCK_API',
+    defaultValue: false,
+  );
+
   /// 产品要求的整封正文上限（PRD 6.1）。
   static const int letterMaxChars = 800;
 

@@ -113,13 +113,13 @@
 - **验收**：controller 单测覆盖权限与定位主要分支；`TextStyle.fontFamily` 与 `FontManifest.json` 一致；Web 与 iOS Simulator 可视确认字体；iOS Simulator 构建/安装/启动通过；`make check-dart` 过
 
 ### F2 · 写信最小闭环（1.5–2 天，全 App 最复杂）
-- [ ] `WriteController` + 分步流：blocks 图文编辑 → 落点确认 → **必选留/投**；P0 固定 `theme_id=natsu` 且默认皮肤，不把音乐/标签/皮肤搭配混进首个闭环
-- [ ] 图片 gateway：系统 picker 限长边与质量，按实际字节识别 MIME，顺序上传；用 iOS 真机照片验证 HEIC→JPEG 输出
-- [ ] 建立 `DropPoint(lat, lon, publicLabel)`：消费全局 `LocationController` 的候选值后由用户确认；改地名不改坐标，只有地名时不得提交 stay
-- [ ] 客户端校验镜像产品与契约：整封文字 ≤800、单块 ≤800、blocks 1–20、照片 ≤3、照片手记 ≤200、署名/宛名 ≤32、地点 ≤128
-- [ ] `DraftStore`：版本化 JSON + 应用目录图片引用 + 防抖自动保存；只保证离开/断网不丢编辑，不做离线发送队列
-- [ ] 留/投二选一的 UI 必须是显式一步，不许有默认值悄悄带过（PRD 6.1 必选）
-- **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通
+- [x] `WriteController` + 分步流：blocks 图文编辑 → 落点确认 → **必选留/投**；P0 固定 `theme_id=natsu` 且默认皮肤，不把音乐/标签/皮肤搭配混进首个闭环
+- [x] 图片 gateway：系统 picker 限长边与质量，按实际字节识别 MIME，顺序上传；~~用 iOS 真机照片验证 HEIC→JPEG 输出~~（本环境无 iOS 设备，HEIC→JPEG 转码路径待真机补验）
+- [x] 建立 `DropPoint(lat, lon, publicLabel)`：消费全局 `LocationController` 的候选值后由用户确认；改地名不改坐标，只有地名时不得提交 stay
+- [x] 客户端校验镜像产品与契约：整封文字 ≤800、单块 ≤800、blocks 1–20、照片 ≤3、照片手记 ≤200、署名/宛名 ≤32、地点 ≤128
+- [x] `DraftStore`：版本化 JSON + 应用目录图片引用 + 防抖自动保存；只保证离开/断网不丢编辑，不做离线发送队列
+- [x] 留/投二选一的 UI 必须是显式一步，不许有默认值悄悄带过（PRD 6.1 必选）
+- **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通 —— ✅ 2026-08-26 模拟器 E2E：drift（正文+3 图+署名宛名）与 stay（定位落点+天气）均落库；杀进程草稿恢复；`USE_MOCK_API` 无后端寄出。附带修复后端 `letter_service` weather 未 model_dump 进 JSONB 的 503
 
 ### F3 · 阅读器基础（1 天，提前消除汇合风险）
 - [ ] 集中实现 data model → 设计系统 view model 的单向 mapper；图片 resolver 统一走缓存网络图，不在页面散写映射

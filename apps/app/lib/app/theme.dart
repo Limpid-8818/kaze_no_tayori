@@ -146,6 +146,16 @@ abstract final class KazeSpacing {
 abstract final class KazeRadius {
   /// 卡片·按钮·输入框
   static const double card = NatsuRadius.card;
+
+  /// 信纸（近直角 2，信件内容物专用）
+  static const double letter = NatsuRadius.letter;
+}
+
+/// 信件内容物专用影 — 值源自 [NatsuShadows]。信纸/相纸落桌的散影
+/// 是组件库 LetterReading/PhotoCard 的同款，feature 经此中转。
+abstract final class KazeLetterShadows {
+  /// 信纸静置影
+  static const List<BoxShadow> resting = NatsuShadows.letterResting;
 }
 
 /// 少量无 ColorScheme 槽位的具名色 — 全部源自令牌层，feature 经此类取用。
@@ -164,6 +174,9 @@ abstract final class KazeColors {
 
   /// 暖白纸面底 — 入口卡等浅色表面（信封/禁用底同源）
   static const Color envelope = NatsuColors.envelope;
+
+  /// 遮罩 — 墨蓝 45%（上传失败角标等覆盖层）
+  static const Color scrim = NatsuColors.scrim;
 }
 
 /// Home 画布（夏の手紙 v2 · Screen/Home）的结构尺寸 — 非间距刻度，
@@ -212,4 +225,25 @@ abstract final class KazeAboutDims {
 
   /// 专辑封面圆角
   static const double albumRadius = 4;
+}
+
+/// Write 画布（夏の手紙 v2 · Screen/Write）的结构尺寸 — 非间距刻度，
+/// 集中于此避免 feature 散落魔法数。信纸本体的纸感参数
+/// （padding 40/44/40/32、照片 72% 宽）随组件库 LetterReading 纪律，
+/// 不在此重复。
+abstract final class KazeWriteDims {
+  /// 表单卡（地点/收信人/落款）单行高
+  static const double metaRowH = 48;
+
+  /// 表单卡 label 列宽
+  static const double metaLabelW = 56;
+
+  /// 留/投选择卡高
+  static const double deliveryCardH = 92;
+
+  /// 留/投选择卡圆角
+  static const double deliveryCardRadius = 8;
+
+  /// 图片托盘缩略图/加号格边长
+  static const double trayThumb = 72;
 }
