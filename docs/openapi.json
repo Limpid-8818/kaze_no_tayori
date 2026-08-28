@@ -313,6 +313,11 @@
             ],
             "title": "Lon"
           },
+          "me_resonated": {
+            "default": false,
+            "title": "Me Resonated",
+            "type": "boolean"
+          },
           "music_ref": {
             "anyOf": [
               {
@@ -464,6 +469,11 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "me_resonated": {
+            "default": false,
+            "title": "Me Resonated",
+            "type": "boolean"
           },
           "music_ref": {
             "anyOf": [
@@ -1534,7 +1544,7 @@
     },
     "/v1/letters": {
       "post": {
-        "description": "写一封信并投放。\n\ndelivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。\n提交后入审，默认 status=pending。",
+        "description": "写一封信并投放。\n\ndelivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。\n提交后入审，默认 status=pending。\n审核通过的公开信在响应后由后台任务自动补写 AI 短诗\n（客户端已自带 poem 或 FEATURE_AI 关闭时跳过）。",
         "operationId": "create_letter_v1_letters_post",
         "requestBody": {
           "content": {
@@ -1581,7 +1591,7 @@
     },
     "/v1/letters/{letter_id}": {
       "get": {
-        "description": "读单封公开信（回信溯源用）。非 public 一律 404。\n\n纯读：不写 letter_reads、不动 read_count（开信上报走 POST /letters/{id}/read）。",
+        "description": "读单封公开信（回信溯源用）。非 public 一律 404。\n\n纯读：不写 letter_reads、不动 read_count（开信上报走 POST /letters/{id}/read）。\n登录读者附带 me_resonated——点过共鸣的章常亮，重进未亮是反直觉的。",
         "operationId": "read_letter_v1_letters__letter_id__get",
         "parameters": [
           {

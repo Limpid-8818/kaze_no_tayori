@@ -58,10 +58,10 @@ class ReaderState {
   static const _unset = Object();
 }
 
-final readerControllerProvider =
-    NotifierProvider.family<ReaderController, ReaderState, String>(
-      ReaderController.new,
-    );
+/// 页面持有监听期间保留；对应 Reader 离栈后自动释放，避免 family 按信件
+/// 数量永久累积状态。
+final readerControllerProvider = NotifierProvider.autoDispose
+    .family<ReaderController, ReaderState, String>(ReaderController.new);
 
 class ReaderController extends Notifier<ReaderState> {
   ReaderController(this.arg);
@@ -84,6 +84,7 @@ class ReaderController extends Notifier<ReaderState> {
     final api = ref.read(lettersApiProvider);
     try {
       final letter = await api.get(arg);
+      if (!ref.mounted) return;
       final view = LetterView.from(letter);
       state = state.copyWith(
         phase: ReaderPhase.ready,
@@ -92,6 +93,7 @@ class ReaderController extends Notifier<ReaderState> {
         resonanceCount: view.resonanceCount,
       );
     } on ApiFailure catch (failure) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         phase: failure.kind == ApiErrorKind.notFound
             ? ReaderPhase.notFound
@@ -115,12 +117,14 @@ class ReaderController extends Notifier<ReaderState> {
     state = state.copyWith(resonated: true, resonanceCount: before + 1);
     try {
       final res = await ref.read(lettersApiProvider).addResonance(arg);
+      if (!ref.mounted) return;
       // 服务端为真源，但只在有出入时校正——乐观值碰巧等于真值就不必
       // 重建一帧，句子也免得白白淡变一次
       if (res.resonanceCount != state.resonanceCount) {
         state = state.copyWith(resonanceCount: res.resonanceCount);
       }
     } on ApiFailure {
+      if (!ref.mounted) return;
       state = state.copyWith(
         resonated: false,
         resonanceCount: before,
@@ -137,10 +141,12 @@ class ReaderController extends Notifier<ReaderState> {
       await ref
           .read(meApiProvider)
           .addScripbook(ScripbookAddRequest(letterId: arg));
+      if (!ref.mounted) return;
       state = state.copyWith(
         notice: (message: '已收进抄本', seq: (state.notice?.seq ?? 0) + 1),
       );
     } on ApiFailure {
+      if (!ref.mounted) return;
       state = state.copyWith(
         notice: (message: '没能收进抄本，再试一次', seq: (state.notice?.seq ?? 0) + 1),
       );
@@ -153,10 +159,12 @@ class ReaderController extends Notifier<ReaderState> {
       await ref
           .read(lettersApiProvider)
           .report(arg, ReportRequest(reason: reason, detail: detail));
+      if (!ref.mounted) return;
       state = state.copyWith(
         notice: (message: '已举报', seq: (state.notice?.seq ?? 0) + 1),
       );
     } on ApiFailure {
+      if (!ref.mounted) return;
       state = state.copyWith(
         notice: (message: '没有成功，再试一次', seq: (state.notice?.seq ?? 0) + 1),
       );

@@ -74,6 +74,7 @@ class _Harness {
 
   final ScriptedAdapter adapter;
   late final ProviderContainer container;
+  final Map<String, ProviderSubscription<ReaderState>> _subscriptions = {};
 
   static Dio _dio(ScriptedAdapter adapter) {
     return Dio(
@@ -82,15 +83,35 @@ class _Harness {
   }
 
   /// family 按 letterId 分实例：getter 取主测信，叠栈场景用 controllerOf。
-  ReaderController get controller =>
-      container.read(readerControllerProvider(_id).notifier);
-  ReaderController controllerOf(String id) =>
-      container.read(readerControllerProvider(id).notifier);
-  ReaderState stateOf(String id) =>
-      container.read(readerControllerProvider(id));
+  void _listenTo(String id) {
+    _subscriptions.putIfAbsent(
+      id,
+      () => container.listen(readerControllerProvider(id), (_, _) {}),
+    );
+  }
+
+  ReaderController get controller => controllerOf(_id);
+
+  ReaderController controllerOf(String id) {
+    _listenTo(id);
+    return container.read(readerControllerProvider(id).notifier);
+  }
+
+  ReaderState stateOf(String id) {
+    _listenTo(id);
+    return container.read(readerControllerProvider(id));
+  }
+
   ReaderState get state => stateOf(_id);
 
-  void dispose() => container.dispose();
+  void stopListening(String id) => _subscriptions.remove(id)?.close();
+
+  void dispose() {
+    for (final subscription in _subscriptions.values) {
+      subscription.close();
+    }
+    container.dispose();
+  }
 }
 
 void main() {
@@ -271,5 +292,19 @@ void main() {
     expect(h.state.view?.id, 'letter_1');
     expect(h.stateOf('letter_gone').phase, ReaderPhase.notFound);
     h.dispose();
+  });
+
+  test('页面离栈后释放对应 letterId 的 provider 实例', () async {
+    final h = _Harness(const []);
+    addTearDown(h.dispose);
+
+    h.state;
+    final provider = readerControllerProvider('letter_1');
+    expect(h.container.exists(provider), isTrue);
+
+    h.stopListening('letter_1');
+    await h.container.pump();
+
+    expect(h.container.exists(provider), isFalse);
   });
 }

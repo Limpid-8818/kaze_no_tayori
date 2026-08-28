@@ -132,11 +132,15 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
   "delivery_mode": "drift",
   "parent_letter_id": null,
   "counts": {"read": 12, "resonance": 3, "voice": 1, "reply": 1, "saved": 2},
+  "me_resonated": true,
   "created_at": "2026-08-20T23:47:00+09:00"
 }
 ```
 
 **不含 `owner_user_id`、不含任何作者标识、不含精确坐标**（只给 `place_label`，避免反查作者位置）。
+
+`me_resonated` 表示当前读者是否已经对该信共鸣。仅 `GET /v1/letters/{id}`
+按登录用户查询；匿名访问以及列表类接口中的 `LetterPublic` 均为 `false`。
 
 ### LetterOwned — 仅 `/v1/me/*` 路径，仅本人
 在 LetterPublic 基础上增加 `status`、`delivery_mode`、`lat`/`lon`（自己的信可见自己的落点）。**仍不含 owner_user_id**（自己不需要看自己的 id）。
@@ -222,7 +226,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ### 阅读
 | 方法 | 路径 | 说明 |
 |---|---|
-| GET | `/v1/letters/{id}` | 读单封 public 信（回信溯源用）。非 public 返回 404。纯读，无副作用 |
+| GET | `/v1/letters/{id}` | 读单封 public 信（回信溯源用）。非 public 返回 404。纯读，无副作用；登录用户的响应按共鸣记录下发 `me_resonated` |
 | POST | `/v1/letters/{id}/read` | 开信上报（收信≠已读）。204；幂等：首开 `read_count+1`，重复开不再计。非 public 返回 404 |
 
 前端在信纸真正打开时调用（drift 解开封面 / discover 点开列表项皆然）。

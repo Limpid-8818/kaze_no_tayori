@@ -94,11 +94,13 @@ class _Harness {
         ),
       ],
     );
+    _subscription = container.listen(writeControllerProvider, (_, _) {});
   }
 
   final ScriptedAdapter adapter;
   late final Directory tempDir;
   late final ProviderContainer container;
+  late final ProviderSubscription<WriteState> _subscription;
 
   static Dio _dio(ScriptedAdapter adapter) {
     return Dio(
@@ -111,7 +113,10 @@ class _Harness {
 
   WriteState get state => container.read(writeControllerProvider);
 
+  void stopListening() => _subscription.close();
+
   Future<void> dispose() async {
+    _subscription.close();
     container.dispose();
     // Windows 下文件句柄释放有延迟，清理是尽力而为
     try {
@@ -159,6 +164,19 @@ void main() {
     );
     expect(sniffImageMime(<int>['h'.codeUnitAt(0), 'e'.codeUnitAt(0)]), isNull);
     expect(sniffImageMime(const []), isNull);
+  });
+
+  test('写信页离栈后释放 provider 并触发资源清理', () async {
+    final harness = _Harness();
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    expect(harness.container.exists(writeControllerProvider), isTrue);
+
+    harness.stopListening();
+    await harness.container.pump();
+
+    expect(harness.container.exists(writeControllerProvider), isFalse);
   });
 
   test('在光标处插入照片：文本段一分为二，照片夹中间，光标回断点', () async {
@@ -392,6 +410,8 @@ void main() {
       ],
     );
     addTearDown(container2.dispose);
+    final subscription2 = container2.listen(writeControllerProvider, (_, _) {});
+    addTearDown(subscription2.close);
 
     await container2.read(writeControllerProvider.notifier).start();
     final state = container2.read(writeControllerProvider);
@@ -434,6 +454,8 @@ void main() {
       ],
     );
     addTearDown(container2.dispose);
+    final subscription2 = container2.listen(writeControllerProvider, (_, _) {});
+    addTearDown(subscription2.close);
     await container2.read(writeControllerProvider.notifier).start();
     await Future<void>.delayed(const Duration(milliseconds: 200));
 

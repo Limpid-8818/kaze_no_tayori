@@ -183,9 +183,11 @@ final imageGatewayProvider = Provider<ImageGateway>(
   (_) => const ImagePickerGateway(),
 );
 
-final writeControllerProvider = NotifierProvider<WriteController, WriteState>(
-  WriteController.new,
-);
+/// 只随写信页监听存活；离栈后触发 [WriteController.build] 注册的资源清理。
+final writeControllerProvider =
+    NotifierProvider.autoDispose<WriteController, WriteState>(
+      WriteController.new,
+    );
 
 // ---------- 控制器 ----------
 
@@ -322,6 +324,7 @@ class WriteController extends Notifier<WriteState> {
     if (blocks.last is! WriteTextBlock) {
       blocks.add(WriteTextBlock(id: _idSeq++, text: ''));
     }
+    if (!ref.mounted) return;
 
     state = state.copyWith(
       blocks: blocks,
@@ -389,6 +392,7 @@ class WriteController extends Notifier<WriteState> {
       }
       final file = await store.saveImageBytes(image.bytes, _extOf(mime));
       final path = await store.imagePath(file);
+      if (!ref.mounted) return;
       photos.add(WritePhotoBlock(id: _idSeq++, localPath: path));
     }
     if (photos.isEmpty) return;
@@ -713,6 +717,7 @@ class WriteController extends Notifier<WriteState> {
       if (!ref.mounted) return null; // 寄出期间页面已离开：落库即成功
 
       await _clearDraft();
+      if (!ref.mounted) return owned;
       _cursorBlockId = null;
       state = WriteState(
         parentLetterId: parent,
@@ -721,10 +726,13 @@ class WriteController extends Notifier<WriteState> {
       // 状态由审核决定（默认 pending）——没有「发布成功页」，落库即结束
       return owned;
     } on ApiFailure catch (error) {
+      if (!ref.mounted) return null;
       _notice(error.message);
       return null;
     } finally {
-      if (state.sending) state = state.copyWith(sending: false);
+      if (ref.mounted && state.sending) {
+        state = state.copyWith(sending: false);
+      }
     }
   }
 
@@ -873,11 +881,13 @@ class WriteController extends Notifier<WriteState> {
     _saveDebounce?.cancel();
     _saveDebounce = null;
     final store = ref.read(draftStoreProvider);
-    await store.clear(_draftKey);
-    await store.deleteImages([
+    final draftKey = _draftKey;
+    final imageNames = [
       for (final block in state.blocks)
         if (block is WritePhotoBlock) p.basename(block.localPath),
-    ]);
+    ];
+    await store.clear(draftKey);
+    await store.deleteImages(imageNames);
   }
 }
 
