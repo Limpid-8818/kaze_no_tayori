@@ -118,11 +118,15 @@ class _EditablePaperState extends ConsumerState<EditablePaper> {
     );
   }
 
-  /// 纸尾 meta 行：地点（已确认落点）· 时段 · 天气（可降级省略）。
+  /// 纸尾 meta 行：地点（已确认落点）· 日期时间（活钟）· 时段 · 天气
+  /// （可降级省略）。
   List<Widget> _metaLine(WriteState state) {
+    final now = state.now;
     final items = [
       ?state.dropPoint?.label,
-      dayPeriodLabel(dayPeriodOf(DateTime.now())),
+      '${now.month}月${now.day}日 '
+          '${now.hour}:${now.minute.toString().padLeft(2, '0')}',
+      dayPeriodLabel(dayPeriodOf(now)),
       ?state.weather?.text,
     ];
     if (items.isEmpty) return const [];
@@ -164,13 +168,18 @@ class _EditableTextBlock extends StatefulWidget {
 }
 
 class _FieldHandle {
-  const _FieldHandle(this.controller, this.focusNode);
+  _FieldHandle(this.controller, this.focusNode);
 
   final TextEditingController controller;
   final FocusNode focusNode;
 
+  /// focus() 想要的偏移；文本可能随同一次状态变化还没跟上（比如移除
+  /// 照片后的缝合段变长了），留给 didUpdateWidget 在新文本上补落位。
+  int? pendingOffset;
+
   void focus({int offset = 0}) {
     focusNode.requestFocus();
+    pendingOffset = offset;
     final clamped = offset.clamp(0, controller.text.length);
     controller.selection = TextSelection.collapsed(offset: clamped);
   }
@@ -190,10 +199,14 @@ class _EditableTextBlockState extends State<_EditableTextBlock> {
     widget.onRegister(widget.blockId, _handle);
   }
 
-  /// 文本与选区变化都经此（controller 对 value 整体通知）：
-  /// 内容回写控制器、光标锚点上报，两件事一起做。
+  /// 文本与选区变化都经此（controller 对 value 整体通知）。
+  /// 回写有守卫：controller 文本与 widget.text 一致时不算用户输入——
+  /// 程序性动作（设选区、回写草稿/缝合结果）也会触发通知，若照单
+  /// 全收会把外部刚写进 state 的新内容用旧文本盖掉（吞字段事故）。
   void _onControllerChanged() {
-    widget.onChanged(_controller.text);
+    if (_controller.text != widget.text) {
+      widget.onChanged(_controller.text);
+    }
     _reportCursor();
   }
 
@@ -207,6 +220,14 @@ class _EditableTextBlockState extends State<_EditableTextBlock> {
       _controller.value = TextEditingValue(
         text: widget.text,
         selection: TextSelection.collapsed(offset: offset),
+      );
+    }
+    // focus 请求到的偏移若被旧文本截短过，在新文本上补落位（缝点精确）
+    final pending = _handle.pendingOffset;
+    if (pending != null) {
+      _handle.pendingOffset = null;
+      _controller.selection = TextSelection.collapsed(
+        offset: pending.clamp(0, widget.text.length),
       );
     }
   }

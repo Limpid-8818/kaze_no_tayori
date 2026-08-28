@@ -8,9 +8,11 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kazenotayori/app/controllers/location_controller.dart';
 import 'package:kazenotayori/data/api/api_client.dart';
 import 'package:kazenotayori/data/api/providers.dart';
 import 'package:kazenotayori/data/device/image_gateway.dart';
+import 'package:kazenotayori/data/device/location_gateway.dart';
 import 'package:kazenotayori/data/models/letter.dart';
 import 'package:kazenotayori/features/write/draft_store.dart';
 import 'package:kazenotayori/features/write/write_controller.dart';
@@ -370,7 +372,7 @@ void main() {
     expect(harness.state.textCharCount, 5);
   });
 
-  test('草稿防抖保存后，新会话能恢复文本/落款/投递方式', () async {
+  test('草稿防抖保存后，新会话能恢复文本/落款（投递方式不进草稿）', () async {
     final harness = _Harness();
     addTearDown(harness.dispose);
 
@@ -396,7 +398,7 @@ void main() {
     expect(state.restored, isTrue);
     expect(state.textCharCount, 8);
     expect(state.signature, '小海');
-    expect(state.deliveryMode, DeliveryMode.drift);
+    expect(state.deliveryMode, isNull); // 模式不算手动内容，不进草稿
     expect(state.notice?.message, '已恢复上次的草稿');
   });
 
@@ -438,5 +440,178 @@ void main() {
     final photo = container2.read(writeControllerProvider).photos.single;
     expect(photo.remoteUrl, 'https://t/u1.jpg');
     expect(photo.phase, PhotoUploadPhase.uploaded);
+  });
+
+  test('移除夹在两段文字中间的照片：前后文本段自动合并，光标落缝点', () async {
+    final harness = _Harness(
+      images: [_png()],
+      script: [
+        ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '前半段和后半段');
+    harness.controller.reportCursor(0, 3);
+    await harness.controller.addPhotosAtCursor();
+    await harness.settle();
+
+    final state = harness.state;
+    expect(state.blocks.length, 3);
+    final photo = state.photos.single;
+
+    await harness.controller.removePhoto(photo.id);
+    await harness.settle();
+
+    final after = harness.state;
+    expect(after.photoCount, 0);
+    expect(after.blocks.length, 1);
+    expect((after.blocks.single as WriteTextBlock).text, '前半段\n和后半段');
+    // 焦点（光标）请求落在换行之后＝新行行首
+    expect(after.focusRequest?.blockId, after.blocks.single.id);
+    expect(after.focusRequest?.offset, 4);
+  });
+
+  test('照片只有一侧是文字时不合并，两侧都空出来后照样缝合', () async {
+    final harness = _Harness(
+      images: [_png(), _png()],
+      script: [
+        ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+        ScriptedResponse.ok(201, {'url': 'https://t/u2.jpg'}),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '前与后');
+    harness.controller.reportCursor(0, 1);
+    await harness.controller.addPhotosAtCursor();
+    await harness.settle();
+
+    // [前, 照1, 照2, 后]：移除照1 时另一侧是照片，不合并
+    var blocks = harness.state.blocks;
+    await harness.controller.removePhoto(blocks[1].id);
+    await harness.settle();
+    blocks = harness.state.blocks;
+    expect(blocks.length, 3);
+    expect((blocks[0] as WriteTextBlock).text, '前');
+    expect(blocks[1], isA<WritePhotoBlock>());
+    expect((blocks[2] as WriteTextBlock).text, '与后');
+
+    // 再移除照2：两侧都是文字，缝合
+    await harness.controller.removePhoto(blocks[1].id);
+    await harness.settle();
+    blocks = harness.state.blocks;
+    expect(blocks.length, 1);
+    expect((blocks.single as WriteTextBlock).text, '前\n与后');
+  });
+
+  test('进页静默补天气：全局定位现成就用，取不到就不显示', () async {
+    final harness = _Harness(
+      script: [
+        ScriptedResponse.ok(200, {'text': '晴', 'temp_c': 27.5}),
+      ],
+    );
+    addTearDown(harness.dispose);
+    // 预置全局定位 ready：进页不该弹权限、直接拿现成坐标换天气
+    harness.container
+        .read(locationControllerProvider.notifier)
+        .state = AppLocationState(
+      phase: LocationPhase.ready,
+      coordinate: GeoCoordinate(
+        latitude: 30.27,
+        longitude: 120.15,
+        accuracyM: 10,
+        measuredAt: DateTime.now(),
+      ),
+    );
+
+    await harness.controller.start();
+    await harness.settle();
+
+    expect(harness.state.weather?.text, '晴');
+  });
+
+  test('定位没就绪时进页尝试静默定位，失败则天气留空不报错', () async {
+    final harness = _Harness(script: const []);
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    await harness.settle();
+
+    // 单测环境没有定位插件：静默降级，weather 为空、无 notice
+    expect(harness.state.weather, isNull);
+    expect(harness.state.notice, isNull);
+  });
+
+  test('只选投递方式或只定地点：不算内容，不落草稿', () async {
+    final harness = _Harness();
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.setDelivery(DeliveryMode.drift);
+    await harness.flushDraft();
+    expect(
+      await harness.container.read(draftStoreProvider).loadJson('write'),
+      isNull,
+    );
+
+    harness.controller.confirmDropPoint(lat: 30.27, lon: 120.15, label: '杭州');
+    await harness.flushDraft();
+    expect(
+      await harness.container.read(draftStoreProvider).loadJson('write'),
+      isNull,
+    );
+  });
+
+  test('内容全部删光后草稿被清掉', () async {
+    final harness = _Harness();
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '半句话');
+    harness.controller.setSignature('小海');
+    await harness.flushDraft();
+    expect(
+      await harness.container.read(draftStoreProvider).loadJson('write'),
+      isNotNull,
+    );
+
+    harness.controller.updateText(0, '');
+    harness.controller.setSignature('');
+    await harness.flushDraft();
+    expect(
+      await harness.container.read(draftStoreProvider).loadJson('write'),
+      isNull,
+    );
+  });
+
+  test('旧版草稿里的落点与投递方式被忽略，文本落款照常恢复', () async {
+    final harness = _Harness();
+    addTearDown(harness.dispose);
+
+    final store = harness.container.read(draftStoreProvider);
+    await store.saveJson('write', {
+      'version': DraftStore.draftVersion,
+      'parent': null,
+      'blocks': [
+        {'kind': 'text', 'text': '旧草稿的半句话'},
+      ],
+      'signature': '小海',
+      'addressee': '',
+      'dropPoint': {'lat': 30.27, 'lon': 120.15, 'label': '浙江 · 杭州'},
+      'deliveryMode': 'drift',
+      'savedAt': '2026-08-01T10:00:00Z',
+    });
+
+    await harness.controller.start();
+    final state = harness.state;
+    expect(state.restored, isTrue);
+    expect(state.textCharCount, 7);
+    expect(state.signature, '小海');
+    // 地点随定位走、模式不算内容：旧字段一律不带回来
+    expect(state.dropPoint, isNull);
+    expect(state.deliveryMode, isNull);
   });
 }

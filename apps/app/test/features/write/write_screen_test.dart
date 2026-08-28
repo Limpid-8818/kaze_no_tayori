@@ -189,4 +189,50 @@ void main() {
     expect(find.byIcon(Icons.add), findsNothing); // 满三张，加号退场
     await _flushTimers(tester);
   });
+
+  testWidgets('移除照片后前后两段文字以换行缝合，一个字都不丢', (tester) async {
+    await tester.pumpWidget(
+      await _writeApp(
+        images: [_png()],
+        script: [
+          ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(WriteScreen)),
+    );
+    final controller = container.read(writeControllerProvider.notifier);
+
+    await tester.enterText(find.byType(TextField).at(0), '前半段和后半段');
+    await tester.pump();
+    controller.reportCursor(0, 3);
+    await tester.runAsync(() => controller.addPhotosAtCursor());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(container.read(writeControllerProvider).photoCount, 1);
+
+    await tester.runAsync(
+      () => controller.removePhoto(
+        container.read(writeControllerProvider).photos.single.id,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final state = container.read(writeControllerProvider);
+    expect(state.blocks.length, 1);
+    // 状态层：两段完整保留，中间缝合一个换行
+    expect((state.blocks.single as WriteTextBlock).text, '前半段\n和后半段');
+    // 视图层：纸面 TextField 真渲染出的也是同一份
+    expect(
+      find.descendant(
+        of: find.byType(EditablePaper),
+        matching: find.text('前半段\n和后半段'),
+      ),
+      findsOneWidget,
+    );
+    await _flushTimers(tester);
+  });
 }

@@ -85,7 +85,9 @@ typedef WriteNotice = ({String message, int seq});
 typedef WriteFocusRequest = ({int blockId, int offset, int seq});
 
 class WriteState {
-  const WriteState({
+  /// 非空 [now] 由控制器随生命周期推进（进页置初值、前台每 30 秒、
+  /// 回前台时刷新）——纸尾日期时间永远与「此刻」一致，草稿恢复也不例外。
+  WriteState({
     this.parentLetterId,
     this.blocks = const [],
     this.signature = '',
@@ -98,7 +100,10 @@ class WriteState {
     this.restored = false,
     this.notice,
     this.focusRequest,
-  });
+    DateTime? now,
+  }) : now = now ?? DateTime.now();
+
+  final DateTime now;
 
   /// 非空即回信语境（复用同一写信流，提交走 createReply）。
   final String? parentLetterId;
@@ -145,6 +150,7 @@ class WriteState {
     bool? restored,
     WriteNotice? notice,
     Object? focusRequest = _unset,
+    DateTime? now,
   }) {
     return WriteState(
       parentLetterId: parentLetterId,
@@ -163,6 +169,7 @@ class WriteState {
       focusRequest: focusRequest == _unset
           ? this.focusRequest
           : focusRequest as WriteFocusRequest?,
+      now: now ?? this.now,
     );
   }
 
@@ -185,8 +192,11 @@ final writeControllerProvider = NotifierProvider<WriteController, WriteState>(
 class WriteController extends Notifier<WriteState> {
   @override
   WriteState build() {
-    ref.onDispose(() => _saveDebounce?.cancel());
-    return const WriteState(blocks: [WriteTextBlock(id: 0, text: '')]);
+    ref.onDispose(() {
+      _saveDebounce?.cancel();
+      _clockTimer?.cancel();
+    });
+    return WriteState(blocks: [WriteTextBlock(id: 0, text: '')]);
   }
 
   /// 文本块的 id 序列（跨恢复递增，保证 key 稳定不撞）。
@@ -198,6 +208,7 @@ class WriteController extends Notifier<WriteState> {
   int _cursorOffset = 0;
 
   Timer? _saveDebounce;
+  Timer? _clockTimer;
   bool _uploading = false;
 
   String get _draftKey =>
@@ -208,18 +219,67 @@ class WriteController extends Notifier<WriteState> {
   /// 进入写信页时调用（initState）：确定回信语境，重置为空态并尝试恢复草稿。
   Future<void> start({String? parentLetterId}) async {
     _saveDebounce?.cancel();
+    _clockTimer?.cancel();
     _cursorBlockId = null;
     _idSeq = 1;
     state = WriteState(
       parentLetterId: parentLetterId,
       blocks: const [WriteTextBlock(id: 0, text: '')],
     );
+    _startClock();
+    unawaited(_autoFillWeather());
 
     final store = ref.read(draftStoreProvider);
     final json = await store.loadJson(_draftKey);
     if (!ref.mounted) return; // 页面已离开：恢复作废
     if (json == null || json['parent'] != parentLetterId) return;
     await _restoreFromDraft(store, json);
+  }
+
+  /// 纸尾日期时间的活钟：前台每 30 秒看一眼，分钟真的走了才推一拍，
+  /// 避免无谓的整纸重建。页面离开时随 onDispose 停掉。
+  void _startClock() {
+    _clockTimer?.cancel();
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!ref.mounted) return;
+      final now = DateTime.now();
+      if (now.hour == state.now.hour && now.minute == state.now.minute) {
+        return;
+      }
+      state = state.copyWith(now: now);
+    });
+  }
+
+  /// 页面回到前台（视图的 AppLifecycleListener 转发）：时间立即对表，
+  /// 已有落点就顺手把天气也刷新到最新。
+  void onResumed() {
+    if (!ref.mounted) return;
+    state = state.copyWith(now: DateTime.now());
+    final dp = state.dropPoint;
+    if (dp?.lat != null && dp?.lon != null) {
+      unawaited(_refreshWeather(dp!.lat!, dp.lon!));
+    } else {
+      unawaited(_autoFillWeather());
+    }
+  }
+
+  /// 进页静默补天气：全局定位「现成」就拿来用（已授权才会 ready，
+  /// 不主动弹权限窗打断写信），取不到就不显示——可降级模块不打扰人。
+  Future<void> _autoFillWeather() async {
+    if (state.weather != null) return;
+    try {
+      if (ref.read(locationControllerProvider).phase != LocationPhase.ready) {
+        await ref
+            .read(locationControllerProvider.notifier)
+            .locate(requestPermission: false);
+      }
+      if (!ref.mounted) return;
+      final coord = ref.read(locationControllerProvider).coordinate;
+      if (coord == null) return;
+      await _refreshWeather(coord.latitude, coord.longitude);
+    } on Exception {
+      // 定位/天气任一环节挂了都就此打住：没有天气就没有
+    }
   }
 
   Future<void> _restoreFromDraft(
@@ -263,28 +323,10 @@ class WriteController extends Notifier<WriteState> {
       blocks.add(WriteTextBlock(id: _idSeq++, text: ''));
     }
 
-    DropPoint? dropPoint;
-    final rawDrop = json['dropPoint'];
-    if (rawDrop is Map) {
-      final map = Map<String, Object?>.from(rawDrop);
-      dropPoint = DropPoint(
-        lat: (map['lat'] as num?)?.toDouble(),
-        lon: (map['lon'] as num?)?.toDouble(),
-        label: map['label'] as String?,
-      );
-    }
-    final mode = switch (json['deliveryMode']) {
-      'stay' => DeliveryMode.stay,
-      'drift' => DeliveryMode.drift,
-      _ => null,
-    };
-
     state = state.copyWith(
       blocks: blocks,
       signature: (json['signature'] as String?) ?? '',
       addressee: (json['addressee'] as String?) ?? '',
-      dropPoint: dropPoint,
-      deliveryMode: mode,
       restored: true,
     );
     _notice('已恢复上次的草稿');
@@ -294,10 +336,8 @@ class WriteController extends Notifier<WriteState> {
         if (photo.phase == PhotoUploadPhase.pending) photo.id,
     ];
     if (pending.isNotEmpty) unawaited(_uploadPhotos(pending));
-    final dp = dropPoint;
-    if (dp?.lat != null && dp?.lon != null) {
-      unawaited(_refreshWeather(dp!.lat!, dp.lon!));
-    }
+    // 落点/投递方式不进草稿（地点随定位走）；坐标天气由进页的
+    // _autoFillWeather 统一静默补，这里不重复取。
   }
 
   // ---------- 文本 ----------
@@ -406,23 +446,59 @@ class WriteController extends Notifier<WriteState> {
     unawaited(_uploadPhotos([for (final photo in photos) photo.id]));
   }
 
-  /// 移除一张照片（托盘/纸面照片弹层里的「移除」）。
+  /// 移除一张照片（托盘/纸面照片弹层里的「移除」）。若照片两侧都是
+  /// 文本段，自动把前后两段合并成一段，光标落在缝合点——删掉一张夹在
+  /// 文字中间的照片，不该留下一条无来由的断痕。
   Future<void> removePhoto(int blockId) async {
-    WritePhotoBlock? photo;
-    for (final block in state.blocks) {
-      if (block is WritePhotoBlock && block.id == blockId) photo = block;
-    }
-    if (photo == null) return;
+    final blocks = state.blocks;
+    final index = blocks.indexWhere((block) => block.id == blockId);
+    if (index < 0 || blocks[index] is! WritePhotoBlock) return;
+    final photo = blocks[index] as WritePhotoBlock;
 
-    _mutate(
-      (s) => s.copyWith(
-        blocks: [
-          for (final block in s.blocks)
-            if (block.id != blockId) block,
-        ],
-      ),
-    );
-    await ref.read(draftStoreProvider).deleteImage(p.basename(photo.localPath));
+    WriteTextBlock? prev;
+    WriteTextBlock? next;
+    if (index > 0 && blocks[index - 1] is WriteTextBlock) {
+      prev = blocks[index - 1] as WriteTextBlock;
+    }
+    if (index < blocks.length - 1 && blocks[index + 1] is WriteTextBlock) {
+      next = blocks[index + 1] as WriteTextBlock;
+    }
+
+    List<WriteBlock> nextBlocks;
+    WriteFocusRequest? focus;
+    if (prev != null && next != null) {
+      // 用换行缝合：后一段从新的一行续写，而不是直接黏在前段行尾。
+      // 沿用前段的 id：该字段留在树上不重建，缝点光标请求才有锚。
+      final merged = WriteTextBlock(
+        id: prev.id,
+        text: '${prev.text}\n${next.text}',
+      );
+      nextBlocks = [
+        ...blocks.sublist(0, index - 1),
+        merged,
+        ...blocks.sublist(index + 2),
+      ];
+      focus = (
+        blockId: merged.id,
+        offset: prev.text.length + 1, // 换行符之后＝新行行首
+        seq: (state.focusRequest?.seq ?? 0) + 1,
+      );
+    } else {
+      nextBlocks = [
+        for (final block in blocks)
+          if (block.id != blockId) block,
+      ];
+    }
+    state = state.copyWith(blocks: nextBlocks, focusRequest: focus);
+
+    // 草稿图片删除是尽力而为：文件被占用/已消失不该打断移除本身
+    try {
+      await ref
+          .read(draftStoreProvider)
+          .deleteImage(p.basename(photo.localPath));
+    } on Exception {
+      // 留给草稿目录的定期清理
+    }
     if (ref.mounted) _scheduleSave();
   }
 
@@ -748,17 +824,31 @@ class WriteController extends Notifier<WriteState> {
     );
   }
 
+  /// 有没有「手动填入」的内容：文本、照片、落款、收信人。
+  /// 落点与投递方式不算——地点随定位走、模式不算内容，
+  /// 只有这些时不存草稿。
+  bool get _hasManualContent =>
+      state.textCharCount > 0 ||
+      state.photoCount > 0 ||
+      state.signature.trim().isNotEmpty ||
+      state.addressee.trim().isNotEmpty;
+
   Future<void> _persist() async {
     if (!ref.mounted) return;
+    final store = ref.read(draftStoreProvider);
     try {
-      await ref.read(draftStoreProvider).saveJson(_draftKey, _toDraftJson());
+      if (_hasManualContent) {
+        await store.saveJson(_draftKey, _toDraftJson());
+      } else {
+        // 写满又删光：草稿就该消失，而不是留下一份空壳
+        await store.clear(_draftKey);
+      }
     } on FileSystemException {
       // 磁盘满/权限异常：草稿尽力而为，不打断写信
     }
   }
 
   Map<String, Object?> _toDraftJson() {
-    final drop = state.dropPoint;
     return {
       'version': DraftStore.draftVersion,
       'parent': state.parentLetterId,
@@ -775,10 +865,6 @@ class WriteController extends Notifier<WriteState> {
       ],
       'signature': state.signature,
       'addressee': state.addressee,
-      'dropPoint': drop == null
-          ? null
-          : {'lat': ?drop.lat, 'lon': ?drop.lon, 'label': ?drop.label},
-      'deliveryMode': state.deliveryMode?.name,
       'savedAt': DateTime.now().toIso8601String(),
     };
   }

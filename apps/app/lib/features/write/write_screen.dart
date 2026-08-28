@@ -35,9 +35,15 @@ class WriteScreen extends ConsumerStatefulWidget {
 }
 
 class _WriteScreenState extends ConsumerState<WriteScreen> {
+  /// 回前台即对表：日期时间立刻刷新，天气有机会也补/刷一手。
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(writeControllerProvider.notifier).onResumed(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref
@@ -45,6 +51,12 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
             .start(parentLetterId: widget.parentLetterId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
   }
 
   @override
