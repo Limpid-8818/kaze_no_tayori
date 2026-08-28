@@ -86,13 +86,20 @@ class DiscoverController extends Notifier<DiscoverState> {
     await _load(coordinate);
   }
 
-  /// 下拉刷新：定位已就绪时不重建头部相位（列表留在原地，
-  /// 进度由 RefreshIndicator 表达）；失败且已有列表时保持原状。
+  /// 下拉刷新 / 空态「刷新」按钮统一入口。
+  ///
+  /// 列表在场（ready）时不重建头部相位：列表留在原地，进度由
+  /// RefreshIndicator 表达，失败且已有列表时保持原状。空态没有
+  /// 指示器可借，切入 [DiscoverPhase.listLoading] 用翻找 spinner
+  /// 表达进行中（同漂流页 draw 的相位法），失败转 error。
   Future<void> refresh() async {
     final coordinate = ref.read(locationControllerProvider).coordinate;
     if (coordinate == null) {
       await start();
       return;
+    }
+    if (state.phase == DiscoverPhase.listEmpty) {
+      state = const DiscoverState(phase: DiscoverPhase.listLoading);
     }
     try {
       final page = await ref

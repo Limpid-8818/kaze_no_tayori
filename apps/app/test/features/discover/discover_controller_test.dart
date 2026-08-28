@@ -197,6 +197,66 @@ void main() {
     expect(c.read(discoverControllerProvider).phase, DiscoverPhase.listEmpty);
   });
 
+  test('空态点刷新：先转翻找相位，仍为空则回到叙事空态', () async {
+    final c = _container([
+      ScriptedResponse.ok(200, const {
+        'items': <Object>[],
+        'next_cursor': null,
+      }),
+      ScriptedResponse.ok(200, const {
+        'items': <Object>[],
+        'next_cursor': null,
+      }),
+    ]);
+    final notifier = c.read(discoverControllerProvider.notifier);
+
+    await notifier.start();
+    expect(c.read(discoverControllerProvider).phase, DiscoverPhase.listEmpty);
+
+    final refreshing = notifier.refresh();
+    expect(c.read(discoverControllerProvider).phase, DiscoverPhase.listLoading);
+    await refreshing;
+    expect(c.read(discoverControllerProvider).phase, DiscoverPhase.listEmpty);
+  });
+
+  test('空态刷新刷出信来：直接进 ready', () async {
+    final c = _container([
+      ScriptedResponse.ok(200, const {
+        'items': <Object>[],
+        'next_cursor': null,
+      }),
+      ScriptedResponse.ok(200, {
+        'items': [_stayJson('stay_a', ago: const Duration(hours: 1))],
+        'next_cursor': null,
+      }),
+    ]);
+    final notifier = c.read(discoverControllerProvider.notifier);
+
+    await notifier.start();
+    await notifier.refresh();
+
+    final state = c.read(discoverControllerProvider);
+    expect(state.phase, DiscoverPhase.ready);
+    expect(state.items, hasLength(1));
+  });
+
+  test('空态刷新失败：转 error 态', () async {
+    final c = _container([
+      ScriptedResponse.ok(200, const {
+        'items': <Object>[],
+        'next_cursor': null,
+      }),
+      ScriptedResponse.fail(_server()),
+    ]);
+    final notifier = c.read(discoverControllerProvider.notifier);
+
+    await notifier.start();
+    expect(c.read(discoverControllerProvider).phase, DiscoverPhase.listEmpty);
+
+    await notifier.refresh();
+    expect(c.read(discoverControllerProvider).phase, DiscoverPhase.error);
+  });
+
   test('检索失败：error 态（重试入口在页面）', () async {
     final c = _container([
       ScriptedResponse.fail(_server()),

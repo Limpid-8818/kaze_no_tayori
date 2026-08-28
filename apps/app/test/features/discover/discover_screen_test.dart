@@ -209,4 +209,35 @@ void main() {
 
     expect(find.text('附近还没有埋下的信'), findsOneWidget);
   });
+
+  testWidgets('空态点刷新：经翻找 spinner 回到空态，可再次刷新', (tester) async {
+    final h = _Harness(
+      script: [
+        ScriptedResponse.ok(200, const {
+          'items': <Object>[],
+          'next_cursor': null,
+        }),
+        ScriptedResponse.ok(200, const {
+          'items': <Object>[],
+          'next_cursor': null,
+        }),
+        ScriptedResponse.ok(200, const {
+          'items': <Object>[],
+          'next_cursor': null,
+        }),
+      ],
+    );
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+    expect(find.text('附近还没有埋下的信'), findsOneWidget);
+
+    await tester.tap(find.text('刷新'));
+    await tester.pumpAndSettle();
+    expect(find.text('附近还没有埋下的信'), findsOneWidget);
+
+    await tester.tap(find.text('刷新'));
+    await tester.pumpAndSettle();
+    expect(find.text('附近还没有埋下的信'), findsOneWidget);
+    expect(h.adapter.requests, hasLength(3));
+  });
 }
