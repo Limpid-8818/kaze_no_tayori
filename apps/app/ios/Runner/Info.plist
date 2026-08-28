@@ -32,6 +32,8 @@
 	<string>开发调试时用于连接同一局域网内运行的风信后端。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择要附在信件中的照片。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>把你导出的信件图片保存到相册（只写入，不读取）。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<!-- 仅放行局域网主机/IP，不关闭公网 ATS。正式环境仍必须使用 HTTPS。 -->

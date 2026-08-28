@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart' as natsu;
 
+import '../../app/theme.dart' show KazeSky;
 import '../../data/models/letter.dart';
 
 /// 一封信的渲染视图模型：LetterReading 需要的全部内容。
@@ -107,3 +108,16 @@ class LetterView {
 /// 返回的完整 URL（见 UploadsApi / 写信页 remoteUrl），直接交给缓存库。
 ImageProvider cachedPhotoResolver(String ref) =>
     CachedNetworkImageProvider(ref);
+
+/// 这封信的天空 — 读信页背景与导出图背景共用的唯一天色口径：
+/// 信携带的天气 × 信落笔时刻的时段查表（「环境光随信」）；没带天气
+/// 或还没读进来 → 默认昼·晴。显式取用后不吃全局天色联动。
+Gradient skyOfLetter(LetterView? view) {
+  if (view == null || view.weatherIcon == null) {
+    return KazeSky.defaultGradient;
+  }
+  return KazeSky.of(
+    KazeSky.fromIcon(view.weatherIcon),
+    KazeSky.daypartOf(view.createdAt),
+  );
+}

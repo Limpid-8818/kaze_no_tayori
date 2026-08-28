@@ -1,10 +1,13 @@
 /// 读信页 —— 地点·时间·天气 + 图文流 + 共鸣/回信/举报，并可切到这封
-/// 信抵达时的封筒封面（正放预览，工具行原地切换）。
+/// 信抵达时的封筒封面（正放预览，工具行原地切换）；「⋯」里可把这封
+/// 信导出成匿名长图。
 ///
 /// **不渲染任何作者信息**（服务端也不会给）。短诗、音乐引用本阶段
 /// 不展示（mapper 丢弃）。控制逻辑全在 [ReaderController]，本文件只做
 /// 布局与交互挂接。
 library;
+
+import 'dart:async' show unawaited;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,23 +20,12 @@ import '../../app/widgets/kaze_paper_stack.dart';
 import '../../app/widgets/kaze_pill_action.dart';
 import '../../app/widgets/kaze_scaffold.dart';
 import '../../app/widgets/kaze_view_toggle.dart';
+import 'letter_exporter.dart';
 import 'letter_view.dart';
 import 'reader_controller.dart';
+import 'widgets/letter_export_sheet.dart';
 import 'widgets/reader_action_bar.dart';
 import 'widgets/reader_empty_state.dart';
-
-/// 读信页天空以信为准 —— 信携带的天气 × 信落笔时刻的时段查表
-/// （「环境光随信」）；没带天气或还没读进来 → 默认昼·晴。
-/// 显式传给 [KazeScaffold] 后不吃全局天色联动。
-Gradient _skyFor(LetterView? view) {
-  if (view == null || view.weatherIcon == null) {
-    return KazeSky.defaultGradient;
-  }
-  return KazeSky.of(
-    KazeSky.fromIcon(view.weatherIcon),
-    KazeSky.daypartOf(view.createdAt),
-  );
-}
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({required this.letterId, super.key});
@@ -78,8 +70,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return KazeScaffold(
       title: '读一封信',
-      backgroundGradient: _skyFor(view),
-      // 记入抄本 / 举报在 AppBar「⋯」菜单；仅 ready 态可用
+      backgroundGradient: skyOfLetter(view),
+      // 导出 / 记入抄本 / 举报在 AppBar「⋯」菜单；仅 ready 态可用
       // （「看原信」已上提到工具行，与「看封筒」同排）
       actions: state.phase == ReaderPhase.ready ? [_moreMenu()] : null,
       // ready 内容随信纸长度滚动；空态/错误态不滚动，垂直居中
@@ -187,13 +179,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  /// AppBar「⋯」：记入抄本 / 举报。「看原信」在工具行居右。
+  /// AppBar「⋯」：导出图片 / 记入抄本 / 举报。「看原信」在工具行居右。
   Widget _moreMenu() {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz),
       tooltip: '更多',
       onSelected: (value) {
         switch (value) {
+          case 'export':
+            _exportImage();
           case 'scripbook':
             ref
                 .read(readerControllerProvider(widget.letterId).notifier)
@@ -203,10 +197,49 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         }
       },
       itemBuilder: (_) => [
+        const PopupMenuItem(value: 'export', child: Text('导出图片')),
         const PopupMenuItem(value: 'scripbook', child: Text('记入抄本')),
         const PopupMenuItem(value: 'report', child: Text('举报')),
       ],
     );
+  }
+
+  /// 导出长图：离屏渲染（照片先全部进缓存）→ 预览 sheet 选保存/分享。
+  /// 生成中用不可关闭的弹层挡住重复触发；照片没下完整体不导（宁可不
+  /// 导也不出灰块图）。
+  Future<void> _exportImage() async {
+    final view = ref.read(readerControllerProvider(widget.letterId)).view;
+    if (view == null) return;
+
+    unawaited(
+      showNatsuDialog(
+        context: context,
+        barrierDismissible: false,
+        title: const Text('正在装图'),
+        body: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            NatsuSpinner(),
+            SizedBox(width: NatsuSpacing.sm),
+            Text('把这封信渲染成长图…'),
+          ],
+        ),
+      ),
+    );
+    try {
+      final png = await exportLetterImage(context, view);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // 收起 loading
+      await showLetterExportSheet(context, png: png);
+    } on LetterPhotoNotReadyException {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      showNatsuToast(context, '信里的照片还没下载完，联网后再试试');
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      showNatsuToast(context, '导出失败了，稍后再试试');
+    }
   }
 
   /// 举报弹层：预设理由一个 tap 完事，不做自由输入框。

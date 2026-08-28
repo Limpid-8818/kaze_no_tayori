@@ -364,3 +364,34 @@ abstract final class KazeDiscoverDims {
   /// 定位卡圆角（画布 8，与 Write 选择卡同档）
   static const double locCardRadius = 8;
 }
+
+/// 导出画布（信件导出为图片）的结构尺寸 — 非间距刻度，集中于此避免
+/// feature 散落魔法数。信纸宽度 = 读信页实际渲染宽（maxContentWidth
+/// 480 − 页边距 48），保证导出图的折行与阅读所见一致。
+abstract final class KazeExportDims {
+  /// 画布逻辑宽（信纸 432 + 左右天空留白各 64）
+  static const double canvasW = 560;
+
+  /// 信纸渲染宽（LetterReading 的 width 参数）
+  static const double paperW = 432;
+
+  /// 上/下留白（下留白同时是水印区）
+  static const double marginTop = 72;
+  static const double marginBottom = 92;
+
+  /// 水印 logo 边长与圆角（28/8，比例对齐 About 的 88/20）
+  static const double markLogo = 28;
+  static const double markLogoRadius = 8;
+
+  /// 水印 logo 与「风信」字距
+  static const double markGap = 8;
+
+  /// 水印右缘对齐纸边（= (canvasW − paperW) / 2）
+  static const double markRight = 64;
+
+  /// 水印距画布底
+  static const double markBottom = 30;
+
+  /// 长图像素高超过此值时像素比从 3 降到 2（部分设备纹理上限 8192）
+  static const double maxTexPx = 8192;
+}

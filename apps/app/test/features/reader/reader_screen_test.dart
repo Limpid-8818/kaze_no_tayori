@@ -278,4 +278,34 @@ void main() {
     expect(find.text('海风把回信吹来了'), findsOneWidget);
     expect(find.text('傍晚的海边风很大', skipOffstage: false), findsOneWidget);
   });
+
+  testWidgets('⋯ 菜单导出图片：装图 → 预览 sheet 弹出（捕获须真实异步）', (tester) async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+    ]);
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('更多'));
+    await tester.pumpAndSettle();
+    expect(find.text('导出图片'), findsOneWidget);
+
+    await tester.tap(find.text('导出图片'));
+    // toImage/toByteData 走平台线程真实异步：pumpAndSettle 的 pump 返回
+    // 已完成 Future 不让路，原生回调会饿死——须在 runAsync 里
+    // pump + delayed 交替放帧，循环到预览 sheet 真正弹出
+    await tester.runAsync(() async {
+      for (var i = 0; i < 100 && find.text('信已装成图').evaluate().isEmpty; i++) {
+        await tester.pump();
+        await Future<void>.delayed(Duration.zero);
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('信已装成图'), findsOneWidget);
+    expect(find.text('保存到相册'), findsOneWidget);
+    expect(find.text('分享给朋友'), findsOneWidget);
+    // 导出后画布 entry 已移除，信纸还在原位
+    expect(find.byType(LetterReading), findsOneWidget);
+  });
 }

@@ -43,9 +43,6 @@ dependencies:
   image_picker: ^1.2.3
   cached_network_image: ^3.4.1
 
-  # 信件导出为图片（PRD 6.11，前端 RepaintBoundary，不走后端）
-  screenshot: ^3.0.0
-
   # 版本号展示（关于页）：构建期从 pubspec version 注入，运行时读取
   package_info_plus: ^10.2.1
 
@@ -64,6 +61,12 @@ dependencies:
   # 设计系统。当前是空壳，见 packages/natsu_no_tegami/COPY_IN.md
   natsu_no_tegami:
     path: ../../packages/natsu_no_tegami
+
+  # 信件导出为图片（PRD 6.11，前端 RepaintBoundary，不走后端）：
+  # 捕获用设计系统 LetterExportBoundary/captureLetterPng（组件库只产字节），
+  # gal 存相册（iOS 走 add-only，无需读权限），share_plus 拉系统分享
+  gal: ^2.3.3
+  share_plus: ^13.3.0
 
 dev_dependencies:
   flutter_test:

@@ -163,7 +163,7 @@
 ### F7 · P1 表达与留存增强（P0 闭环后）
 - [ ] 写信增强：音乐引用、1–3 标签、皮肤槽位选择；不改变历史信件 skin
 - [x] 抄本：收藏列表 + 移除 —— ✅ 2026-08-27：后端三端点已就位零改动；前端 ScripbookScreen/ScripbookController 按 MyLetters 骨架落地（四相 + RouteAware 静默刷新 + 长按两段式移出），入口挂 reader「⋯」菜单 `saveToScripbook`（幂等恒可点 + notice toast），MockApiAdapter 补 GET/POST/DELETE scripbook 与种子；app 184 测试全绿。note 字段暂不开 UI，导出留后续
-- [ ] 导出：复用设计系统 `LetterExportBoundary`，移除重复 screenshot 依赖；补“仅添加到相册”能力及对应 iOS 用途说明
+- [x] 导出：复用设计系统 `LetterExportBoundary`，移除重复 screenshot 依赖；补“仅添加到相册”能力及对应 iOS 用途说明 —— ✅ 2026-08-28：读信页「⋯」菜单「导出图片」→ 离屏 Overlay 挂载 `LetterExportCanvas`（画布 560 = 信纸 432 + 天空留白，背景 `skyOfLetter` 与读信页同源、信纸复用 LetterReading，右下角 logo+「风信」水印）→ `captureLetterPng` 出长图（超高自动降 pixelRatio）；预览 sheet 双出口 Gal 存相册（「风信」相册）/ share_plus 分享；iOS 补 `NSPhotoLibraryAddUsageDescription`、Android 补 `WRITE_EXTERNAL_STORAGE` maxSdk 28；删 screenshot 依赖。坑：precacheImage 出错不抛异常（失败须经 onError 收集）、logo 资产要预热 + 捕获等两帧（首帧竞态致水印间歇缺席）、离屏渲染包 Material(transparency) 防 debug 黄线污染导出图；app 237 测试全绿 + 模拟器 mock E2E（首次导出 logo 在位、相册落盘 `Pictures/风信/`、分享面板拉起）
 - [ ] 完整离线写作：如确有需要，再设计待发送队列与冲突/重试；不与 P0 草稿自动保存混为一谈
 
 **前端 P0 合计约 5.5–7 人日。**
