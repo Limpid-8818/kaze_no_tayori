@@ -189,6 +189,7 @@ async def test_reply_creates_letter_and_notifies_author(
     assert notes[0]["letter_id"] == reply["id"]
     assert notes[0]["parent_letter_id"] == parent_id
     assert notes[0]["parent_place_label"] == "镰仓·海边"
+    assert notes[0]["parent_letter_date"] is not None
     assert notes[0]["is_read"] is False
 
     # 标记已读：unread 消失，重复标记仍 204

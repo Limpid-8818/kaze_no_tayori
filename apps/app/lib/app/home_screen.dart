@@ -29,6 +29,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadCountControllerProvider);
     return KazeSkyBox(
       // 环境是夏日天空，纸只在「信」的时候出现 —— 天色随当地天气×时段联动
       child: Scaffold(
@@ -36,8 +37,36 @@ class HomeScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           toolbarHeight: KazeHomeDims.appBarH,
+          // 显式 leading：替代自动汉堡钮，好把未读红点叠在图标右上角
+          leading: Builder(
+            builder: (context) => IconButton(
+              tooltip: '菜单',
+              // 红点叠在 24px 图标本体的右上角（而非 48px 按钮的角），
+              // 负偏移让它略越出图标角、压住圆角
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.menu),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: KazeHomeDims.hamburgerDotTop,
+                      right: KazeHomeDims.hamburgerDotRight,
+                      child: Container(
+                        key: const Key('hamburger_unread_dot'),
+                        width: KazeHomeDims.hamburgerDot,
+                        height: KazeHomeDims.hamburgerDot,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.tertiary,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
           // 右上角刻意不放品牌字样，保持干净。
-          // 设置了 drawer 后 AppBar 自动配汉堡钮（Icons.menu）。
         ),
         drawer: const _HomeDrawer(),
         body: SafeArea(
@@ -323,7 +352,7 @@ class _HomeEntryCard extends StatelessWidget {
 /// 左侧抽屉：品牌区 + 「我的」导航 + 关于。
 ///
 /// 底部刻意不放任何文本（用户决定，保持干净）。
-/// 「回信告知」的未读圆标只**消费** UnreadCountController——
+/// 「回信」的未读圆标只**消费** UnreadCountController——
 /// 计数的拉取与增减都归该控制器所有（F5 状态唯一所有权）。
 class _HomeDrawer extends ConsumerWidget {
   const _HomeDrawer();
@@ -381,7 +410,7 @@ class _HomeDrawer extends ConsumerWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.notifications_none,
-                    label: '回信告知',
+                    label: '回信',
                     trailing: unreadCount > 0
                         ? _UnreadBadge(count: unreadCount)
                         : null,

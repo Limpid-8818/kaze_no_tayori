@@ -1,4 +1,4 @@
-/// 回信告知模型（PRD 6.5）。
+/// 回信通知模型（PRD 6.5）。
 ///
 /// 原作者**不是回信的收件人**，通知只是「获知」：没有回信正文、
 /// 没有回信作者，点击后跳转的是公开回信本身。
@@ -23,6 +23,7 @@ class NotificationPublic {
     required this.letterId,
     required this.parentLetterId,
     this.parentPlaceLabel,
+    this.parentLetterDate,
     required this.isRead,
     required this.createdAt,
   });
@@ -43,6 +44,10 @@ class NotificationPublic {
 
   @JsonKey(name: 'parent_place_label')
   final String? parentPlaceLabel;
+
+  /// 原信的写信时间，用于描述句辨识「哪封信」（客户端裁到日）。
+  @JsonKey(name: 'parent_letter_date')
+  final DateTime? parentLetterDate;
 
   @JsonKey(name: 'is_read')
   final bool isRead;

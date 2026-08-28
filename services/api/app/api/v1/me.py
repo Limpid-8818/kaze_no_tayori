@@ -77,10 +77,11 @@ async def my_notifications(
             letter_id=str(n.letter_id),
             parent_letter_id=str(n.parent_letter_id),
             parent_place_label=place_label,
+            parent_letter_date=parent_date.isoformat() if parent_date else None,
             is_read=n.is_read,
             created_at=n.created_at.isoformat(),
         )
-        for n, place_label in rows
+        for n, place_label, parent_date in rows
     ]
     return Page(items=items, next_cursor=None)
 

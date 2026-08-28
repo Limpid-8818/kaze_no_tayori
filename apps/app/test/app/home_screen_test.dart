@@ -222,7 +222,7 @@ void main() {
 
       expect(find.text('我的信'), findsOneWidget);
       expect(find.text('抄本'), findsOneWidget);
-      expect(find.text('回信告知'), findsOneWidget);
+      expect(find.text('回信'), findsOneWidget);
       expect(find.text('设置'), findsOneWidget);
       expect(find.text('关于风信'), findsOneWidget);
 
@@ -303,7 +303,7 @@ void main() {
       expect(find.textContaining('°C'), findsNothing);
     });
 
-    // ---- 新增：回信告知未读角标（F5）----
+    // ---- 新增：回信未读角标（F5）----
 
     testWidgets('抽屉未读数：一位数正圆，两位数胶囊，无未读不出现', (tester) async {
       await tester.pumpWidget(pumpApp(unreadCount: 3));
@@ -312,13 +312,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('3'), findsOneWidget);
-      // 一位数是正圆
+      // 一位数是正圆（抽屉角标直径 24；汉堡钮红点 8 不算）
       expect(
         find.byWidgetPredicate(
           (w) =>
               w is Container &&
               w.decoration is BoxDecoration &&
-              (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+              (w.decoration! as BoxDecoration).shape == BoxShape.circle &&
+              w.constraints?.minWidth == KazeHomeDims.badgeDiameter,
         ),
         findsOneWidget,
       );
@@ -340,6 +341,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('0'), findsNothing);
+    });
+
+    testWidgets('汉堡按钮红点：有未读出现，无未读不出现', (tester) async {
+      await tester.pumpWidget(pumpApp(unreadCount: 3));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hamburger_unread_dot')), findsOneWidget);
+
+      // 无未读：红点退场（整树重挂，避免状态残留）
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(pumpApp());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hamburger_unread_dot')), findsNothing);
     });
   });
 }

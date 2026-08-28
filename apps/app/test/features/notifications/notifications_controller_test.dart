@@ -1,4 +1,4 @@
-/// 回信告知控制器测试（F5）：列表加载与叙事句映射、地点缺省回退、
+/// 回信控制器测试（F5）：列表加载与叙事句映射、地点缺省回退、
 /// 标记已读联动未读数、失败静默不打断阅读。
 library;
 
@@ -32,12 +32,14 @@ Map<String, dynamic> _notifJson(
   required String letterId,
   String? place,
   bool isRead = false,
+  DateTime? parentDate,
 }) => {
   'id': id,
   'type': 'reply',
   'letter_id': letterId,
   'parent_letter_id': 'parent_$id',
   'parent_place_label': place,
+  'parent_letter_date': parentDate?.toIso8601String(),
   'is_read': isRead,
   'created_at': DateTime.now()
       .subtract(const Duration(hours: 4))
@@ -91,11 +93,17 @@ void main() {
     spy = _SpyUnread();
   });
 
-  test('就绪：叙事句映射「你于 {地点} …收到一封回信 ✦」，相对时间在位', () async {
+  test('就绪：叙事句映射「你于 {写信日} 在 {地点} …收到一封回信」，相对时间在位', () async {
     final c = container([
       _page([
-        _notifJson('n1', letterId: 'letter_a', place: '浙江 · 杭州'),
-        _notifJson('n2', letterId: 'letter_b', place: null, isRead: true),
+        _notifJson(
+          'n1',
+          letterId: 'letter_a',
+          place: '浙江 · 杭州',
+          parentDate: DateTime(2026, 8, 12),
+        ),
+        // 旧响应无写信日期：回退为不带日期的原句；地点缺省回退「某地」
+        _notifJson('n2', letterId: 'letter_b', isRead: true),
       ]),
     ]);
 
@@ -104,11 +112,10 @@ void main() {
     final state = c.read(notificationsControllerProvider);
     expect(state.phase, NotificationsPhase.ready);
     expect(state.items, hasLength(2));
-    expect(state.items[0].message, '你于 浙江 · 杭州 写的那封信，收到一封回信 ✦');
+    expect(state.items[0].message, '你于 8月12日 在 浙江 · 杭州 写的那封信，收到一封回信');
     expect(state.items[0].timeLabel, contains('小时前'));
     expect(state.items[0].isRead, isFalse);
-    // 地点缺省回退「某地」
-    expect(state.items[1].message, '你于 某地 写的那封信，收到一封回信 ✦');
+    expect(state.items[1].message, '你于 某地 写的那封信，收到一封回信');
     expect(state.items[1].isRead, isTrue);
   });
 

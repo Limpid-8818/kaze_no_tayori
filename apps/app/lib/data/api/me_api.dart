@@ -47,7 +47,7 @@ class MeApi {
     await _client.delete('/v1/me/scripbook/$letterId');
   }
 
-  /// 回信告知列表。
+  /// 回信列表。
   Future<Page<NotificationPublic>> notifications({
     bool? unreadOnly,
     int? limit,

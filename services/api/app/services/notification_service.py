@@ -4,6 +4,7 @@ P0 只做拉取，不做推送（契约锁定）。原作者不是回信的收�
 通知只指向公开回信，读者侧无任何可达作者的反向通道。
 """
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import CursorResult, select, update
@@ -16,14 +17,14 @@ from app.models.notification import Notification
 
 async def list_notifications(
     session: AsyncSession, user_id: UUID, unread_only: bool, limit: int
-) -> list[tuple[Notification, str | None]]:
+) -> list[tuple[Notification, str | None, datetime | None]]:
     """本人通知列表，按 created_at DESC。
 
-    返回 (notification, parent_place_label)：NotificationPublic 需要
-    「你于 {地点} 写的那封信」的地名，模型无此列，JOIN 原信取。
+    返回 (notification, parent_place_label, parent_created_at)：NotificationPublic
+    需要「你于 {地点} 写的那封信」的地名与原信写信日期，模型无此列，JOIN 原信取。
     """
     query = (
-        select(Notification, Letter.place_label)
+        select(Notification, Letter.place_label, Letter.created_at)
         .outerjoin(Letter, Notification.parent_letter_id == Letter.id)
         .where(Notification.user_id == user_id)
         .order_by(Notification.created_at.desc())
@@ -32,7 +33,7 @@ async def list_notifications(
     if unread_only:
         query = query.where(Notification.is_read.is_(False))
     result = await session.execute(query)
-    return [(row[0], row[1]) for row in result.all()]
+    return [(row[0], row[1], row[2]) for row in result.all()]
 
 
 async def mark_read(session: AsyncSession, user_id: UUID, notification_id: UUID) -> None:

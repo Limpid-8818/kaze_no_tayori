@@ -77,7 +77,7 @@ class MockApiAdapter implements HttpClientAdapter {
       ];
       return _json(200, {'items': items, 'next_cursor': null});
     }
-    // 回信告知（F5）：一条未读 + 一条已读；unread_only 按 is_read 过滤
+    // 回信列表（F5）：一条未读 + 一条已读；unread_only 按 is_read 过滤
     if (method == 'GET' && path == '/v1/me/notifications') {
       // dio 的 queryParameters 保留原始类型：bool 就是 bool，不落字符串
       final unreadOnly =
@@ -506,7 +506,7 @@ class MockApiAdapter implements HttpClientAdapter {
     {..._staySeeds.first},
   ];
 
-  /// 回信告知种子（F5）：最新在前；两条各指向一封可读的种子回信。
+  /// 回信列表种子（F5）：最新在前；两条各指向一封可读的种子回信。
   late final List<Map<String, Object?>> _notifications = [
     _notification(
       id: 'mock_notif_2',
@@ -539,9 +539,20 @@ class MockApiAdapter implements HttpClientAdapter {
       'letter_id': letterId,
       'parent_letter_id': parentId,
       'parent_place_label': placeLabel,
+      // 与服务端同口径：JOIN 原信取写信时间（无则 null，前端回退原句）
+      'parent_letter_date': _parentWrittenAt(parentId)?.toIso8601String(),
       'is_read': isRead,
       'created_at': DateTime.now().subtract(ago).toIso8601String(),
     };
+  }
+
+  DateTime? _parentWrittenAt(String parentId) {
+    for (final seed in [..._driftSeeds, ..._staySeeds]) {
+      if (seed['id'] == parentId) {
+        return DateTime.tryParse(seed['created_at']! as String);
+      }
+    }
+    return null;
   }
 
   /// 详情白名单：mock_letter_1 行为不变（共鸣计数联动），其余种子信

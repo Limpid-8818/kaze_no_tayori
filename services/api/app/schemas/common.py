@@ -68,6 +68,8 @@ class NotificationPublic(BaseModel):
     letter_id: UUID
     parent_letter_id: UUID
     parent_place_label: str | None = None
+    # 原信的写信时间（精确到日由客户端裁剪），用于「哪封信」的辨识。
+    parent_letter_date: datetime | None = None
     is_read: bool
     created_at: datetime
 

@@ -303,6 +303,13 @@ abstract final class KazeHomeDims {
 
   /// 告知条目未读圆点直径
   static const double noticeDot = 6;
+
+  /// 汉堡按钮未读红点直径
+  static const double hamburgerDot = 8;
+
+  /// 红点相对菜单图标（24px 本体）右上角的偏移；负值 = 略越出图标角
+  static const double hamburgerDotTop = -2;
+  static const double hamburgerDotRight = -4;
 }
 
 /// About 画布（夏の手紙 v2 · Screen/About）的结构尺寸 — 非间距刻度，

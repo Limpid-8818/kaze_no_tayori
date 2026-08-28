@@ -1,4 +1,4 @@
-/// 回信告知页控制器（F5）——列表加载、标记已读、与未读数单向同步。
+/// 回信页控制器（F5）——列表加载、标记已读、与未读数单向同步。
 ///
 /// 告知只是「获知」：原作者不是回信的收件人，点击跳的是公开回信本身
 /// （阅读器空态兜住下架/404）。本类持有唯一可变状态 [NotificationsState]，
@@ -33,16 +33,22 @@ class NotificationItemView {
   /// 要读的那封公开回信本体。
   final String letterId;
 
-  /// PRD 6.5 的叙事句：「你于 {地点} 写的那封信，收到一封回信 ✦」。
+  /// PRD 6.5 的叙事句：「你于 {写信日} 在 {地点} 写的那封信，收到一封回信」。
   final String message;
   final String timeLabel;
   final bool isRead;
 
   static NotificationItemView from(NotificationPublic n) {
+    final where = n.parentPlaceLabel ?? '某地';
+    final when = n.parentLetterDate;
+    // 无日期（旧响应）时回退为不带日期的原句，避免双空格。
+    final subject = when == null
+        ? '你于 $where'
+        : '你于 ${dayLabel(when)} 在 $where';
     return NotificationItemView(
       id: n.id,
       letterId: n.letterId,
-      message: '你于 ${n.parentPlaceLabel ?? '某地'} 写的那封信，收到一封回信 ✦',
+      message: '$subject 写的那封信，收到一封回信',
       timeLabel: relativeTimeLabel(n.createdAt),
       isRead: n.isRead,
     );

@@ -1,4 +1,4 @@
-/// 回信告知页（PRD 6.5）——「你于某地写的那封信，收到一封回信 ✦」。
+/// 回信页（PRD 6.5）——「你于某日某地写的那封信，收到一封回信」。
 ///
 /// 只是获知，不是私信：条目不显示回信作者，点击直达公开回信本体
 /// （下架/404 由阅读器空态兜住）。控制逻辑全在 [NotificationsController]。
@@ -40,7 +40,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final controller = ref.read(notificationsControllerProvider.notifier);
 
     return KazeScaffold(
-      title: '回信告知',
+      title: '回信',
       scrollable: false,
       body: switch (state.phase) {
         NotificationsPhase.loading => Center(
@@ -61,7 +61,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           onAction: () => controller.start(),
         ),
         NotificationsPhase.error => NarrativeCard(
-          title: '没能拿到回信告知',
+          title: '没能拿到回信',
           subtitle: '检查网络后再试一次',
           actionLabel: '再试一次',
           onAction: () => controller.start(),
@@ -161,10 +161,15 @@ class _NoticeTile extends ConsumerWidget {
                   children: [
                     Text(item.message, style: messageStyle),
                     const SizedBox(height: KazeSpacing.xs),
-                    Text(
-                      item.timeLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: KazeColors.inkFaint,
+                    // 时间靠右下角收边；Column 横向是松约束，用 textAlign 撑满右对齐
+                    SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        item.timeLabel,
+                        textAlign: TextAlign.right,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: KazeColors.inkFaint,
+                        ),
                       ),
                     ),
                   ],

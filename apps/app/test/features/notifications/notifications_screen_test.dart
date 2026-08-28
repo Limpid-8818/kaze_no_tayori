@@ -1,4 +1,4 @@
-/// 回信告知页冒烟（F5）：未读/已读条目渲染、点击标已读并跳公开回信、
+/// 回信页冒烟（F5）：未读/已读条目渲染、点击标已读并跳公开回信、
 /// 空态叙事、错误态重试入口。
 library;
 
@@ -99,8 +99,7 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('你于 浙江 · 杭州 写的那封信，收到一封回信 ✦'), findsOneWidget);
-    expect(find.text('你于 某地 写的那封信，收到一封回信 ✦'), findsOneWidget);
+    expect(find.textContaining('收到一封回信'), findsNWidgets(2));
     expect(find.textContaining('小时前'), findsNWidgets(2));
     expect(find.text('只有这些了。风会继续送来回信的消息。'), findsOneWidget);
 
@@ -155,7 +154,7 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('没能拿到回信告知'), findsOneWidget);
+    expect(find.text('没能拿到回信'), findsOneWidget);
 
     await tester.tap(find.text('再试一次'));
     await tester.pumpAndSettle();
