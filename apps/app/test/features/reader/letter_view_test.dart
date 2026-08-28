@@ -6,7 +6,15 @@ import 'package:kazenotayori/data/models/letter.dart';
 import 'package:kazenotayori/features/reader/letter_view.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart' as natsu;
 
-LetterPublic _letter({List<LetterBlock>? blocks, Weather? weather}) {
+/// 区分「没传」与「显式 null」的哨兵——宛名/皮肤要测两种空。
+const _unset = Object();
+
+LetterPublic _letter({
+  List<LetterBlock>? blocks,
+  Weather? weather,
+  Object? addressee = _unset,
+  LetterSkin? themeSkin,
+}) {
   return LetterPublic(
     id: 'letter_1',
     blocks: blocks ?? const [],
@@ -16,8 +24,8 @@ LetterPublic _letter({List<LetterBlock>? blocks, Weather? weather}) {
     createdAt: DateTime.parse('2026-08-26T10:00:00Z'),
     poem: '四行短诗',
     signature: '赶海的人',
-    addressee: '某人',
-    themeSkin: const LetterSkin(),
+    addressee: addressee == _unset ? '某人' : addressee as String?,
+    themeSkin: themeSkin,
     musicRef: const MusicRef(album: 'a', song: 'b', lyrics: 'c'),
     placeLabel: '浙江 · 舟山',
     weather: weather,
@@ -70,13 +78,35 @@ void main() {
     expect(LetterView.from(_letter()).weatherText, isNull);
   });
 
-  test('共鸣计数与溯源 parent 带出；poem/music/skin/addressee/tags 不进视图', () {
+  test('共鸣计数与溯源 parent 带出；poem/music/tags 不进视图', () {
     final view = LetterView.from(_letter());
     expect(view.resonanceCount, 5);
     expect(view.parentLetterId, 'letter_0');
-    // LetterView 没有 poem/music/addressee/tags 字段——丢弃即断言不出现在
+    // LetterView 没有 poem/music/tags 字段——丢弃即断言不出现在
     // 渲染模型上；这里用视图字段的穷尽读取保证编译期没有加回来的位置。
     expect(view.signature, '赶海的人');
     expect(view.id, 'letter_1');
+  });
+
+  test('封筒封面位：宛名带出，皮肤转 stamp/postmark 两槽', () {
+    final view = LetterView.from(
+      _letter(
+        themeSkin: const LetterSkin(
+          stamp: 'stamp.sea-01',
+          postmarkEmblem: 'postmark.cicada-01',
+          decor: ['decor.x'],
+          postcard: 'postcard.y',
+        ),
+      ),
+    );
+    expect(view.addressee, '某人');
+    expect(view.skin.stampId, 'stamp.sea-01');
+    expect(view.skin.postmarkEmblemId, 'postmark.cicada-01');
+  });
+
+  test('封筒封面位：皮肤全空 = 组件默认；宛名 null = 封面洁净', () {
+    final view = LetterView.from(_letter(addressee: null, themeSkin: null));
+    expect(view.addressee, isNull);
+    expect(view.skin, const natsu.LetterSkin());
   });
 }

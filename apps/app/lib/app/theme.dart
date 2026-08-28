@@ -135,8 +135,10 @@ abstract final class KazeTheme {
 }
 
 /// 动效速记 — 值源自 [NatsuMotion]。环境级过渡（天色切换等）统一
-/// 走 drift：480ms、漂流缓动——「天色是被风送来的」。
+/// 走 drift：480ms、漂流缓动——「天色是被风送来的」；信件内容物的
+/// 落桌/换位走 long：320ms——「纸被放到桌上」。
 abstract final class KazeMotion {
+  static const Duration long = NatsuMotion.long;
   static const Duration drift = NatsuMotion.drift;
   static const Curve driftEasing = NatsuMotion.driftEasing;
 }

@@ -1,5 +1,5 @@
 /// 读信页组件测试：ready 渲染（无作者位）、404/网络空态、共鸣回显、
-/// 回信入口带 parent。
+/// 回信入口带 parent、信纸↔封筒原地切换。
 library;
 
 import 'package:dio/dio.dart';
@@ -27,6 +27,7 @@ Map<String, dynamic> _letterJson() => {
   'place_label': '浙江 · 舟山',
   'weather': const {'text': '多云', 'temp_c': 26.0},
   'signature': '赶海的人',
+  'addressee': '某人',
   'parent_letter_id': null,
   'counts': const {
     'read': 3,
@@ -178,6 +179,39 @@ void main() {
     await tester.tap(find.text('回以一封信'));
     await tester.pumpAndSettle();
     expect(h.pushed, ['/write?parent=letter_1']);
+  });
+
+  testWidgets('信纸↔封筒：工具行原地切换，封筒正放且封面要素带出', (tester) async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+    ]);
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+
+    // 信纸态：切换钮递出「看封筒」，封筒不在场
+    expect(find.text('看封筒'), findsOneWidget);
+    expect(find.byType(Envelope), findsNothing);
+
+    await tester.tap(find.text('看封筒'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Envelope), findsOneWidget);
+    expect(find.byType(LetterReading), findsNothing);
+    expect(find.text('回到信纸'), findsOneWidget);
+
+    // 正放（覆盖种子倾斜），宛名/地点来自信件
+    final envelope = tester.widget<Envelope>(find.byType(Envelope));
+    expect(envelope.tilt, 0);
+    expect(envelope.addressee, '某人');
+    expect(envelope.place, '浙江 · 舟山');
+
+    // 切回信纸
+    await tester.tap(find.text('回到信纸'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LetterReading), findsOneWidget);
+    expect(find.byType(Envelope), findsNothing);
+    expect(find.text('看封筒'), findsOneWidget);
   });
 
   testWidgets('「更多」菜单：记入抄本常驻，选中后 POST 落库并冒提示', (tester) async {

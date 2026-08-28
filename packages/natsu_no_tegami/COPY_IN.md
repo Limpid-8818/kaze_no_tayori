@@ -8,6 +8,8 @@
 ## 待上游化清单（app 侧暂放组件）
 
 - `apps/app/lib/app/widgets/letter_summary_card.dart`（2026-08-27，F4；F6 补 `statusLabel`/`onLongPress`）——信件摘要卡：俳句三行衬线排版（quoteSerif）+ 无诗回退手写预览 + meta 行「距离/地点 · 时间」+ 状态徽标（NatsuTag sm 纯文字，不启用语义点——dot 配色按配给制只归场景/情绪/旅行）。跨 feature 复用（发掘/我的信/抄本），上游化时建议落位 `lib/src/components/letters/`，参数保持纯字符串。
+- `apps/app/lib/app/widgets/kaze_paper_stack.dart`（2026-08-28，信纸↔封筒切换）——纸叠切换台：AnimatedSwitcher（「新纸落下落定、旧纸下沉微缩淡出」的叠放顺序过渡）+ 外层 AnimatedSize 把新旧纸高矮差的两次尺寸突变插值成连续收放，锚默认 topCenter 保证换纸全程纸不挪位（long 320ms + driftEasing；上游化时 KazeMotion → NatsuMotion 直连）。跨 feature 复用（写信/读信），上游化时建议落位 `lib/src/components/`。
+- `apps/app/lib/app/widgets/kaze_view_toggle.dart`（2026-08-28，信纸↔封筒切换）——视图切换文字胶囊（暖白纸底 + 发丝线 + Stadium 全圆角，图标随目标视图互换）。跨 feature 复用（写信/读信），上游化时建议落位 `lib/src/components/`。
 
 ## 上游
 

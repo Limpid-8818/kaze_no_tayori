@@ -1,5 +1,5 @@
 /// 写信页组件测试：所见即所得的关键行为——落款实时上纸、宛名不上纸、
-/// 留/投必选拦截、图片托盘的加号与上限。
+/// 留/投必选拦截、图片托盘的加号与上限、信纸↔封筒原地切换。
 library;
 
 import 'dart:io';
@@ -18,6 +18,7 @@ import 'package:kazenotayori/features/write/draft_store.dart';
 import 'package:kazenotayori/features/write/widgets/editable_paper.dart';
 import 'package:kazenotayori/features/write/write_controller.dart';
 import 'package:kazenotayori/features/write/write_screen.dart';
+import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../fakes/fake_secure_store.dart';
 import '../../fakes/scripted_adapter.dart';
@@ -131,6 +132,45 @@ void main() {
       ),
       findsNothing,
     );
+    await _flushTimers(tester);
+  });
+
+  testWidgets('信纸↔封筒：切到封面预览表单退场，宛名上封，切回不丢字', (tester) async {
+    await tester.pumpWidget(await _writeApp());
+    await tester.pumpAndSettle();
+
+    // 先写字与收信人（TextField 顺序：信纸正文 → 收信人 → 落款）
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '写了一句话');
+    await tester.enterText(fields.at(1), '远方的你');
+    await tester.pump();
+
+    // 信纸态：切换钮递出「看封筒」，封筒不在场
+    expect(find.text('看封筒'), findsOneWidget);
+    expect(find.byType(Envelope), findsNothing);
+
+    await tester.tap(find.text('看封筒'));
+    await tester.pumpAndSettle();
+
+    // 封筒态：封面在位，表单区整体退场
+    expect(find.byType(Envelope), findsOneWidget);
+    expect(find.byType(EditablePaper), findsNothing);
+    expect(find.text('寄往何处'), findsNothing);
+    expect(find.text('寄出'), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.text('回到信纸'), findsOneWidget);
+
+    // 正放；宛名上封，还没确认落点 → 通用落款
+    final envelope = tester.widget<Envelope>(find.byType(Envelope));
+    expect(envelope.tilt, 0);
+    expect(envelope.addressee, '远方的你');
+    expect(envelope.place, '风寄出的地方');
+
+    // 切回信纸：已写的字都在
+    await tester.tap(find.text('回到信纸'));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditablePaper), findsOneWidget);
+    expect(find.text('写了一句话'), findsOneWidget);
     await _flushTimers(tester);
   });
 

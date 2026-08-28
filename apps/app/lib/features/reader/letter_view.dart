@@ -5,8 +5,9 @@
 /// 页面不得各写一份。图片引用统一经 [cachedPhotoResolver] 走缓存网络图，
 /// 页面里不出现散装的图片来源逻辑。
 ///
-/// 短诗（poem）、音乐引用（musicRef）、皮肤（themeSkin）、宛名与标签在
-/// 本阶段没有对应展示位——mapper 直接丢弃，后续阶段在这里扩展，页面不动。
+/// 短诗（poem）、音乐引用（musicRef）与标签在本阶段没有对应展示位——
+/// mapper 直接丢弃，后续阶段在这里扩展，页面不动。宛名与皮肤有了展示
+/// 位（信纸 ↔ 封筒视图切换），经 [addressee]/[skin] 供给封筒封面。
 library;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -27,6 +28,8 @@ class LetterView {
     this.weatherIcon,
     this.parentLetterId,
     this.resonanceCount = 0,
+    this.addressee,
+    this.skin = const natsu.LetterSkin(),
   });
 
   final String id;
@@ -41,6 +44,13 @@ class LetterView {
   final String? weatherIcon;
   final String? parentLetterId;
   final int resonanceCount;
+
+  /// 宛名（封筒封面收信人）；null = 封面洁净。信纸态不消费，封筒
+  /// 视图（页面切换）取用。
+  final String? addressee;
+
+  /// 皮肤（邮票/邮戳图案两槽）——封筒视图消费；全空 = 组件默认。
+  final natsu.LetterSkin skin;
 
   /// 信纸 meta 行的时间项——只到日，不读到分钟。
   String get timeLabel => '${createdAt.month}月${createdAt.day}日';
@@ -70,6 +80,18 @@ class LetterView {
       weatherIcon: letter.weather?.icon,
       parentLetterId: letter.parentLetterId,
       resonanceCount: letter.counts.resonance,
+      addressee: letter.addressee,
+      skin: _skin(letter.themeSkin),
+    );
+  }
+
+  /// API 皮肤 → 组件库皮肤（stamp/postmark 两槽；decor 属于信纸不贴
+  /// 封筒）。与漂流页 DriftEnvelopeView 的同款转换——封筒封面语义一致。
+  static natsu.LetterSkin _skin(LetterSkin? skin) {
+    if (skin == null) return const natsu.LetterSkin();
+    return natsu.LetterSkin(
+      stampId: skin.stamp,
+      postmarkEmblemId: skin.postmarkEmblem,
     );
   }
 

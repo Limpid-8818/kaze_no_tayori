@@ -1,9 +1,12 @@
 /// 写信页 —— 画布 Screen/Write（F2 最小闭环）。
 ///
-/// 单页滚动：信纸（所见即所得）→ 图片托盘 → 表单卡（地点/收信人/落款）
-/// → 寄往何处（留/投必选）→ 寄出。控制逻辑全在 [WriteController]，
-/// 本文件只做布局与交互挂接。P0 固定夏主题默认皮肤；音乐/标签/AI
-/// 润色不进首个闭环。
+/// 单页滚动：切换工具行 → 信纸（所见即所得）→ 图片托盘 → 表单卡
+/// （地点/收信人/落款）→ 寄往何处（留/投必选）→ 寄出。P0 固定夏主题
+/// 默认皮肤；音乐/标签/AI 润色不进首个闭环。
+///
+/// 封筒态：工具行切到正放的封筒封面预览，表单区整体退场——宛名/落点/
+/// 日期/天气都在封面上，是「寄出前最后看一眼这封信会以什么样子抵达」
+/// 的仪式位。控制逻辑全在 [WriteController]，本文件只做布局与交互挂接。
 library;
 
 import 'dart:io';
@@ -14,7 +17,9 @@ import 'package:go_router/go_router.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../app/theme.dart';
+import '../../app/widgets/kaze_paper_stack.dart';
 import '../../app/widgets/kaze_scaffold.dart';
+import '../../app/widgets/kaze_view_toggle.dart';
 import '../../core/env.dart';
 import '../../data/models/letter.dart';
 import 'widgets/delivery_selector.dart';
@@ -37,6 +42,10 @@ class WriteScreen extends ConsumerStatefulWidget {
 class _WriteScreenState extends ConsumerState<WriteScreen> {
   /// 回前台即对表：日期时间立刻刷新，天气有机会也补/刷一手。
   late final AppLifecycleListener _lifecycle;
+
+  /// 封筒封面预览态。纯视图开关，不进 [WriteState]——不参与草稿存取，
+  /// 也不构成「内容变更」；工具行是封筒态唯一的返回路径。
+  bool _previewEnvelope = false;
 
   @override
   void initState() {
@@ -77,54 +86,123 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          EditablePaper(onOpenPhoto: _openPhotoSheet),
-          if (state.textCharCount > 0) ...[
-            const SizedBox(height: KazeSpacing.xs),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${state.textCharCount} / ${Env.letterMaxChars}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: state.textCharCount > Env.letterMaxChars
-                      ? theme.colorScheme.error
-                      : null,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: KazeSpacing.sm),
-          PhotoTray(
-            photos: state.photos,
-            onAdd: () =>
-                ref.read(writeControllerProvider.notifier).addPhotosAtCursor(),
-            onOpen: _openPhotoSheet,
+          _viewToolbar(),
+          // 顶锚换纸（默认 topCenter）：表单/封筒顶边钉在工具行正下方，
+          // 高度差在下方平滑收放
+          KazePaperStack(
+            child: _previewEnvelope
+                ? _envelopePreview(state)
+                : _paperForm(state, theme),
           ),
-          const SizedBox(height: KazeSpacing.md),
-          MetaCard(
-            signature: state.signature,
-            addressee: state.addressee,
-            dropPointLabel: state.dropPoint?.label,
-            locationBusy: state.locationBusy,
-            onSignatureChanged: (value) =>
-                ref.read(writeControllerProvider.notifier).setSignature(value),
-            onAddresseeChanged: (value) =>
-                ref.read(writeControllerProvider.notifier).setAddressee(value),
-            onPickLocation: _pickLocation,
-          ),
-          const SizedBox(height: KazeSpacing.md),
-          // 画布「寄往何处」眉标（12 Medium inkSoft → labelMedium 最近档）
-          Padding(
-            padding: const EdgeInsets.only(bottom: KazeSpacing.sm),
-            child: Text('寄往何处', style: theme.textTheme.labelMedium),
-          ),
-          DeliverySelector(
-            mode: state.deliveryMode,
-            onChanged: _onDeliveryChanged,
-          ),
-          const SizedBox(height: KazeSpacing.lg),
-          _SendButton(sending: state.sending, onPressed: _send),
         ],
       ),
+    );
+  }
+
+  /// 纸面上方的工具行：切换钮靠左，两种视图下常驻。
+  Widget _viewToolbar() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: KazeSpacing.sm),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: KazeViewToggle(
+          envelopeShown: _previewEnvelope,
+          onToggle: _toggleView,
+        ),
+      ),
+    );
+  }
+
+  /// 信纸 ↔ 封筒原地切换。切去封筒先收键盘——纸面字段回到无焦点的
+  /// 静置态；文本在 controller 的 blocks 里，切回来不丢字。
+  void _toggleView() {
+    if (!_previewEnvelope) FocusScope.of(context).unfocus();
+    setState(() => _previewEnvelope = !_previewEnvelope);
+  }
+
+  /// 封筒态：正放的封面预览。宛名/落点/日期/天气全是写信人已填的
+  /// 内容，邮戳随活钟（回前台对表）刷新。
+  Widget _envelopePreview(WriteState state) {
+    final now = state.now;
+    final addressee = state.addressee.trim();
+    return Center(
+      key: const ValueKey('envelope'),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: KazeSpacing.lg),
+        child: Envelope(
+          // 稳定种子：只影响邮票/邮戳的微小贴斜，每次进来一致
+          seedId: 'write-preview',
+          addressee: addressee.isEmpty ? null : addressee,
+          place: state.dropPoint?.label ?? '风寄出的地方',
+          date: '${now.month}月${now.day}日',
+          weather: _weatherText(state.weather),
+          tilt: 0,
+          width: KazeDriftDims.envelopeW,
+        ),
+      ),
+    );
+  }
+
+  /// 「晴 26°」——封筒邮戳的天气刻文口径，与漂流页/读信页一致。
+  static String? _weatherText(Weather? weather) {
+    if (weather == null) return null;
+    if (weather.tempC == null) return weather.text;
+    return '${weather.text} ${weather.tempC!.round()}°';
+  }
+
+  /// 信纸态：完整的写信滚动流（纸 → 托盘 → 表单 → 留投 → 寄出）。
+  Widget _paperForm(WriteState state, ThemeData theme) {
+    return Column(
+      key: const ValueKey('paper'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EditablePaper(onOpenPhoto: _openPhotoSheet),
+        if (state.textCharCount > 0) ...[
+          const SizedBox(height: KazeSpacing.xs),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${state.textCharCount} / ${Env.letterMaxChars}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: state.textCharCount > Env.letterMaxChars
+                    ? theme.colorScheme.error
+                    : null,
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: KazeSpacing.sm),
+        PhotoTray(
+          photos: state.photos,
+          onAdd: () =>
+              ref.read(writeControllerProvider.notifier).addPhotosAtCursor(),
+          onOpen: _openPhotoSheet,
+        ),
+        const SizedBox(height: KazeSpacing.md),
+        MetaCard(
+          signature: state.signature,
+          addressee: state.addressee,
+          dropPointLabel: state.dropPoint?.label,
+          locationBusy: state.locationBusy,
+          onSignatureChanged: (value) =>
+              ref.read(writeControllerProvider.notifier).setSignature(value),
+          onAddresseeChanged: (value) =>
+              ref.read(writeControllerProvider.notifier).setAddressee(value),
+          onPickLocation: _pickLocation,
+        ),
+        const SizedBox(height: KazeSpacing.md),
+        // 画布「寄往何处」眉标（12 Medium inkSoft → labelMedium 最近档）
+        Padding(
+          padding: const EdgeInsets.only(bottom: KazeSpacing.sm),
+          child: Text('寄往何处', style: theme.textTheme.labelMedium),
+        ),
+        DeliverySelector(
+          mode: state.deliveryMode,
+          onChanged: _onDeliveryChanged,
+        ),
+        const SizedBox(height: KazeSpacing.lg),
+        _SendButton(sending: state.sending, onPressed: _send),
+      ],
     );
   }
 

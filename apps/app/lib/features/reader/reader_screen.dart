@@ -1,6 +1,7 @@
-/// 读信页 —— 地点·时间·天气 + 图文流 + 共鸣/回信/举报。
+/// 读信页 —— 地点·时间·天气 + 图文流 + 共鸣/回信/举报，并可切到这封
+/// 信抵达时的封筒封面（正放预览，工具行原地切换）。
 ///
-/// **不渲染任何作者信息**（服务端也不会给）。短诗、音乐引用、皮肤本阶段
+/// **不渲染任何作者信息**（服务端也不会给）。短诗、音乐引用本阶段
 /// 不展示（mapper 丢弃）。控制逻辑全在 [ReaderController]，本文件只做
 /// 布局与交互挂接。
 library;
@@ -12,7 +13,9 @@ import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../app/widgets/kaze_paper_stack.dart';
 import '../../app/widgets/kaze_scaffold.dart';
+import '../../app/widgets/kaze_view_toggle.dart';
 import 'letter_view.dart';
 import 'reader_controller.dart';
 import 'widgets/reader_action_bar.dart';
@@ -41,6 +44,10 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+  /// 封筒封面态。纯视图开关，不进 ReaderState——共鸣/记抄本等动作
+  /// 与视图无关；工具行是封筒态唯一的返回路径。
+  bool _showEnvelope = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,16 +100,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           actionLabel: '再试一次',
           onAction: () => controller.retry(),
         ),
-        ReaderPhase.ready => Center(
-          child: LetterReading(
-            blocks: view!.blocks,
-            photoResolver: cachedPhotoResolver,
-            seedId: view.id,
-            place: view.place,
-            time: view.timeLabel,
-            weather: view.weatherText,
-            signature: view.signature,
-          ),
+        ReaderPhase.ready => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 信纸上方的工具行：切换钮靠左，两种视图下常驻
+            Padding(
+              padding: const EdgeInsets.only(bottom: KazeSpacing.sm),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: KazeViewToggle(
+                  envelopeShown: _showEnvelope,
+                  onToggle: () =>
+                      setState(() => _showEnvelope = !_showEnvelope),
+                ),
+              ),
+            ),
+            // 顶锚换纸（默认 topCenter）：信纸/封筒顶边都钉在工具行
+            // 正下方，高度差在下方平滑收放，信纸全程不挪位
+            KazePaperStack(
+              child: _showEnvelope ? _envelopeView(view!) : _letterView(view!),
+            ),
+          ],
         ),
       },
       bottom: state.phase == ReaderPhase.ready
@@ -113,6 +131,43 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               onReply: () => context.push('${Routes.write}?parent=${view!.id}'),
             )
           : null,
+    );
+  }
+
+  /// 信纸态：拆封后的阅读流（原有形态原样搬入切换台）。
+  Widget _letterView(LetterView view) {
+    return Center(
+      key: const ValueKey('paper'),
+      child: LetterReading(
+        blocks: view.blocks,
+        photoResolver: cachedPhotoResolver,
+        seedId: view.id,
+        place: view.place,
+        time: view.timeLabel,
+        weather: view.weatherText,
+        signature: view.signature,
+      ),
+    );
+  }
+
+  /// 封筒态：这封信抵达时的封面（正放）。宛名/皮肤/邮戳三要素来自
+  /// mapper 扩展位；地点缺省退化与漂流页同口径。
+  Widget _envelopeView(LetterView view) {
+    return Center(
+      key: const ValueKey('envelope'),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: KazeSpacing.lg),
+        child: Envelope(
+          seedId: view.id,
+          skin: view.skin,
+          addressee: view.addressee,
+          place: view.place ?? '风寄出的地方',
+          date: view.timeLabel,
+          weather: view.weatherText,
+          tilt: 0,
+          width: KazeDriftDims.envelopeW,
+        ),
+      ),
     );
   }
 
