@@ -64,6 +64,35 @@ void main() {
     }
   });
 
+  testWidgets('宛名 6 字：单列渐缩不拆列，右缘仍锚定 44', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        Envelope(
+          seedId: 'env-addr-shrink',
+          addressee: '银河的邮递员',
+          place: '鎌倉',
+          date: '2026.08.21',
+          tilt: 0,
+        ),
+      ),
+    );
+
+    final columnCount = tester
+        .widgetList<Column>(
+          find.descendant(
+            of: find.byType(VerticalHandwriting),
+            matching: find.byType(Column),
+          ),
+        )
+        .length;
+    expect(columnCount, 1, reason: '6 字宛名应单列渐缩而非拆出孤字列');
+
+    // 基准宽 200 − 宛名右缘 44 = 156（tilt=0 时坐标可比）
+    final envOrigin = tester.getTopLeft(find.byType(Envelope));
+    final addrRight = tester.getTopRight(find.byType(VerticalHandwriting));
+    expect((addrRight - envOrigin).dx, closeTo(156, 1.0));
+  });
+
   testWidgets('竖排旋转：长音「ー」转 90°，普通假名直立', (tester) async {
     await tester.pumpWidget(_wrap(const VerticalHandwriting(text: 'かーら')));
     expect(

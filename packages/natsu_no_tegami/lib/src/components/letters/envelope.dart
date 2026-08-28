@@ -86,6 +86,10 @@ class Envelope extends StatelessWidget {
   /// 刻印尺寸（基准值）
   static const double _sealSize = 32;
 
+  /// 宛名整块宽度预算（基准值）：
+  /// 基准宽 200 − 宛名右缘 44 − 左缘留白 16，超长宛名在此收字不画出筒
+  static const double _addresseeMaxWidth = 140;
+
   @override
   Widget build(BuildContext context) {
     final angle =
@@ -142,7 +146,11 @@ class Envelope extends StatelessWidget {
                 Positioned(
                   right: 44,
                   bottom: 70,
-                  child: VerticalHandwriting(text: addressee!, maxHeight: 190),
+                  child: VerticalHandwriting(
+                    text: addressee!,
+                    maxHeight: 190,
+                    maxWidth: _addresseeMaxWidth,
+                  ),
                 ),
               // 刻印封缄：右下摺垂れ位置
               Positioned(

@@ -15,7 +15,9 @@ import 'package:natsu_no_tegami/src/tokens/natsu_tokens.dart';
 
 Future<void> _loadFonts() async {
   // widget 测试默认 Ahem 方块字体，且 rootBundle 在测试环境为空——
-  // 必须直接读磁盘字体文件加载真实字体才能看基线
+  // 必须直接读磁盘字体文件加载真实字体才能看基线。
+  // 组件令牌 TextStyle 带 package: 前缀，引擎按
+  // `packages/natsu_no_tegami/<family>` 查找——两种名都注册。
   final fonts = [
     ('NotoSansSC', 'assets/fonts/info/NotoSansSC-Variable.ttf'),
     ('LXGWWenKai', 'assets/fonts/warm/LXGWWenKai-Regular.ttf'),
@@ -25,9 +27,11 @@ Future<void> _loadFonts() async {
   ];
   for (final (family, path) in fonts) {
     final bytes = await File(path).readAsBytes();
-    final loader = FontLoader(family)
-      ..addFont(Future.value(ByteData.view(bytes.buffer)));
-    await loader.load();
+    for (final name in [family, 'packages/natsu_no_tegami/$family']) {
+      final loader = FontLoader(name)
+        ..addFont(Future.value(ByteData.view(bytes.buffer)));
+      await loader.load();
+    }
   }
 }
 
@@ -97,6 +101,55 @@ void main() {
       key,
     );
     await _save(tester, key, 'resonance_fixed_r2');
+    expect(true, isTrue);
+  });
+
+  testWidgets('视觉探针: 封筒宛名各字数（单列缩字 / 满列分列）', (tester) async {
+    tester.view.physicalSize = const Size(1500, 560);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    const names = [
+      '風の旅人', // 4 字：28 号不变
+      '银河的邮递员', // 6 字：单列缩字
+      '夏蝉与风铃的信箱', // 8 字：单列缩字
+      '银河邮递员与季风信使', // 10 字：5+5 满列双列
+      '夏风把信笺吹向远方的山谷与海', // 14 字：双列
+      '夏风把这一封信笺吹向了远方的山谷与海之', // 19 字：三列
+      'ああああああああああああああああああああああああああああああああ', // 32 字：四列
+    ];
+    final key = GlobalKey();
+    await _pumpScene(
+      tester,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          for (final (i, name) in names.indexed)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Envelope(
+                    seedId: 'probe-addr-$i',
+                    addressee: name,
+                    place: '鎌倉',
+                    date: '2026.08.21',
+                    width: 130,
+                    tilt: 0,
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${name.length}字', style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+        ],
+      ),
+      key,
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    await _save(tester, key, 'envelope_addressee');
     expect(true, isTrue);
   });
 
