@@ -1,7 +1,8 @@
-/// 叙事状态卡 —— 池空/附近没信/加载失败这类「不是错误」的状态呈现。
+/// 叙事状态 —— 池空/附近没信/加载失败这类「不是错误」的状态呈现。
 ///
-/// 一张撑满内容宽的暖白纸卡 + 主副两行文案 + 可选动作。ReaderEmptyState
-/// 与本卡同范式；新功能请直接用这张，旧的那张留在 reader 不动。
+/// 透明底手写体直接浮在天空渐变上（沿 drift 首幕 _DrawIntro 范式）：
+/// 主副两行文案 + 可选动作，不再垫纸卡。ReaderEmptyState 与本范式
+/// 同款；新功能请直接用这个，旧的那张留在 reader 不动。
 library;
 
 import 'package:flutter/material.dart';
@@ -33,30 +34,21 @@ class NarrativeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 320),
-      padding: const EdgeInsets.all(KazeSpacing.xl),
-      decoration: BoxDecoration(
-        color: KazeColors.envelope,
-        borderRadius: BorderRadius.circular(KazeRadius.card),
-        boxShadow: KazeLetterShadows.resting,
-      ),
+    // 画布空态为手写体 22/36；warmBody(hwBody 20) 最近档放大至此（偏差记录，
+    // 同 _DrawIntro）。副文案用 hwNote 手写小注，灰一档退后。
+    final titleStyle = KazeLetterType.warmBody.copyWith(
+      fontSize: 22,
+      height: 36 / 22,
+    );
+    return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
+          Text(title, style: titleStyle, textAlign: TextAlign.center),
           const SizedBox(height: KazeSpacing.md),
           Text(
             subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: KazeColors.inkFaint,
-            ),
+            style: KazeLetterType.hwNote,
             textAlign: TextAlign.center,
           ),
           if (_hasPrimary && _hasSecondary) ...[
@@ -65,7 +57,7 @@ class NarrativeCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: NatsuButton(
-                    variant: NatsuButtonVariant.secondary,
+                    variant: NatsuButtonVariant.primary,
                     onPressed: onAction,
                     child: Text(actionLabel!),
                   ),
@@ -83,7 +75,7 @@ class NarrativeCard extends StatelessWidget {
           ] else if (_hasPrimary) ...[
             const SizedBox(height: KazeSpacing.xl),
             NatsuButton(
-              variant: NatsuButtonVariant.secondary,
+              variant: NatsuButtonVariant.primary,
               onPressed: onAction,
               child: Text(actionLabel!),
             ),

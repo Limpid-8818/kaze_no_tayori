@@ -237,6 +237,9 @@ abstract final class KazeLetterType {
 
   /// 手写正文最近档（hwBody 20）——卡片预览等小号手写场景在此基础上缩放
   static const TextStyle warmBody = NatsuTypography.hwBody;
+
+  /// 手写小注（hwNote 16/26 inkSoft）——空态/错误态副文案等退后一档的手写说明
+  static const TextStyle hwNote = NatsuTypography.hwNote;
 }
 
 /// 少量无 ColorScheme 槽位的具名色 — 全部源自令牌层，feature 经此类取用。
