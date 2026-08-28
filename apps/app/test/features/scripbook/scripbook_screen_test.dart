@@ -111,7 +111,7 @@ class _Harness {
 }
 
 void main() {
-  testWidgets('ready：带诗走俳句排版、无诗走预览位；点卡拆开重读', (tester) async {
+  testWidgets('ready：带诗走注记压行、无诗走预览位；点卡拆开重读', (tester) async {
     final h = _Harness([
       _page([
         _letterJson('saved_a', poem: '候鸟排成人字\n把我的问候带走\n往更南的南方'),
@@ -121,10 +121,10 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('候鸟排成人字'), findsOneWidget);
-    expect(find.textContaining('浪来过两次'), findsOneWidget);
+    expect(find.text('候鸟排成人字 把我的问候带走 往更南的南方'), findsOneWidget);
+    expect(find.textContaining('浪来过两次'), findsWidgets);
 
-    await tester.tap(find.text('候鸟排成人字'));
+    await tester.tap(find.text('候鸟排成人字 把我的问候带走 往更南的南方'));
     await tester.pumpAndSettle();
     expect(h.pushed, ['saved_a']);
   });

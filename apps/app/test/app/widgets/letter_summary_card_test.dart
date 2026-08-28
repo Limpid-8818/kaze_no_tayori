@@ -1,4 +1,4 @@
-/// 信件摘要卡组件测试：俳句三行排版、第四行截断省略、无诗回退预览、
+/// 信件摘要卡组件测试：正文预览主位 + 诗注记单行灰字、无诗仅预览、
 /// 距离/地点槽与时间、点击回调。
 library;
 
@@ -15,32 +15,41 @@ Widget _host(Widget card) {
 }
 
 void main() {
-  testWidgets('有诗：俳句逐行衬线排版', (tester) async {
+  testWidgets('有诗：预览与诗注记双段并存，三行诗压成一行空格分隔', (tester) async {
     await tester.pumpWidget(
       _host(
         const LetterSummaryCard(
+          previewText: '风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。',
           poem: '风穿过堤岸\n把下午吹得很轻\n浪只说了一半',
           timeLabel: '2小时前',
         ),
       ),
     );
 
-    expect(find.text('风穿过堤岸'), findsOneWidget);
-    expect(find.text('把下午吹得很轻'), findsOneWidget);
-    expect(find.text('浪只说了一半'), findsOneWidget);
+    expect(find.text('风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。'), findsOneWidget);
+    final note = tester.widget<Text>(find.text('风穿过堤岸 把下午吹得很轻 浪只说了一半'));
+    expect(note.maxLines, 1);
+    expect(note.style?.color, KazeColors.inkFaint);
+    expect(note.style?.fontSize, 12);
   });
 
-  testWidgets('超过三行：只显示三行，末行以中文省略号收尾', (tester) async {
+  testWidgets('超过三行：同样压一行，整体单行省略不换行', (tester) async {
     await tester.pumpWidget(
-      _host(const LetterSummaryCard(poem: '一行\n两行\n三行\n四行', timeLabel: '刚刚')),
+      _host(
+        const LetterSummaryCard(
+          previewText: '正文开头。',
+          poem: '一行\n两行\n三行\n四行',
+          timeLabel: '刚刚',
+        ),
+      ),
     );
 
-    expect(find.text('一行'), findsOneWidget);
-    expect(find.text('三行……'), findsOneWidget);
-    expect(find.text('四行'), findsNothing);
+    final note = tester.widget<Text>(find.text('一行 两行 三行 四行'));
+    expect(note.maxLines, 1);
+    expect(note.overflow, TextOverflow.ellipsis);
   });
 
-  testWidgets('无诗：回退正文预览两行位（单条文本，超出折断省略）', (tester) async {
+  testWidgets('无诗：仅正文预览两行位（单条文本，超出折断省略）', (tester) async {
     await tester.pumpWidget(
       _host(
         const LetterSummaryCard(

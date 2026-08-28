@@ -184,6 +184,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz),
       tooltip: '更多',
+      // M3 默认 menuPadding 在菜单上下各留 8px，首末项按下的 ink 涟漪
+      // 到不了菜单边缘、露出一圈空隙；归零让涟漪贴边。
+      menuPadding: EdgeInsets.zero,
       onSelected: (value) {
         switch (value) {
           case 'export':

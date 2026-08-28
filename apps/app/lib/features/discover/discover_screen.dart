@@ -13,6 +13,7 @@ import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 import '../../app/controllers/home_environment_controller.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../app/widgets/kaze_refresh_indicator.dart';
 import '../../app/widgets/kaze_scaffold.dart';
 import '../../app/widgets/letter_summary_card.dart';
 import '../../app/widgets/narrative_card.dart';
@@ -163,7 +164,7 @@ class _ListBody extends ConsumerWidget {
         ),
         const SizedBox(height: KazeSpacing.md),
         Expanded(
-          child: RefreshIndicator(
+          child: KazeRefreshIndicator(
             onRefresh: () =>
                 ref.read(discoverControllerProvider.notifier).refresh(),
             child: ListView.separated(

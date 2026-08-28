@@ -140,7 +140,7 @@ class _Harness {
 }
 
 void main() {
-  testWidgets('就绪：定位卡带半径与计数，俳句三行卡渲染，无诗卡走预览', (tester) async {
+  testWidgets('就绪：定位卡带半径与计数，诗注记压行渲染，无诗卡走预览', (tester) async {
     final h = _Harness(
       script: [
         ScriptedResponse.ok(200, {
@@ -160,10 +160,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('半径 1km · 找到 2 封信'), findsOneWidget);
-    expect(find.text('风穿过堤岸'), findsOneWidget);
-    expect(find.text('浪只说了一半'), findsOneWidget);
-    // 无诗信预览
-    expect(find.text('风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。'), findsOneWidget);
+    expect(find.text('风穿过堤岸 把下午吹得很轻 浪只说了一半'), findsOneWidget);
+    // 预览为主位：带诗卡与无诗卡都展示正文开头
+    expect(find.text('风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。'), findsNWidgets(2));
   });
 
   testWidgets('点卡片：push 对应阅读器路由（拆封语义归阅读器）', (tester) async {

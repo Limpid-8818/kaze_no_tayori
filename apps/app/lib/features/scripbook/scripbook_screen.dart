@@ -14,6 +14,7 @@ import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../app/widgets/kaze_refresh_indicator.dart';
 import '../../app/widgets/kaze_scaffold.dart';
 import '../../app/widgets/letter_summary_card.dart';
 import '../../app/widgets/narrative_card.dart';
@@ -161,7 +162,7 @@ class _ListBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return KazeRefreshIndicator(
       // 下拉刷新 = 静默刷新：列表不闪加载图，进度交给指示器本身
       onRefresh: () => ProviderScope.containerOf(
         context,

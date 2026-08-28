@@ -106,10 +106,10 @@ void main() {
 
     expect(find.text('公开中'), findsOneWidget);
     expect(find.text('审核中'), findsOneWidget);
-    expect(find.text('候鸟排成人字'), findsOneWidget);
+    expect(find.text('候鸟排成人字 把我的问候带走 往更南的南方'), findsOneWidget);
 
     // 公开信：点击 = 拆开重读
-    await tester.tap(find.text('候鸟排成人字'));
+    await tester.tap(find.text('候鸟排成人字 把我的问候带走 往更南的南方'));
     await tester.pumpAndSettle();
     expect(h.pushed, ['mine_a']);
   });
@@ -204,8 +204,8 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    // 带诗卡走俳句排版，长按目标取诗首行
-    await tester.longPress(find.text('候鸟排成人字'));
+    // 带诗卡的诗注记压成一行，长按目标取注记行
+    await tester.longPress(find.text('候鸟排成人字 把我的问候带走 往更南的南方'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('下架这封信'));
     await tester.pumpAndSettle();
