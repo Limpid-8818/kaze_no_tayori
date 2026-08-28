@@ -192,6 +192,7 @@ class LetterPublic {
     this.weather,
     this.tags = const [],
     this.parentLetterId,
+    this.meResonated = false,
   });
 
   factory LetterPublic.fromJson(Map<String, dynamic> json) =>
@@ -232,6 +233,12 @@ class LetterPublic {
   @JsonKey(name: 'parent_letter_id')
   final String? parentLetterId;
   final LetterCounts counts;
+
+  /// 当前读者是否已共鸣过（一次性）。仅详情接口按登录用户下发，
+  /// 列表接口不计算恒为 false——以读信页重新拉取的详情为准。
+  @JsonKey(name: 'me_resonated')
+  final bool meResonated;
+
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 

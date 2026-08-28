@@ -19,16 +19,33 @@ void main() {
       expect(NatsuResonance.sentence(12), '12 个陌生人也曾有过这样的时刻');
       expect(NatsuResonance.sentence(1), '1 个陌生人也曾有过这样的时刻');
     });
+
+    test('万位起缩写，尾零与点省略', () {
+      expect(NatsuResonance.sentence(12345), contains('1.2万 个陌生人'));
+      expect(NatsuResonance.sentence(20000), contains('2万 个陌生人'));
+      expect(NatsuResonance.compactCount(12345678), '1234.6万');
+      expect(NatsuResonance.compactCount(99999999), '10000万');
+      // 亿位起换单位
+      expect(NatsuResonance.compactCount(125000000), '1.3亿');
+      expect(NatsuResonance.compactCount(2147483647), '21.5亿');
+    });
   });
 
   group('NatsuResonance 三态', () {
-    testWidgets('未共鸣：✦ inkSoft + 行动字 + 句子，tap 触发一次', (tester) async {
+    testWidgets('未共鸣：星形 inkSoft + 行动字 + 句子，tap 触发一次', (tester) async {
       var resonated = 0;
       await tester.pumpWidget(
         _wrap(NatsuResonance(count: 3, onResonate: () => resonated++)),
       );
 
-      expect(find.text('✦'), findsOneWidget);
+      // ✦ 已是 Painter 描形（不再依赖字体度量），星形颜色直接从 painter 反解
+      expect(
+        find.descendant(
+          of: find.byType(NatsuResonance),
+          matching: find.byType(CustomPaint),
+        ),
+        findsOneWidget,
+      );
       // 行动字与句子在同一个 Text.rich 段落里（基线由排版器统一）——
       // find.text 只匹配整段富文本，改用 textContaining
       expect(find.textContaining('共鸣'), findsOneWidget);
@@ -40,7 +57,7 @@ void main() {
       expect(resonated, 1);
     });
 
-    testWidgets('已共鸣：✦ coralStamp、无行动字、tap 不再触发', (tester) async {
+    testWidgets('已共鸣：星形 coralStamp、无行动字、tap 不再触发', (tester) async {
       var resonated = 0;
       await tester.pumpWidget(
         _wrap(
@@ -72,7 +89,7 @@ void main() {
       expect(_sentenceStyle(tester)!.color, NatsuColors.disabledContent);
     });
 
-    testWidgets('落章动效：resonated false→true 触发 scale/rotation 动画', (
+    testWidgets('落章动效：resonated false→true 触发 scale/rotation 与颜色渐变', (
       tester,
     ) async {
       var resonated = false;
@@ -98,6 +115,11 @@ void main() {
       expect(midScale, greaterThan(0.6));
       expect(midScale, lessThan(1.15));
 
+      // 颜色在墨与珊瑚之间补间，不再是跳变
+      final midColor = _sparkleColor(tester)!;
+      expect(midColor, isNot(NatsuColors.inkSoft));
+      expect(midColor, isNot(NatsuColors.coralStamp));
+
       await tester.pumpAndSettle();
       expect(_sparkleScale(tester), 1.0);
       // 落章后颜色变珊瑚
@@ -116,17 +138,79 @@ void main() {
       await tester.pumpWidget(
         _wrap(NatsuResonance(count: 14, onResonate: () {}, resonated: true)),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(_sparkleScale(tester), 1.0);
       expect(_sparkleColor(tester), NatsuColors.coralStamp);
+    });
+
+    testWidgets('计数校正：句子随 count 变化淡入换句不硬切', (tester) async {
+      var count = 13;
+      late StateSetter update;
+      await tester.pumpWidget(
+        _wrap(
+          StatefulBuilder(
+            builder: (context, innerSetState) {
+              update = innerSetState;
+              return NatsuResonance(
+                count: count,
+                onResonate: () {},
+                resonated: true,
+              );
+            },
+          ),
+        ),
+      );
+      // 服务端校正：乐观 14 → 真值 15，重建期间旧句与新句同屏淡变
+      update(() => count = 15);
+      await tester.pump();
+      expect(find.byWidgetPredicate((w) => w is FadeTransition), findsWidgets);
+      await tester.pumpAndSettle();
+      expect(find.text(NatsuResonance.sentence(15)), findsOneWidget);
+      expect(find.text(NatsuResonance.sentence(13)), findsNothing);
+    });
+
+    testWidgets('超大计数：配 FittedBox 兜底（底栏同款结构）不溢出', (tester) async {
+      // 读信底栏同款约束：Expanded + FittedBox scaleDown——句子自然尺寸
+      // 超宽时整体缩小，RenderFlex 不溢出不抛异常
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: 320,
+            child: Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: NatsuResonance(
+                      count: 2147483647,
+                      onResonate: () {},
+                      resonated: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // 21 亿折成「21.5亿」，句子保持一屏可读
+      expect(find.textContaining('21.5亿'), findsOneWidget);
     });
   });
 }
 
-/// 从 widget 树反解 ✦ 的颜色
+/// 从星形 painter 反解当前颜色（_SparklePainter 是私有类，dynamic 取色）
 Color? _sparkleColor(WidgetTester tester) {
-  final sparkle = tester.widget<Text>(find.text('✦'));
-  return sparkle.style?.color;
+  final paint = tester.widget<CustomPaint>(
+    find.descendant(
+      of: find.byType(NatsuResonance),
+      matching: find.byType(CustomPaint),
+    ),
+  );
+  return (paint.painter as dynamic).color as Color?;
 }
 
 /// 从 ScaleTransition 的动画反解当前 ✦ scale（限定在组件内，

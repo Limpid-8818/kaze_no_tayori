@@ -11,7 +11,10 @@ import 'package:kazenotayori/features/reader/reader_controller.dart';
 import '../../fakes/fake_secure_store.dart';
 import '../../fakes/scripted_adapter.dart';
 
-Map<String, dynamic> _letterJson({String id = 'letter_1'}) => {
+Map<String, dynamic> _letterJson({
+  String id = 'letter_1',
+  bool meResonated = false,
+}) => {
   'id': id,
   'blocks': const [
     {'type': 'text', 'text': '你好'},
@@ -23,6 +26,7 @@ Map<String, dynamic> _letterJson({String id = 'letter_1'}) => {
   'weather': const {'text': '多云', 'temp_c': 26.0},
   'signature': '赶海的人',
   'parent_letter_id': null,
+  'me_resonated': meResonated,
   'counts': const {
     'read': 3,
     'resonance': 2,
@@ -136,6 +140,19 @@ void main() {
     await h.controller.start();
     expect(h.state.phase, ReaderPhase.ready);
     expect(h.state.notice, isNull);
+    h.dispose();
+  });
+
+  test('已共鸣播种：me_resonated 随详情加载点亮（重进章常亮）', () async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson(meResonated: true)),
+      const ScriptedResponse.ok(204),
+    ]);
+    await h.controller.start();
+
+    expect(h.state.phase, ReaderPhase.ready);
+    expect(h.state.resonated, isTrue);
+    expect(h.state.resonanceCount, 2);
     h.dispose();
   });
 

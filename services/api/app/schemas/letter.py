@@ -172,10 +172,14 @@ class LetterPublic(_BlocksMixin):
     delivery_mode: DeliveryMode
     parent_letter_id: str | None = None
     counts: LetterCounts
+
+    # 当前读者是否已共鸣过（一次性，详情接口按登录用户下发）。
+    # 列表接口不计算、恒为 False——读信页总是重新拉详情，以详情为准。
+    me_resonated: bool = False
     created_at: str  # ISO 8601 datetime serialized as string
 
     @classmethod
-    def from_letter(cls, letter: Any) -> "LetterPublic":
+    def from_letter(cls, letter: Any, me_resonated: bool = False) -> "LetterPublic":
         """ORM Letter → 对外形状。counts/created_at 是派生字段，不能 from_attributes。"""
         return cls(
             id=str(letter.id),
@@ -198,6 +202,7 @@ class LetterPublic(_BlocksMixin):
                 reply=letter.reply_count,
                 saved=letter.saved_count,
             ),
+            me_resonated=me_resonated,
             created_at=letter.created_at.isoformat(),
         )
 

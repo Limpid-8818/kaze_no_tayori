@@ -29,6 +29,7 @@ class LetterView {
     this.weatherIcon,
     this.parentLetterId,
     this.resonanceCount = 0,
+    this.resonated = false,
     this.addressee,
     this.skin = const natsu.LetterSkin(),
   });
@@ -45,6 +46,10 @@ class LetterView {
   final String? weatherIcon;
   final String? parentLetterId;
   final int resonanceCount;
+
+  /// 当前读者已共鸣过（详情接口 me_resonated 下发）——重进这封信时章
+  /// 常亮，不再反直觉地熄着；列表来源的模型恒 false，以详情为准。
+  final bool resonated;
 
   /// 宛名（封筒封面收信人）；null = 封面洁净。信纸态不消费，封筒
   /// 视图（页面切换）取用。
@@ -81,6 +86,7 @@ class LetterView {
       weatherIcon: letter.weather?.icon,
       parentLetterId: letter.parentLetterId,
       resonanceCount: letter.counts.resonance,
+      resonated: letter.meResonated,
       addressee: letter.addressee,
       skin: _skin(letter.themeSkin),
     );

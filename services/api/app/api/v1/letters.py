@@ -12,7 +12,7 @@ from app.core.deps import CurrentUser, OptionalUser, Session
 from app.models.enums import LetterStatus
 from app.schemas.common import ReportRequest
 from app.schemas.letter import LetterCreate, LetterOwned, LetterPublic
-from app.services import letter_service, poem_service
+from app.services import letter_service, poem_service, resonance_service
 
 router = APIRouter(tags=["letters"])
 
@@ -42,9 +42,13 @@ async def read_letter(letter_id: UUID, session: Session, user_id: OptionalUser) 
     """读单封公开信（回信溯源用）。非 public 一律 404。
 
     纯读：不写 letter_reads、不动 read_count（开信上报走 POST /letters/{id}/read）。
+    登录读者附带 me_resonated——点过共鸣的章常亮，重进未亮是反直觉的。
     """
     letter = await letter_service.get_public_letter(session, letter_id)
-    return LetterPublic.from_letter(letter)
+    me_resonated = (
+        await resonance_service.has_resonated(session, letter_id, user_id) if user_id else False
+    )
+    return LetterPublic.from_letter(letter, me_resonated=me_resonated)
 
 
 @router.post("/letters/{letter_id}/read", status_code=204)

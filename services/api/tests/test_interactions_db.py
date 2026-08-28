@@ -112,6 +112,35 @@ async def test_resonate_without_note_no_voice(
     assert got.json()["counts"]["voice"] == 0
 
 
+async def test_letter_detail_me_resonated(
+    db_client: Any, actors: dict[str, str], moderation_on: None
+) -> None:
+    """详情接口下发 me_resonated：点过的人章常亮，他人/匿名不亮。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+
+    # 点之前：reader 未共鸣，他人与匿名也不亮
+    fresh = await db_client.get(f"/v1/letters/{letter_id}", headers=_auth(actors["reader_token"]))
+    assert fresh.json()["me_resonated"] is False
+    other = await db_client.get(f"/v1/letters/{letter_id}", headers=_auth(actors["author_token"]))
+    assert other.json()["me_resonated"] is False
+    anon = await db_client.get(f"/v1/letters/{letter_id}")
+    assert anon.json()["me_resonated"] is False
+
+    await db_client.post(
+        f"/v1/letters/{letter_id}/resonance", json={}, headers=_auth(actors["reader_token"])
+    )
+
+    # 点之后：reader 亮，author 与匿名仍不亮
+    mine = await db_client.get(f"/v1/letters/{letter_id}", headers=_auth(actors["reader_token"]))
+    assert mine.json()["me_resonated"] is True
+    other_after = await db_client.get(
+        f"/v1/letters/{letter_id}", headers=_auth(actors["author_token"])
+    )
+    assert other_after.json()["me_resonated"] is False
+    anon_after = await db_client.get(f"/v1/letters/{letter_id}")
+    assert anon_after.json()["me_resonated"] is False
+
+
 async def test_resonate_pending_letter_404(db_client: Any, actors: dict[str, str]) -> None:
     letter_id = await _create_letter(db_client, actors["author_token"])  # moderation 关 → pending
     r = await db_client.post(

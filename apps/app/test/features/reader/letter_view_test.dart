@@ -14,6 +14,7 @@ LetterPublic _letter({
   Weather? weather,
   Object? addressee = _unset,
   LetterSkin? themeSkin,
+  bool meResonated = false,
 }) {
   return LetterPublic(
     id: 'letter_1',
@@ -31,6 +32,7 @@ LetterPublic _letter({
     weather: weather,
     tags: const ['夏天'],
     parentLetterId: 'letter_0',
+    meResonated: meResonated,
   );
 }
 
@@ -82,6 +84,9 @@ void main() {
     final view = LetterView.from(_letter());
     expect(view.resonanceCount, 5);
     expect(view.parentLetterId, 'letter_0');
+    // me_resonated 带出（默认不亮）
+    expect(view.resonated, isFalse);
+    expect(LetterView.from(_letter(meResonated: true)).resonated, isTrue);
     // LetterView 没有 poem/music/tags 字段——丢弃即断言不出现在
     // 渲染模型上；这里用视图字段的穷尽读取保证编译期没有加回来的位置。
     expect(view.signature, '赶海的人');

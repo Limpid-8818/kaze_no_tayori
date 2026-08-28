@@ -38,7 +38,28 @@ class NatsuResonance extends StatefulWidget {
   /// 句子式共鸣计数 — 「N 个陌生人也曾有过这样的时刻」。
   /// 零计数不排「0 个」（计数是叙事不是指标）：『它还在等第一个同感的人』。
   static String sentence(int count) =>
-      count <= 0 ? '它还在等第一个同感的人' : '$count 个陌生人也曾有过这样的时刻';
+      count <= 0 ? '它还在等第一个同感的人' : '${compactCount(count)} 个陌生人也曾有过这样的时刻';
+
+  /// 大数缩写：万位起折算「X.X万」、亿位起「X.X亿」（尾零与点省略），
+  /// 其余保持完整数字。句子是叙事不是指标，2147483647 排进句子里会
+  /// 把整行撑爆；缩写保证句子长度有上界。
+  static String compactCount(int count) {
+    if (count < 10000) return '$count';
+    late final double unit;
+    late final String suffix;
+    if (count >= 100000000) {
+      unit = count / 100000000;
+      suffix = '亿';
+    } else {
+      unit = count / 10000;
+      suffix = '万';
+    }
+    final text = unit.toStringAsFixed(1);
+    final trimmed = text.endsWith('.0')
+        ? text.substring(0, text.length - 2)
+        : text;
+    return '$trimmed$suffix';
+  }
 
   @override
   State<NatsuResonance> createState() => _NatsuResonanceState();
@@ -165,7 +186,12 @@ class _NatsuResonanceState extends State<NatsuResonance>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 未落章时 ✦ 静止在 scale 1 / 0°（controller 0）；落章动画驱动
+              // 未落章时 ✦ 静止在 scale 1 / 0°（controller 0）；落章动画驱动。
+              // 星形用 Painter 描不走文字度量：固定 18×18 盒子进 Row 按
+              // 包围盒居中，与句子基线天然无高低差（✦ 曾是文本符号，
+              // 手写体度量把它的基线抬得忽高忽低，点亮后尤其明显）。
+              // 颜色经 Tween 补间——墨→珊瑚的过渡本身就是「章落下来」
+              // 的过程，跳变会把它拍成开关。
               ScaleTransition(
                 scale: _stamp.isAnimating || _stamp.isCompleted
                     ? scale
@@ -174,24 +200,38 @@ class _NatsuResonanceState extends State<NatsuResonance>
                   turns: _stamp.isAnimating || _stamp.isCompleted
                       ? rotationTurns
                       : const AlwaysStoppedAnimation(0),
-                  child: Text(
-                    '✦',
-                    style: NatsuTypography.hwNote.copyWith(
-                      color: sparkleColor,
-                      fontSize: 18,
-                      height: 1.1,
+                  child: TweenAnimationBuilder<Color?>(
+                    tween: ColorTween(end: sparkleColor),
+                    duration: NatsuMotion.medium,
+                    curve: NatsuMotion.easing,
+                    builder: (_, color, _) => CustomPaint(
+                      size: const Size.square(18),
+                      painter: _SparklePainter(color: color ?? sparkleColor),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: NatsuSpacing.sm),
               if (widget.resonated || !canInteract)
-                Text(
-                  NatsuResonance.sentence(widget.count),
-                  style: NatsuTypography.hwNote.copyWith(
-                    color: canInteract
-                        ? NatsuColors.inkSoft
-                        : NatsuColors.disabledContent,
+                // 计数被服务端校正时（乐观值 ≠ 真值）淡入换句而非硬切，
+                // 用户看到的是「句子轻轻换了一下」不是数字跳变
+                AnimatedSwitcher(
+                  duration: NatsuMotion.short,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: CurvedAnimation(
+                      parent: animation,
+                      curve: NatsuMotion.easing,
+                    ),
+                    child: child,
+                  ),
+                  child: Text(
+                    NatsuResonance.sentence(widget.count),
+                    key: ValueKey(widget.count),
+                    style: NatsuTypography.hwNote.copyWith(
+                      color: canInteract
+                          ? NatsuColors.inkSoft
+                          : NatsuColors.disabledContent,
+                    ),
                   ),
                 )
               else
@@ -224,4 +264,59 @@ class _NatsuResonanceState extends State<NatsuResonance>
       ),
     );
   }
+}
+
+/// ✦ 四角星描形——以中心为原点，四个尖角顶到盒缘，边用二次贝塞尔向内
+/// 凹出 ✦ 的腰身。替代文本符号后不依赖字体度量，颜色随章任意着色。
+class _SparklePainter extends CustomPainter {
+  const _SparklePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    // 腰部收点离中心的比例（越小越瘦）
+    const waist = 0.18;
+
+    const up = Offset(0, -1), down = Offset(0, 1);
+    const left = Offset(-1, 0), right = Offset(1, 0);
+
+    Offset point(Offset dir, double k) => c + dir * (r * k);
+
+    final path = Path()
+      ..moveTo(point(up, 1).dx, point(up, 1).dy)
+      // 顺时针：上尖 → 右尖 → 下尖 → 左尖，控制点压在腰部
+      ..quadraticBezierTo(
+        point(right, waist).dx,
+        point(right, waist).dy,
+        point(right, 1).dx,
+        point(right, 1).dy,
+      )
+      ..quadraticBezierTo(
+        point(down, waist).dx,
+        point(down, waist).dy,
+        point(down, 1).dx,
+        point(down, 1).dy,
+      )
+      ..quadraticBezierTo(
+        point(left, waist).dx,
+        point(left, waist).dy,
+        point(left, 1).dx,
+        point(left, 1).dy,
+      )
+      ..quadraticBezierTo(
+        point(up, waist).dx,
+        point(up, waist).dy,
+        point(up, 1).dx,
+        point(up, 1).dy,
+      )
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_SparklePainter old) => old.color != color;
 }

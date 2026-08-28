@@ -3,9 +3,9 @@
 /// MVC 分工与 WriteController 一致：页面只做布局与交互挂接，本类持有
 /// 唯一可变状态 [ReaderState]。按 letterId 分实例（family）：读信页可以
 /// 叠栈（看原信/告知跳转），每页各持各的信，互不覆盖；页面离栈即无
-/// 监听，实例自动销毁，再进入总是全新加载。共鸣是一次性动作：本地先落
-/// 章再用服务端计数校正，失败回滚；不持久化 resonated 位——服务端幂等，
-/// 重复进入这封信再按一次也涨不了计数。
+/// 监听，实例自动销毁，再进入总是全新加载。共鸣是一次性动作：已共鸣
+/// 位由详情接口 me_resonated 下发并随加载播种（重进常亮），会话内先
+/// 落章再用服务端计数校正，失败回滚；服务端幂等，重复按也涨不了计数。
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +34,7 @@ class ReaderState {
   /// ready 态才有；其余态为 null。
   final LetterView? view;
 
-  /// 本会话内已共鸣（乐观位，随校正保留）。
+  /// 已共鸣（详情 me_resonated 播种 + 会话内乐观位，随校正保留）。
   final bool resonated;
   final int resonanceCount;
   final ReaderNotice? notice;
@@ -88,6 +88,7 @@ class ReaderController extends Notifier<ReaderState> {
       state = state.copyWith(
         phase: ReaderPhase.ready,
         view: view,
+        resonated: view.resonated,
         resonanceCount: view.resonanceCount,
       );
     } on ApiFailure catch (failure) {
@@ -114,7 +115,11 @@ class ReaderController extends Notifier<ReaderState> {
     state = state.copyWith(resonated: true, resonanceCount: before + 1);
     try {
       final res = await ref.read(lettersApiProvider).addResonance(arg);
-      state = state.copyWith(resonanceCount: res.resonanceCount);
+      // 服务端为真源，但只在有出入时校正——乐观值碰巧等于真值就不必
+      // 重建一帧，句子也免得白白淡变一次
+      if (res.resonanceCount != state.resonanceCount) {
+        state = state.copyWith(resonanceCount: res.resonanceCount);
+      }
     } on ApiFailure {
       state = state.copyWith(
         resonated: false,

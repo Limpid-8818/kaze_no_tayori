@@ -20,6 +20,9 @@ class MockApiAdapter implements HttpClientAdapter {
   int _resonanceCount = 2;
   int _driftCursor = 0;
 
+  /// 已共鸣的信——me_resonated 契约的 mock 侧（对齐服务端幂等语义）。
+  final Set<String> _resonatedIds = {};
+
   /// 已拆封的信——发掘/漂流池不再回给同一台设备（对齐服务端语义）。
   final Set<String> _openedIds = {};
 
@@ -101,7 +104,10 @@ class MockApiAdapter implements HttpClientAdapter {
     if (method == 'GET' && letterMatch != null) {
       final json = _publicLetterById(letterMatch.group(1)!);
       return json != null
-          ? _json(200, json)
+          ? _json(200, {
+              ...json,
+              'me_resonated': _resonatedIds.contains(letterMatch.group(1)),
+            })
           : _json(404, const {
               'error': {
                 'code': 'letter_not_found',
@@ -122,7 +128,12 @@ class MockApiAdapter implements HttpClientAdapter {
     }
     if (method == 'POST' &&
         RegExp(r'^/v1/letters/[^/]+/resonance$').hasMatch(path)) {
-      return _json(201, {'resonance_count': ++_resonanceCount});
+      // 幂等：重复共鸣计数不再涨，但 me_resonated 依然为真
+      final id = RegExp(r'^/v1/letters/([^/]+)/resonance$')
+          .firstMatch(path)!
+          .group(1)!;
+      if (_resonatedIds.add(id)) _resonanceCount++;
+      return _json(201, {'resonance_count': _resonanceCount});
     }
     if (method == 'GET' && path == '/v1/weather/now') {
       return _json(200, const {'text': '晴', 'temp_c': 27.5, 'icon': 'clear'});

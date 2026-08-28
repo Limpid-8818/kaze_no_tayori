@@ -52,6 +52,20 @@ async def resonate(session: AsyncSession, letter_id: UUID, user_id: UUID, note: 
     return refreshed.resonance_count
 
 
+async def has_resonated(session: AsyncSession, letter_id: UUID, user_id: UUID) -> bool:
+    """当前用户是否已对这封信共鸣过（详情接口下发 me_resonated 用）。
+
+    幂等的另一面：用户点过就该看到章常亮，重进未亮是反直觉的。
+    只答 bool，不暴露是谁——匿名铁律不受影响。
+    """
+    result = await session.execute(
+        select(ResonanceLog.id).where(
+            ResonanceLog.letter_id == letter_id, ResonanceLog.user_id == user_id
+        )
+    )
+    return result.first() is not None
+
+
 async def add_to_scripbook(
     session: AsyncSession, letter_id: UUID, user_id: UUID, note: str | None
 ) -> None:
