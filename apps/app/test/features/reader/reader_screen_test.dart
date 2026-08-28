@@ -17,10 +17,14 @@ import '../../fakes/fake_secure_store.dart';
 import '../../fakes/scripted_adapter.dart';
 
 /// 纯文本信：测试环境里不出现网络图（cached_network_image 会真发请求）。
-Map<String, dynamic> _letterJson() => {
-  'id': 'letter_1',
-  'blocks': const [
-    {'type': 'text', 'text': '傍晚的海边风很大'},
+Map<String, dynamic> _letterJson({
+  String id = 'letter_1',
+  String? parentLetterId,
+  String text = '傍晚的海边风很大',
+}) => {
+  'id': id,
+  'blocks': [
+    {'type': 'text', 'text': text},
   ],
   'theme_id': 'natsu',
   'delivery_mode': 'drift',
@@ -28,7 +32,7 @@ Map<String, dynamic> _letterJson() => {
   'weather': const {'text': '多云', 'temp_c': 26.0},
   'signature': '赶海的人',
   'addressee': '某人',
-  'parent_letter_id': null,
+  'parent_letter_id': parentLetterId,
   'counts': const {
     'read': 3,
     'resonance': 2,
@@ -62,14 +66,12 @@ DioException _server(String path) => DioException(
 );
 
 class _Harness {
-  _Harness(List<ScriptedResponse> script)
-    : adapter = ScriptedAdapter(script),
-      pushed = <String>[];
+  _Harness(List<ScriptedResponse> script) : adapter = ScriptedAdapter(script);
 
   final ScriptedAdapter adapter;
 
   /// /write 路由被 push 时记录完整位置（验回信入口参数）。
-  final List<String> pushed;
+  final List<String> pushed = <String>[];
 
   Widget app() {
     final router = GoRouter(
@@ -123,6 +125,8 @@ void main() {
     expect(find.text('赶海的人'), findsOneWidget);
     expect(find.byType(NatsuResonance), findsOneWidget);
     expect(find.text('回以一封信'), findsOneWidget);
+    // 非回信没有「看原信」入口
+    expect(find.text('看原信'), findsNothing);
   });
 
   testWidgets('404：空态文案居中大卡片，无中间按钮，返回交给 AppBar', (tester) async {
@@ -240,5 +244,38 @@ void main() {
     // 收尾把 toast 的定时器走完，避免测试悬挂计时器报错
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('「看原信」：工具行居右入口，点击叠开原信且两页状态独立', (tester) async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson(parentLetterId: 'letter_0')),
+      const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(id: 'letter_0', text: '海风把回信吹来了')),
+      const ScriptedResponse.ok(204),
+    ]);
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+
+    // 工具行：切换钮在左，「看原信」居右
+    expect(find.text('看原信'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('看封筒')).dx,
+      lessThan(tester.getTopLeft(find.text('看原信')).dx),
+    );
+
+    // ⋯ 菜单里不再有旧入口
+    await tester.tap(find.byTooltip('更多'));
+    await tester.pumpAndSettle();
+    expect(find.text('查看它回应的那封信'), findsNothing);
+    await tester.tapAt(const Offset(20, 200)); // 点屏障收起菜单
+    await tester.pumpAndSettle();
+
+    // 叠开原信：顶层渲染 letter_0，栈下的 letter_1 仍是自己的信
+    // （曾为全局单例 provider 时会被覆盖/清成空态）
+    await tester.tap(find.text('看原信'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReaderScreen, skipOffstage: false), findsNWidgets(2));
+    expect(find.text('海风把回信吹来了'), findsOneWidget);
+    expect(find.text('傍晚的海边风很大', skipOffstage: false), findsOneWidget);
   });
 }

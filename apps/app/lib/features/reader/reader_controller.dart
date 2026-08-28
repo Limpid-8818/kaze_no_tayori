@@ -1,9 +1,11 @@
 /// 读信页控制器 —— 加载、开信上报、共鸣乐观回显、举报。
 ///
 /// MVC 分工与 WriteController 一致：页面只做布局与交互挂接，本类持有
-/// 唯一可变状态 [ReaderState]。共鸣是一次性动作：本地先落章再用服务端
-/// 计数校正，失败回滚；不持久化 resonated 位——服务端幂等，重复进入
-/// 这封信再按一次也涨不了计数。
+/// 唯一可变状态 [ReaderState]。按 letterId 分实例（family）：读信页可以
+/// 叠栈（看原信/告知跳转），每页各持各的信，互不覆盖；页面离栈即无
+/// 监听，实例自动销毁，再进入总是全新加载。共鸣是一次性动作：本地先落
+/// 章再用服务端计数校正，失败回滚；不持久化 resonated 位——服务端幂等，
+/// 重复进入这封信再按一次也涨不了计数。
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,17 +59,21 @@ class ReaderState {
 }
 
 final readerControllerProvider =
-    NotifierProvider<ReaderController, ReaderState>(ReaderController.new);
+    NotifierProvider.family<ReaderController, ReaderState, String>(
+      ReaderController.new,
+    );
 
 class ReaderController extends Notifier<ReaderState> {
+  ReaderController(this.arg);
+
+  /// 本实例服务的信（family 参数）——start 与全部动作都以它为准。
+  final String arg;
+
   @override
   ReaderState build() => const ReaderState();
 
-  String? _letterId;
-
   /// 进入页面时调用（可重复调用 = 重试）。
-  Future<void> start(String letterId) async {
-    _letterId = letterId;
+  Future<void> start() async {
     state = const ReaderState();
     await _load();
   }
@@ -75,11 +81,9 @@ class ReaderController extends Notifier<ReaderState> {
   Future<void> retry() => _load();
 
   Future<void> _load() async {
-    final letterId = _letterId;
-    if (letterId == null) return;
     final api = ref.read(lettersApiProvider);
     try {
-      final letter = await api.get(letterId);
+      final letter = await api.get(arg);
       final view = LetterView.from(letter);
       state = state.copyWith(
         phase: ReaderPhase.ready,
@@ -96,7 +100,7 @@ class ReaderController extends Notifier<ReaderState> {
     }
     // 开信上报不阻断阅读：失败静默（幂等，下次打开还有机会）。
     try {
-      await api.markRead(letterId);
+      await api.markRead(arg);
     } on ApiFailure {
       // 故意忽略
     }
@@ -105,13 +109,11 @@ class ReaderController extends Notifier<ReaderState> {
   /// ✦ 共鸣：先落章再上报，用服务端计数校正；失败回滚。
   Future<void> resonate() async {
     if (state.phase != ReaderPhase.ready || state.resonated) return;
-    final letterId = _letterId;
-    if (letterId == null) return;
 
     final before = state.resonanceCount;
     state = state.copyWith(resonated: true, resonanceCount: before + 1);
     try {
-      final res = await ref.read(lettersApiProvider).addResonance(letterId);
+      final res = await ref.read(lettersApiProvider).addResonance(arg);
       state = state.copyWith(resonanceCount: res.resonanceCount);
     } on ApiFailure {
       state = state.copyWith(
@@ -126,12 +128,10 @@ class ReaderController extends Notifier<ReaderState> {
   /// saved_count 不重复加），且「是否已收藏」不下发——菜单项恒可点，
   /// 重复记一次只是再听到一声回响。
   Future<void> saveToScripbook() async {
-    final letterId = _letterId;
-    if (letterId == null) return;
     try {
       await ref
           .read(meApiProvider)
-          .addScripbook(ScripbookAddRequest(letterId: letterId));
+          .addScripbook(ScripbookAddRequest(letterId: arg));
       state = state.copyWith(
         notice: (message: '已收进抄本', seq: (state.notice?.seq ?? 0) + 1),
       );
@@ -144,12 +144,10 @@ class ReaderController extends Notifier<ReaderState> {
 
   /// 举报。理由由页面弹层收集（≤32 字）。
   Future<void> report({required String reason, String? detail}) async {
-    final letterId = _letterId;
-    if (letterId == null) return;
     try {
       await ref
           .read(lettersApiProvider)
-          .report(letterId, ReportRequest(reason: reason, detail: detail));
+          .report(arg, ReportRequest(reason: reason, detail: detail));
       state = state.copyWith(
         notice: (message: '已举报', seq: (state.notice?.seq ?? 0) + 1),
       );

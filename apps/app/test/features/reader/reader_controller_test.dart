@@ -11,8 +11,8 @@ import 'package:kazenotayori/features/reader/reader_controller.dart';
 import '../../fakes/fake_secure_store.dart';
 import '../../fakes/scripted_adapter.dart';
 
-Map<String, dynamic> _letterJson() => {
-  'id': 'letter_1',
+Map<String, dynamic> _letterJson({String id = 'letter_1'}) => {
+  'id': id,
   'blocks': const [
     {'type': 'text', 'text': '你好'},
     {'type': 'photo', 'ref': 'https://x/img.jpg', 'mood': 'backlit'},
@@ -66,6 +66,8 @@ class _Harness {
     );
   }
 
+  static const _id = 'letter_1';
+
   final ScriptedAdapter adapter;
   late final ProviderContainer container;
 
@@ -75,9 +77,14 @@ class _Harness {
     )..httpClientAdapter = adapter;
   }
 
+  /// family 按 letterId 分实例：getter 取主测信，叠栈场景用 controllerOf。
   ReaderController get controller =>
-      container.read(readerControllerProvider.notifier);
-  ReaderState get state => container.read(readerControllerProvider);
+      container.read(readerControllerProvider(_id).notifier);
+  ReaderController controllerOf(String id) =>
+      container.read(readerControllerProvider(id).notifier);
+  ReaderState stateOf(String id) =>
+      container.read(readerControllerProvider(id));
+  ReaderState get state => stateOf(_id);
 
   void dispose() => container.dispose();
 }
@@ -88,7 +95,7 @@ void main() {
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     expect(h.state.phase, ReaderPhase.ready);
     expect(h.state.view?.id, 'letter_1');
@@ -101,7 +108,7 @@ void main() {
 
   test('404 → notFound 态（不再发 markRead）', () async {
     final h = _Harness([ScriptedResponse.fail(_notFound('/v1/letters/x'))]);
-    await h.controller.start('x');
+    await h.controller.start();
     expect(h.state.phase, ReaderPhase.notFound);
     expect(h.adapter.requests, hasLength(1));
     h.dispose();
@@ -113,7 +120,7 @@ void main() {
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
     expect(h.state.phase, ReaderPhase.error);
 
     await h.controller.retry();
@@ -126,7 +133,7 @@ void main() {
       ScriptedResponse.ok(200, _letterJson()),
       ScriptedResponse.fail(_server('/v1/letters/letter_1/read')),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
     expect(h.state.phase, ReaderPhase.ready);
     expect(h.state.notice, isNull);
     h.dispose();
@@ -138,7 +145,7 @@ void main() {
       const ScriptedResponse.ok(204),
       ScriptedResponse.ok(201, {'resonance_count': 7}),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     await h.controller.resonate();
     // 乐观位在校正前也应为 resonated（此处等待完成后已校正）
@@ -156,7 +163,7 @@ void main() {
       const ScriptedResponse.ok(204),
       ScriptedResponse.fail(_server('/v1/letters/letter_1/resonance')),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     await h.controller.resonate();
     expect(h.state.resonated, isFalse);
@@ -171,7 +178,7 @@ void main() {
       const ScriptedResponse.ok(204),
       const ScriptedResponse.ok(204),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     await h.controller.saveToScripbook();
 
@@ -189,7 +196,7 @@ void main() {
       const ScriptedResponse.ok(204),
       ScriptedResponse.fail(_server('/v1/me/scripbook')),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     await h.controller.saveToScripbook();
 
@@ -204,12 +211,48 @@ void main() {
       const ScriptedResponse.ok(204),
       const ScriptedResponse.ok(204),
     ]);
-    await h.controller.start('letter_1');
+    await h.controller.start();
 
     await h.controller.report(reason: '垃圾广告');
     expect(h.state.notice?.message, '已举报');
     final reportReq = h.adapter.requests.last;
     expect(reportReq.uri.path, '/v1/letters/letter_1/report');
+    h.dispose();
+  });
+
+  test('叠栈互不污染：看原信叠开第二封，先前的信不被覆盖或清空', () async {
+    // 曾是全局单例 provider 的回归场景：第二个读信页 start() 会把共享
+    // 状态硬重置，栈下原信页被污染成 loading/空态且返回后无人恢复。
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(id: 'letter_0')),
+      const ScriptedResponse.ok(204),
+    ]);
+    await h.controller.start(); // 原信页 letter_1 → ready
+
+    await h.controllerOf('letter_0').start(); // 叠开的原信 letter_0 → ready
+
+    expect(h.state.phase, ReaderPhase.ready);
+    expect(h.state.view?.id, 'letter_1');
+    expect(h.stateOf('letter_0').phase, ReaderPhase.ready);
+    expect(h.stateOf('letter_0').view?.id, 'letter_0');
+    h.dispose();
+  });
+
+  test('叠栈互不污染：第二封 404，先前的信仍保持 ready', () async {
+    final h = _Harness([
+      ScriptedResponse.ok(200, _letterJson()),
+      const ScriptedResponse.ok(204),
+      ScriptedResponse.fail(_notFound('/v1/letters/x')),
+    ]);
+    await h.controller.start();
+
+    await h.controllerOf('letter_gone').start();
+
+    expect(h.state.phase, ReaderPhase.ready);
+    expect(h.state.view?.id, 'letter_1');
+    expect(h.stateOf('letter_gone').phase, ReaderPhase.notFound);
     h.dispose();
   });
 }
