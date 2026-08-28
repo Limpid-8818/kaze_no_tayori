@@ -142,7 +142,7 @@ Future<void> saveToGallery(Uint8List png) async {
     png,
     album: '风信',
     name:
-        'fengxin_letter_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
+        'kaze_no_tayori_letter_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
   );
 }
 
@@ -156,7 +156,7 @@ Future<void> shareLetterPng(Uint8List png) {
         XFile.fromData(
           png,
           mimeType: 'image/png',
-          name: 'fengxin_letter_$stamp.png',
+          name: 'kaze_no_tayori_letter_$stamp.png',
         ),
       ],
     ),
