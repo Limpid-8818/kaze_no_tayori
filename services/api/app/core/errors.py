@@ -94,6 +94,13 @@ class SeedLetterOnly(AppError):
     code = "seed_letter_only"
 
 
+class SeedCreatedAtInFuture(AppError):
+    """种子信落款时间晚于现在——回溯语义不允许「预发布」。"""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "seed_created_at_in_future"
+
+
 class InvalidImage(AppError):
     """上传的内容不是可解码的图片。"""
 

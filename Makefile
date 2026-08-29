@@ -4,6 +4,7 @@
 SHELL := /bin/bash
 API_DIR := services/api
 APP_DIR := apps/app
+ADMIN_DIR := apps/admin
 DESIGN_SYSTEM_DIR := packages/natsu_no_tegami
 UV := uv
 UV_RUN := $(UV) run --frozen
@@ -15,7 +16,7 @@ else
 APP_DEVICE ?= chrome
 endif
 
-.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android app-android-emulator app-android-emulator-mock app-ios gen gen-watch \
+.PHONY: help bootstrap hooks db-up db-stop db-status api app app-android app-android-emulator app-android-emulator-mock app-ios admin admin-build gen gen-watch \
         revision migrate downgrade seed check check-py check-dart check-db openapi sync-ds clean
 
 # 终端输出一律 ASCII：Windows 控制台默认 GBK 代码页，中文会显示成乱码。
@@ -32,6 +33,8 @@ help:
 	@echo "  make app-android-emulator  run app on Android Emulator (10.0.2.2)"
 	@echo "  make app-android-emulator-mock  run app on Emulator with mock API (no backend)"
 	@echo "  make app-ios IOS_DEVICE=<id>  run app on iOS device/simulator"
+	@echo "  make admin         run ops console on web (APP_DEVICE, default edge)"
+	@echo "  make admin-build   build ops console (flutter build web)"
 	@echo "  make gen          Flutter codegen (freezed / riverpod)"
 	@echo "  make revision m=\"...\"  Alembic autogenerate (REVIEW the output)"
 	@echo "  make migrate      Alembic upgrade head"
@@ -111,6 +114,13 @@ ifndef IOS_DEVICE
 endif
 	cd $(APP_DIR) && flutter run -d "$(IOS_DEVICE)" --dart-define=API_BASE_URL=$(API_BASE_URL)
 
+# ---------- 运营控制台（apps/admin，Flutter Web）----------
+admin:
+	cd $(ADMIN_DIR) && flutter run -d $(APP_DEVICE) --dart-define=API_BASE_URL=$(API_BASE_URL)
+
+admin-build:
+	cd $(ADMIN_DIR) && flutter build web --dart-define=API_BASE_URL=$(API_BASE_URL)
+
 # build_runner 2.x 已移除 --delete-conflicting-outputs（传了只会警告）
 gen:
 	cd $(APP_DIR) && dart run build_runner build
@@ -131,6 +141,9 @@ check-dart:
 	cd $(APP_DIR) && dart format --set-exit-if-changed lib test
 	cd $(APP_DIR) && flutter analyze
 	cd $(APP_DIR) && flutter test
+	cd $(ADMIN_DIR) && dart format --set-exit-if-changed lib test
+	cd $(ADMIN_DIR) && flutter analyze
+	cd $(ADMIN_DIR) && flutter test
 	cd $(DESIGN_SYSTEM_DIR) && dart format --set-exit-if-changed lib test
 	cd $(DESIGN_SYSTEM_DIR) && flutter analyze
 	cd $(DESIGN_SYSTEM_DIR) && flutter test test/tokens test/components

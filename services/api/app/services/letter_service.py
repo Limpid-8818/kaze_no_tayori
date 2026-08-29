@@ -25,6 +25,7 @@ async def create_letter(
     parent_letter_id: UUID | None = None,
     *,
     status: LetterStatus | None = None,
+    created_at: Any | None = None,
 ) -> Letter:
     """建信。
 
@@ -32,6 +33,7 @@ async def create_letter(
     - delivery_mode=stay 时 lat/lon 必填，写入 location（geography POINT 4326）
     - 走审核（moderation_service）决定 status；审核不可用时停在 pending
     - status 直通（运营控制台种子信）时跳过审核，运营自己就是审核者
+    - created_at 直通（种子信回溯落款）时覆盖 server_default 的当下
     - theme 写入后永久绑定，后续不得批量迁移
     - parent_letter_id 仅由 service 预置（回信场景），schema 不接受客户端直传
     """
@@ -61,6 +63,9 @@ async def create_letter(
         owner_user_id=owner_user_id,
         parent_letter_id=parent_letter_id,
     )
+    # None 不能显式赋给 server_default 列（会 INSERT NULL），只在提供时覆盖
+    if created_at is not None:
+        letter.created_at = created_at
     session.add(letter)
     await session.flush()
     # created_at / id 是 server_default，refresh 取回

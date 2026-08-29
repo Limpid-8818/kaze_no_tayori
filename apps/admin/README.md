@@ -24,13 +24,14 @@
 make seed    # services/api/scripts/seed_letters.py
 ```
 
-## 将来怎么跑（A1 落地后）
+## 将来怎么跑（已随 A1/A2 落地）
 
 ```bash
-cd apps/admin
-flutter run -d chrome        # API base 指向本机 services/api
-flutter build web            # 生产构建
+make admin          # flutter run -d edge（Windows 无 Chrome，见根 CLAUDE.md）
+make admin-build    # flutter build web
 ```
+
+账号：`cd services/api && uv run python scripts/create_admin.py --username ops --password '...'`
 
 技术栈：Flutter + Riverpod + go_router；只复用 `packages/natsu_no_tegami` 的 token 层
 （色板/字体），不复用叙事组件——管理端是中性密集工作台风格。

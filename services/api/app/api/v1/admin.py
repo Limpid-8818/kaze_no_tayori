@@ -25,6 +25,7 @@ from app.schemas.admin import (
     AdminReportLetterBrief,
     AdminReportPublic,
     AdminReportUpdate,
+    AdminSeedLetterCreate,
     AdminSeedLetterUpdate,
     AdminStats,
 )
@@ -35,7 +36,6 @@ from app.schemas.feedback import (
     AdminLoginRequest,
     AdminTokenResponse,
 )
-from app.schemas.letter import LetterCreate
 from app.services import admin_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -101,10 +101,13 @@ async def transition_letter_status(
 async def list_reports(
     session: Session,
     admin_id: CurrentAdmin,
-    status: ReportStatus = ReportStatus.OPEN,
+    status: ReportStatus | None = None,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Page[AdminReportPublic]:
-    """举报列表（JOIN 涉事信摘要），created_at DESC。默认只看 open。"""
+    """举报列表（JOIN 涉事信摘要），created_at DESC。
+
+    status 缺省 = 全部（含已处理）；「默认只看待处理」由前端显式传 open。
+    """
     rows = await admin_service.list_reports(session, status=status, limit=limit)
     items = [
         AdminReportPublic(
@@ -217,9 +220,10 @@ async def list_seed_letters(
 
 @router.post("/seed-letters", response_model=AdminLetterDetail, status_code=201)
 async def create_seed_letter(
-    payload: LetterCreate, session: Session, writer: AdminWriter
+    payload: AdminSeedLetterCreate, session: Session, writer: AdminWriter
 ) -> AdminLetterDetail:
-    """新建种子信：复用写信校验，owner=NULL、直接 public 入池（跳过机审）。"""
+    """新建种子信：复用写信校验，owner=NULL、直接 public 入池（跳过机审）；
+    created_at 可回溯落款（须为过去，否则 400 seed_created_at_in_future）。"""
     letter = await admin_service.create_seed_letter(session, payload)
     return AdminLetterDetail.detail_from(letter)
 

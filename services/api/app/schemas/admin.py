@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.enums import DeliveryMode, LetterStatus, ReportStatus
 from app.schemas.letter import (
     LetterCounts,
+    LetterCreate,
     LetterPublic,
     MusicRef,
     Weather,
@@ -169,8 +170,17 @@ class AdminStats(BaseModel):
 # ---------- 种子信件管理 ----------
 
 
+class AdminSeedLetterCreate(LetterCreate):
+    """新建种子信 = 写信 body + 可选落款时间（回溯，须为过去；校验在 service 层）。
+
+    LetterCreate 的 extra=forbid 只拒绝未声明字段，created_at 已声明即放行。
+    """
+
+    created_at: datetime | None = None
+
+
 class AdminSeedLetterUpdate(_BlocksMixin):
-    """种子信编辑：blocks/文案/落点/天气可改；theme 绑定红线不给改。
+    """种子信编辑：blocks/文案/落点/天气/落款时间可改；theme 绑定红线不给改。
 
     delivery_mode=stay 时 lat/lon 必填（校验在 service 层，与写信同口径）。
     """
@@ -185,4 +195,5 @@ class AdminSeedLetterUpdate(_BlocksMixin):
     lon: float | None = Field(default=None, ge=-180, le=180)
     place_label: str | None = Field(default=None, max_length=128)
     weather: Weather | None = None
+    created_at: datetime | None = None
     model_config = ConfigDict(extra="forbid")

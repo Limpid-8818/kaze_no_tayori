@@ -610,9 +610,9 @@
         "title": "AdminReportUpdate",
         "type": "object"
       },
-      "AdminSeedLetterUpdate": {
+      "AdminSeedLetterCreate": {
         "additionalProperties": false,
-        "description": "种子信编辑：blocks/文案/落点/天气可改；theme 绑定红线不给改。\n\ndelivery_mode=stay 时 lat/lon 必填（校验在 service 层，与写信同口径）。",
+        "description": "新建种子信 = 写信 body + 可选落款时间（回溯，须为过去；校验在 service 层）。\n\nLetterCreate 的 extra=forbid 只拒绝未声明字段，created_at 已声明即放行。",
         "properties": {
           "addressee": {
             "anyOf": [
@@ -648,6 +648,185 @@
             "minItems": 1,
             "title": "Blocks",
             "type": "array"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Tags",
+            "type": "array"
+          },
+          "theme_id": {
+            "default": "natsu",
+            "maxLength": 32,
+            "title": "Theme Id",
+            "type": "string"
+          },
+          "theme_skin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LetterSkin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "blocks",
+          "delivery_mode"
+        ],
+        "title": "AdminSeedLetterCreate",
+        "type": "object"
+      },
+      "AdminSeedLetterUpdate": {
+        "additionalProperties": false,
+        "description": "种子信编辑：blocks/文案/落点/天气/落款时间可改；theme 绑定红线不给改。\n\ndelivery_mode=stay 时 lat/lon 必填（校验在 service 层，与写信同口径）。",
+        "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
           },
           "delivery_mode": {
             "$ref": "#/components/schemas/DeliveryMode"
@@ -2836,13 +3015,13 @@
         ]
       },
       "post": {
-        "description": "新建种子信：复用写信校验，owner=NULL、直接 public 入池（跳过机审）。",
+        "description": "新建种子信：复用写信校验，owner=NULL、直接 public 入池（跳过机审）；\ncreated_at 可回溯落款（须为过去，否则 400 seed_created_at_in_future）。",
         "operationId": "create_seed_letter_v1_admin_seed_letters_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LetterCreate"
+                "$ref": "#/components/schemas/AdminSeedLetterCreate"
               }
             }
           },

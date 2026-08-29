@@ -305,13 +305,13 @@ P0 只做拉取，不做推送。
 | GET | `/v1/admin/letters` | `?status&delivery_mode&owner(seed\|user)&limit(≤50)&cursor` → `Page[AdminLetterSummary]`（含非 public；时间倒序） |
 | GET | `/v1/admin/letters/{id}` | `AdminLetterDetail`：全量 blocks + meta + counts + `owner_user_id`（仅管理端可见，用途=区分种子信/处置举报） |
 | PATCH | `/v1/admin/letters/{id}/status` | `{status, note?}`。状态机：pending→public\|rejected；public↔taken_down；rejected→public。表外流转 409 `invalid_transition` |
-| GET | `/v1/admin/reports` | `?status(默认 open)&limit(≤50)&cursor` → `Page[AdminReportPublic]`（含涉事信摘要） |
+| GET | `/v1/admin/reports` | `?status&limit(≤50)&cursor` → `Page[AdminReportPublic]`（含涉事信摘要）。status 缺省 = 全部；「默认只看待处理」由前端显式传 open |
 | PATCH | `/v1/admin/reports/{id}` | `{status: dismissed\|actioned, admin_note?}`；置已处理回写 handled_at，回退清空。处置=下架信件由前端另行调 letters 状态机 |
 | GET | `/v1/admin/feedbacks` | `?status&category&limit(≤50)` → `Page[AdminFeedbackPublic]` |
 | PATCH | `/v1/admin/feedbacks/{id}` | `{status?, admin_note?}` 至少一项；置 resolved 回写 handled_at，回退清空 |
 | GET | `/v1/admin/seed-letters` | 种子信列表（owner IS NULL），响应同 AdminLetterSummary |
-| POST | `/v1/admin/seed-letters` | 新建种子信。body 同写信创建 body；复用写信校验（blocks 1–20、照片 ≤3、文字 ≤800），落库 owner=NULL、status=public 直接入池 |
-| PATCH | `/v1/admin/seed-letters/{id}` | 编辑 blocks/place_label/weather/delivery_mode 等；仅限 owner IS NULL 的信，否则 403 `seed_letter_only`；theme_id/theme_skin 永久绑定不可改 |
+| POST | `/v1/admin/seed-letters` | 新建种子信。body 同写信创建 body + 可选 `created_at`（回溯落款，须为过去，否则 400 `seed_created_at_in_future`）；复用写信校验（blocks 1–20、照片 ≤3、文字 ≤800），落库 owner=NULL、status=public 直接入池 |
+| PATCH | `/v1/admin/seed-letters/{id}` | 编辑 blocks/place_label/weather/delivery_mode/created_at 等；仅限 owner IS NULL 的信，否则 403 `seed_letter_only`；theme_id/theme_skin 永久绑定不可改 |
 
 `uploads` 的 JWT 鉴权放宽为 user 或 admin 均可（控制台传图）。
 

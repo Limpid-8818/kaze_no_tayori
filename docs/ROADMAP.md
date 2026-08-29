@@ -29,6 +29,13 @@
 > 更新（2026-08-29）：运营控制台（P1，PRD 6.14）完成设计——形态定为 Flutter Web，
 > v1 含审核队列/下架/举报/反馈/统计/种子信件管理。设计见 `docs/ADMIN_CONSOLE.md`，
 > 契约已补入 `API_CONTRACT.md` §3「管理端」，实施阶段为下方 A 系列（A0→A2，J4 验收）。
+>
+> 更新（2026-08-29）：A0–A2 全部完成（feat/admin-console 分支）。后端 12 端点 +
+> reports 迁移 + viewer 角色闸 + uploads 双身份（db 测试 8 个，52 db 全绿）；
+> apps/admin Flutter Web 六页工作台（登录/sessionStorage 会话/概览/审核双栏/
+> 信件管理/举报/反馈/种子信编辑实时预览，app 级测试 9 个）；`make check` 全绿
+> + `flutter build web` 通过 + 真实浏览器 E2E：登录→概览→审核通过→读者侧 200、
+> viewer 全 403。Makefile 增 `admin` / `admin-build`，check-dart 纳入 admin。
 
 ---
 
@@ -179,25 +186,25 @@
 > 设计事实来源：`docs/ADMIN_CONSOLE.md`。契约：`API_CONTRACT.md` §3「管理端」。
 > 依赖链：`A0 后端补齐 → A1 控制台骨架+审核 → A2 举报/反馈/种子信`；全程 P1，不插核心闭环。
 
-### A0 · 契约与后端补齐（1–1.5 天）
-- [ ] `GET/PATCH /v1/admin/letters`（列表/详情/状态机 PATCH /status；状态机 pending→public|rejected、public↔taken_down、rejected→public，表外流转 409）
-- [ ] `GET/PATCH /v1/admin/reports`；迁移：reports 表补 status/admin_note/handled_at + 索引（`make revision`）
-- [ ] `GET /v1/admin/stats` 概览聚合；`GET/POST/PATCH /v1/admin/seed-letters`（owner=NULL、public 入池、复用写信校验；仅 owner IS NULL 可编辑）
-- [ ] `require_role("admin")` 挂全部写端点（viewer 403）；uploads 鉴权放宽为 user 或 admin
-- [ ] db/接口测试（状态机表外流转、seed_letter_only、viewer 只读、匿名守卫持续绿）
-- **验收**：`make openapi` 后契约零漂移；curl 全端点走查
+### A0 · 契约与后端补齐（1–1.5 天）—— ✅ 2026-08-29
+- [x] `GET/PATCH /v1/admin/letters`（列表/详情/状态机 PATCH /status；表外流转 409 `invalid_transition`）
+- [x] `GET/PATCH /v1/admin/reports`；迁移 `d573a4587d09`（reports 补 status/admin_note/handled_at + 索引；autogenerate 产出整库噪音，按惯例手写增量）
+- [x] `GET /v1/admin/stats`；`GET/POST/PATCH /v1/admin/seed-letters`（owner=NULL、public 直通跳机审、theme 锁死）
+- [x] `require_admin_role`（viewer 写 403 `admin_forbidden`）；uploads 放宽为 user 或 admin JWT（`ActorId`）
+- [x] db 测试三件 8 例（状态机合法/非法、举报流转、种子信守卫、stats、viewer 403、admin 传图）
+- **验收**：`make check-db` 52 全绿；`make openapi` 24→37 paths 零漂移
 
-### A1 · 控制台骨架 + 审核（1.5 天）
-- [ ] apps/admin Flutter Web 骨架：登录（sessionStorage 会话 + 401 踢回）、工作台壳（导航 + 待办角标）、概览 Dashboard
-- [ ] 审核队列：pending 列表 → 双栏审核页（左侧读者视角预览复用 natsu_no_tegami token 层与 letter_view 口径 + 右侧操作面板），通过/驳回两段式确认
-- [ ] 信件管理：筛选 + 下架/恢复/赦免（赦免二次确认）
-- **验收**：pending 信经控制台通过后 App 可读；下架后读者侧 404
+### A1 · 控制台骨架 + 审核（1.5 天）—— ✅ 2026-08-29
+- [x] apps/admin Flutter Web 骨架：登录（sessionStorage 会话 + 401 清会话踢回）、工作台壳（侧导航 + stats 待办角标）、概览 Dashboard
+- [x] 审核队列：pending 列表 → 双栏审核页（左 LetterReading 读者视角预览，mapper 从 app 的 letter_view 复制同源口径 + 右元信息/计数/操作面板），通过/驳回两段式确认
+- [x] 信件管理：状态/来源筛选 + 下架/恢复/赦免（均二次确认）
+- **验收**：app 级测试 9/9；`flutter build web` 通过；真实浏览器 E2E 通过后读者侧 GET 200
 
-### A2 · 举报 / 反馈 / 种子信（1–1.5 天）
-- [ ] 举报处理：open 列表 + 下架并 actioned / dismissed
-- [ ] 反馈管理：复用现有 feedbacks 管理端点接 UI
-- [ ] 种子信件管理：列表 / 新建（图传走 uploads）/ 编辑（实时预览，theme 绑定不可改）/ 下架恢复；池健康度展示
-- **验收**：J4 全口径——审核、举报→下架→读者 404、控制台新建种子信 App 可抽、viewer 全 403
+### A2 · 举报 / 反馈 / 种子信（1–1.5 天）—— ✅ 2026-08-29
+- [x] 举报处理：open 列表（涉事信摘要）+ 下架并 actioned / dismissed（已处理项可切换查看）
+- [x] 反馈管理：复用现有 feedbacks 管理端点（筛选/备注弹层/流转）
+- [x] 种子信件管理：列表 / 新建（文本块 + 图片走 uploads 经平台桥）/ 编辑（右栏实时预览，theme 锁死）/ 下架恢复；池健康展示
+- **验收**：J4 口径——审核通过→读者 200、种子信入池可抽（db 测试）、viewer 写全 403 admin_forbidden（curl 实测）；举报→下架→404 由同款状态机路径覆盖
 
 ---
 

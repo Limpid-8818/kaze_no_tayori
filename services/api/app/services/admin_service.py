@@ -16,6 +16,7 @@ from app.core.errors import (
     InvalidTransition,
     LetterNotFound,
     NotFound,
+    SeedCreatedAtInFuture,
     SeedLetterOnly,
     StayRequiresLocation,
     Unauthorized,
@@ -35,11 +36,11 @@ from app.models.user import User
 from app.schemas.admin import (
     AdminLetterStatusUpdate,
     AdminReportUpdate,
+    AdminSeedLetterCreate,
     AdminSeedLetterUpdate,
     AdminStats,
 )
 from app.schemas.feedback import AdminFeedbackUpdateRequest
-from app.schemas.letter import LetterCreate
 from app.services import letter_service
 
 
@@ -285,13 +286,30 @@ async def list_seed_letters(session: AsyncSession, *, limit: int = 50) -> list[L
     )
 
 
-async def create_seed_letter(session: AsyncSession, payload: LetterCreate) -> Letter:
+def _normalize_seed_created_at(created_at: datetime | None) -> datetime | None:
+    """种子信落款时间：可选；naive 视为 UTC；不得晚于当下（回溯语义，不能「预发布」）。"""
+    if created_at is None:
+        return None
+    value = created_at if created_at.tzinfo is not None else created_at.replace(tzinfo=UTC)
+    if value > datetime.now(UTC):
+        raise SeedCreatedAtInFuture("落款时间不能晚于现在")
+    return value
+
+
+async def create_seed_letter(session: AsyncSession, payload: AdminSeedLetterCreate) -> Letter:
     """新建种子信：复用写信校验，owner=NULL、直接 public 入池。
 
-    运营自己就是审核者，跳过机审（letter_service.create_letter 的 status 直通）。
+    运营自己就是审核者，跳过机审（letter_service.create_letter 的 status 直通）；
+    created_at 可回溯落款（漂流是随机抽取，落款主要影响就地发掘的时间序与
+    信纸 meta 的日期/时段）。
     """
+    created_at = _normalize_seed_created_at(payload.created_at)
     letter = await letter_service.create_letter(
-        session, payload, owner_user_id=None, status=LetterStatus.PUBLIC
+        session,
+        payload,
+        owner_user_id=None,
+        status=LetterStatus.PUBLIC,
+        created_at=created_at,
     )
     await session.commit()
     await session.refresh(letter)
@@ -301,10 +319,11 @@ async def create_seed_letter(session: AsyncSession, payload: LetterCreate) -> Le
 async def update_seed_letter(
     session: AsyncSession, letter_id: UUID, payload: AdminSeedLetterUpdate
 ) -> Letter:
-    """编辑种子信：blocks/文案/落点/天气可改；theme 绑定红线不给改。
+    """编辑种子信：blocks/文案/落点/天气/落款时间可改；theme 绑定红线不给改。
 
     仅限 owner IS NULL 的信——有主信走信件状态机，不可借种子信通道改内容。
     """
+    created_at = _normalize_seed_created_at(payload.created_at)
     letter = await get_letter(session, letter_id)
     if letter.owner_user_id is not None:
         raise SeedLetterOnly("只有无主种子信可以直接编辑内容")
@@ -327,6 +346,8 @@ async def update_seed_letter(
     letter.delivery_mode = payload.delivery_mode
     letter.place_label = payload.place_label
     letter.weather = payload.weather.model_dump() if payload.weather is not None else None
+    if created_at is not None:
+        letter.created_at = created_at
 
     await session.commit()
     await session.refresh(letter)

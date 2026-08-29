@@ -1,0 +1,46 @@
+name: kaze_admin
+description: >-
+  风信运营控制台（PRD 6.14，P1）。Flutter Web 工作台：审核队列、信件管理、
+  举报处置、反馈管理、统计概览、种子信件管理。设计见 docs/ADMIN_CONSOLE.md。
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理。与 apps/app 同版本线；不用 codegen（见 apps/app/pubspec 的 freezed 冲突注释）
+  flutter_riverpod: ^3.4.2
+
+  # 路由（登录守卫 + INITIAL_ROUTE 调试直通车）
+  go_router: ^17.5.0
+
+  # 网络。所有请求只经 lib/data/api/api_client.dart
+  dio: ^5.11.0
+
+  # JSON 序列化（stats/letter/report 有嵌套）
+  json_annotation: ^4.12.0
+
+  # photo block 预览的缓存网络图（与 apps/app reader 同源口径）
+  cached_network_image: ^3.4.1
+
+  # 设计系统 token 层（唯一 import 点在 app/theme.dart）+ 信件渲染组件（审核预览）
+  natsu_no_tegami:
+    path: ../../packages/natsu_no_tegami
+
+  # sessionStorage 会话（typ=admin JWT，标签页级，关页即失效）
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  build_runner: ^2.16.0
+  json_serializable: ^6.14.1
+
+flutter:
+  uses-material-design: true

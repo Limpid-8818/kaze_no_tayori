@@ -114,6 +114,34 @@ async def test_seed_letter_create_edit_pool(db_client, db_session) -> None:  # t
     assert body["delivery_mode"] == "stay"
     assert body["lat"] == 24.48
 
+    # 落款时间回溯：created_at 可改写且落库；未来时间 400
+    resp = await db_client.patch(
+        f"/v1/admin/seed-letters/{letter_id}",
+        json={
+            "blocks": [{"type": "text", "text": "种子信：改过了"}],
+            "delivery_mode": "stay",
+            "lat": 24.48,
+            "lon": 118.08,
+            "created_at": "2026-07-01T18:30:00+00:00",
+        },
+        headers=_auth(admin_token),
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["created_at"].startswith("2026-07-01T18:30")
+    resp = await db_client.patch(
+        f"/v1/admin/seed-letters/{letter_id}",
+        json={
+            "blocks": [{"type": "text", "text": "x"}],
+            "delivery_mode": "stay",
+            "lat": 24.48,
+            "lon": 118.08,
+            "created_at": "2999-01-01T00:00:00+00:00",
+        },
+        headers=_auth(admin_token),
+    )
+    assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp.json()["error"]["code"] == "seed_created_at_in_future"
+
     resp = await db_client.patch(
         f"/v1/admin/seed-letters/{letter_id}",
         json={
