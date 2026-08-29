@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_expire_days: int = 90
     jwt_algorithm: str = "HS256"
+    # 管理端 token 短时效（与用户 90 天长效凭证区分）
+    admin_jwt_expire_minutes: int = 720
 
     # ---------- 产品参数 ----------
     discover_radius_m: int = 1000

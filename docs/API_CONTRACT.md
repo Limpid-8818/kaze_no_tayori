@@ -97,7 +97,10 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 `id varchar(32) PK` · `name varchar(32)` · `assets jsonb` · `is_default bool`。P0 只有 `natsu`。
 
 ### admin_accounts
-`id UUID PK` · `username UNIQUE` · `password_hash` · `role varchar(16)` · `created_at`。P1，与匿名用户体系隔离。
+`id UUID PK` · `username UNIQUE` · `password_hash` · `role varchar(16)` · `created_at`。与匿名用户体系隔离，登录走 `/v1/admin/login`（首个账号用 `scripts/create_admin.py` 创建）。
+
+### feedbacks
+`id UUID PK` · `user_id FK→users SET NULL`（可空，设备退场后保留）· `category enum(bug,suggestion)` · `content TEXT` · `app_version varchar(32)` · `platform varchar(16)` · `status enum(open,resolved) default open` · `admin_note TEXT` · `handled_at` · `created_at`。用户反馈（问题/建议），提交侧无历史回显，管理侧查看/备注/流转状态。
 
 ### 索引
 | 名称 | 定义 | 用途 |
@@ -107,6 +110,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | `ix_letters_parent` | (parent_letter_id) | 回信溯源 |
 | `ix_letters_owner` | (owner_user_id, created_at DESC) | 我的信 |
 | `ix_notifications_inbox` | (user_id, is_read) | 通知列表 |
+| `ix_feedbacks_status_created` | (status, created_at) | 反馈管理端筛选 |
 
 ---
 
@@ -279,6 +283,20 @@ P0 只做拉取，不做推送。
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/v1/letters/{id}/report` | `{reason}`。入库待人工处理 |
+
+### 反馈（设置页入口，本期无用户侧历史）
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/v1/feedback` | `{category: bug\|suggestion, content(1-2000), app_version?, platform?}` → 201 `FeedbackPublic`。JWT 必带 |
+
+### 管理端（AdminAccount 登录，独立 `typ=admin` JWT，12h 时效）
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/v1/admin/login` | `{username, password}` → `{access_token}`。凭据错误一律 401 |
+| GET | `/v1/admin/feedbacks` | `?status&category&limit(≤50)` → `Page[AdminFeedbackPublic]` |
+| PATCH | `/v1/admin/feedbacks/{id}` | `{status?, admin_note?}` 至少一项；置 resolved 回写 handled_at，回退清空 |
+
+账号创建：`cd services/api && uv run python scripts/create_admin.py --username ops --password '...' [--role admin|viewer]`（同名 upsert）。
 
 ---
 

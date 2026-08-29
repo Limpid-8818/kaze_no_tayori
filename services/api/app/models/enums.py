@@ -27,3 +27,17 @@ class NotificationType(StrEnum):
     """通知类型。P0 只有回信告知（PRD 6.5），且它不是私信。"""
 
     REPLY = "reply"
+
+
+class FeedbackCategory(StrEnum):
+    """反馈类型：问题反馈或改进建议。"""
+
+    BUG = "bug"
+    SUGGESTION = "suggestion"
+
+
+class FeedbackStatus(StrEnum):
+    """反馈处理状态：待处理 → 已处理（管理端流转）。"""
+
+    OPEN = "open"
+    RESOLVED = "resolved"

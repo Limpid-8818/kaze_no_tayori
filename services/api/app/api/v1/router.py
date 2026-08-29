@@ -6,11 +6,13 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    admin,
     ai,
     auth,
     catalog,
     discover,
     drift,
+    feedback,
     geo,
     letters,
     me,
@@ -34,3 +36,5 @@ api_router.include_router(uploads.router)
 api_router.include_router(catalog.router)
 api_router.include_router(weather.router)
 api_router.include_router(geo.router)
+api_router.include_router(feedback.router)
+api_router.include_router(admin.router)
