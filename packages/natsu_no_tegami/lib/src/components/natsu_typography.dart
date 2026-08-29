@@ -54,12 +54,14 @@ class NatsuMetaLine extends StatelessWidget {
   const NatsuMetaLine({
     super.key,
     required this.items,
-    this.align = NatsuMetaAlign.left,
+    this.align = NatsuMetaAlign.right,
   });
 
   /// 元数据项（地点/时间/天气…），按顺序以「 · 」连接。
   final List<String> items;
 
+  /// 默认居右：调用处都以 Align(centerRight) 安放整行，换行后各行
+  /// 也必须跟着靠右（齐着右缘），而不是第二行顶回左缘。
   final NatsuMetaAlign align;
 
   @override

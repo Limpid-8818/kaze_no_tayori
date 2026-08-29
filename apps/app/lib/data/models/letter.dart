@@ -1,7 +1,8 @@
 /// 信件模型。字段名与后端 Pydantic schema **严格同名**（见 docs/API_CONTRACT.md）。
 ///
-/// 匿名铁律在客户端的体现：[LetterPublic] 没有作者字段，也没有精确坐标——
-/// 服务端不给，客户端就没有渲染它的可能。**不要为了「方便」加回来。
+/// 匿名铁律在客户端的体现：[LetterPublic] 没有作者字段——服务端不给，
+/// 客户端就没有渲染它的可能。**不要为了「方便」加回来。**落点坐标
+/// （lat/lon）按 2026-08 裁决随响应下发，是公开的创作元素。
 ///
 /// 用 json_serializable 而非 freezed：见 pubspec.yaml 里的版本冲突说明。
 /// 不可变性靠 final 字段自律。
@@ -173,7 +174,8 @@ class LetterCounts {
 
 // ---------- 对外信件 ----------
 
-/// 对外信件。**没有作者字段，没有精确坐标。**
+/// 对外信件。**没有作者字段。**落点坐标（2026-08 裁决）随响应下发，
+/// 供读者计算与自己的直线距离；drift 信 / 无落点信为 null。
 @JsonSerializable()
 class LetterPublic {
   const LetterPublic({
@@ -190,6 +192,8 @@ class LetterPublic {
     this.musicRef,
     this.placeLabel,
     this.weather,
+    this.lat,
+    this.lon,
     this.tags = const [],
     this.parentLetterId,
     this.meResonated = false,
@@ -221,10 +225,15 @@ class LetterPublic {
   @JsonKey(name: 'music_ref')
   final MusicRef? musicRef;
 
-  /// 只有地点名，没有坐标——城市级足够承载「此情此景」。
+  /// 只有地点名——城市级足够承载「此情此景」。
   @JsonKey(name: 'place_label')
   final String? placeLabel;
   final Weather? weather;
+
+  /// 落点坐标（stay 信）；drift 信 / 无落点为 null。距离展示的原料。
+  final double? lat;
+  final double? lon;
+
   final List<String> tags;
   @JsonKey(name: 'delivery_mode')
   final DeliveryMode deliveryMode;
@@ -249,8 +258,8 @@ class LetterPublic {
 
 /// 本人视角，仅 /v1/me/* 路径返回。
 ///
-/// 比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——
-/// 自己不需要看自己的 id。
+/// 比 LetterPublic 多出 status。坐标继承自 LetterPublic 的落点字段。
+/// **仍不含 owner_user_id**——自己不需要看自己的 id。
 @JsonSerializable()
 class LetterOwned extends LetterPublic {
   const LetterOwned({
@@ -267,19 +276,17 @@ class LetterOwned extends LetterPublic {
     super.musicRef,
     super.placeLabel,
     super.weather,
+    super.lat,
+    super.lon,
     super.tags,
     super.parentLetterId,
     required this.status,
-    this.lat,
-    this.lon,
   });
 
   factory LetterOwned.fromJson(Map<String, dynamic> json) =>
       _$LetterOwnedFromJson(json);
 
   final LetterStatus status;
-  final double? lat;
-  final double? lon;
 
   @override
   Map<String, dynamic> toJson() => _$LetterOwnedToJson(this);

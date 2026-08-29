@@ -93,7 +93,7 @@ void main() {
     expect(state.view?.seedId, 'letter_a');
     expect(state.view?.addressee, '拾到它的人');
     expect(state.view?.place, '浙江 · 舟山');
-    expect(state.view?.weather, '多云 26°');
+    expect(state.view?.weather, '多云');
   });
 
   test('池空：叙事态而非错误', () async {

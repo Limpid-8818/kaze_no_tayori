@@ -181,6 +181,7 @@ class _ListBody extends ConsumerWidget {
                   poem: view.poemLines.join('\n'),
                   previewText: view.previewText,
                   placeLabel: view.placeLabel,
+                  distanceLabel: view.distanceLabel,
                   onTap: () => onOpenLetter(context, view.id),
                 );
               },

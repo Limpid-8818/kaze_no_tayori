@@ -152,6 +152,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         seedId: view.id,
         place: view.place,
         time: view.timeLabel,
+        dayPeriod: view.dayPeriod,
         weather: view.weatherText,
         signature: view.signature,
       ),

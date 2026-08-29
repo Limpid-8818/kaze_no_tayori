@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart' as natsu;
 
 import '../../app/theme.dart' show KazeSky;
+import '../../core/day_period.dart';
 import '../../data/models/letter.dart';
 
 /// 一封信的渲染视图模型：LetterReading 需要的全部内容。
@@ -61,6 +62,10 @@ class LetterView {
   /// 信纸 meta 行的时间项——只到日，不读到分钟。
   String get timeLabel => '${createdAt.month}月${createdAt.day}日';
 
+  /// 信纸 meta 行的时段项（朝/昼/夕/夜）——由落笔时刻推导，永远有值。
+  /// 四段口径（地点·日期·时段·天气）与写信页预览一致。
+  String get dayPeriod => dayPeriodLabel(dayPeriodOf(createdAt));
+
   static LetterView from(LetterPublic letter) {
     return LetterView(
       id: letter.id,
@@ -102,11 +107,10 @@ class LetterView {
     );
   }
 
-  /// 「多云 26°」——没有温度就只有天气名；没有天气就是 null。
+  /// 只显示天气名，不带温度（2026-08 统一口径）；没有天气就是 null。
   static String? _weatherText(Weather? weather) {
     if (weather == null) return null;
-    if (weather.tempC == null) return weather.text;
-    return '${weather.text} ${weather.tempC!.round()}°';
+    return weather.text;
   }
 }
 

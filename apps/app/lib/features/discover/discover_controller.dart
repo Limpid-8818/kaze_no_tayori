@@ -112,7 +112,12 @@ class DiscoverController extends Notifier<DiscoverState> {
           );
       if (!ref.mounted) return;
       final items = [
-        for (final letter in page.items) DiscoverLetterView.from(letter),
+        for (final letter in page.items)
+          DiscoverLetterView.from(
+            letter,
+            originLat: coordinate.latitude,
+            originLon: coordinate.longitude,
+          ),
       ];
       state = DiscoverState(
         phase: items.isEmpty ? DiscoverPhase.listEmpty : DiscoverPhase.ready,
@@ -148,7 +153,12 @@ class DiscoverController extends Notifier<DiscoverState> {
           );
       if (!ref.mounted) return;
       final items = [
-        for (final letter in page.items) DiscoverLetterView.from(letter),
+        for (final letter in page.items)
+          DiscoverLetterView.from(
+            letter,
+            originLat: coordinate.latitude,
+            originLon: coordinate.longitude,
+          ),
       ];
       state = DiscoverState(
         phase: items.isEmpty ? DiscoverPhase.listEmpty : DiscoverPhase.ready,

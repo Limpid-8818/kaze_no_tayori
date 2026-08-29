@@ -27,6 +27,7 @@ class LetterExportCanvas extends StatelessWidget {
     this.seedId,
     this.place,
     this.time,
+    this.dayPeriod,
     this.weather,
     this.signature,
     this.skyGradient = KazeSky.defaultGradient,
@@ -41,6 +42,7 @@ class LetterExportCanvas extends StatelessWidget {
   final String? seedId;
   final String? place;
   final String? time;
+  final String? dayPeriod;
   final String? weather;
   final String? signature;
 
@@ -77,6 +79,7 @@ class LetterExportCanvas extends StatelessWidget {
                   width: KazeExportDims.paperW,
                   place: place,
                   time: time,
+                  dayPeriod: dayPeriod,
                   weather: weather,
                   signature: signature,
                 ),

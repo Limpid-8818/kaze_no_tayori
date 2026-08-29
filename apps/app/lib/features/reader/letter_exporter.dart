@@ -87,6 +87,7 @@ Future<Uint8List> exportLetterImage(
             seedId: view.id,
             place: view.place,
             time: view.timeLabel,
+            dayPeriod: view.dayPeriod,
             weather: view.weatherText,
             signature: view.signature,
             skyGradient: skyOfLetter(view),

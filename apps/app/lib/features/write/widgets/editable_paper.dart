@@ -118,14 +118,13 @@ class _EditablePaperState extends ConsumerState<EditablePaper> {
     );
   }
 
-  /// 纸尾 meta 行：地点（已确认落点）· 日期时间（活钟）· 时段 · 天气
-  /// （可降级省略）。
+  /// 纸尾 meta 行：地点（已确认落点）· 日期（只到日，与读信页/邮戳
+  /// 同口径）· 时段 · 天气（可降级省略）。
   List<Widget> _metaLine(WriteState state) {
     final now = state.now;
     final items = [
       ?state.dropPoint?.label,
-      '${now.month}月${now.day}日 '
-          '${now.hour}:${now.minute.toString().padLeft(2, '0')}',
+      '${now.month}月${now.day}日',
       dayPeriodLabel(dayPeriodOf(now)),
       ?state.weather?.text,
     ];

@@ -54,6 +54,8 @@ Map<String, dynamic> _stayJson(
   String id, {
   required Duration ago,
   String? poem,
+  double? lat,
+  double? lon,
 }) => {
   'id': id,
   'blocks': const [
@@ -62,6 +64,8 @@ Map<String, dynamic> _stayJson(
   'poem': poem,
   'theme_id': 'natsu',
   'delivery_mode': 'stay',
+  'lat': lat,
+  'lon': lon,
   'place_label': '上海 · 武康路',
   'weather': const {'text': '多云', 'temp_c': 28.0},
   'parent_letter_id': null,
@@ -165,7 +169,10 @@ void main() {
             'stay_a',
             ago: const Duration(hours: 5),
             poem: '一行\n两行\n三行',
+            lat: 24.4821,
+            lon: 118.0894,
           ),
+          // 无坐标的信（如 drift）距离槽不显示
           _stayJson('stay_b', ago: const Duration(days: 3)),
         ],
         'next_cursor': null,
@@ -182,6 +189,9 @@ void main() {
     expect(state.items[1].previewText, contains('梧桐树叶间'));
     expect(state.items[0].timeLabel, '5小时前');
     expect(state.items[1].timeLabel, '3天前');
+    // 距离：读者坐标（24.4798, 118.0894）× 信落点 → 米级标签；无坐标为 null
+    expect(state.items[0].distanceLabel, matches(RegExp(r'^\d+m$')));
+    expect(state.items[1].distanceLabel, isNull);
   });
 
   test('附近没信：叙事空态而非错误', () async {

@@ -32,7 +32,7 @@ class DriftEnvelopeView {
   /// 邮戳日期（只到日）。
   final String date;
 
-  /// 「晴 26°」形态的天气；没有就不刻。
+  /// 天气名（不带温度）；没有就不刻。
   final String? weather;
 
   /// 宛名（竖排手写）；null = 封面洁净。
@@ -61,10 +61,9 @@ class DriftEnvelopeView {
     );
   }
 
-  /// 「多云 26°」——没有温度就只有天气名；没有天气就是 null。
+  /// 只显示天气名，不带温度（2026-08 统一口径）；没有天气就不刻。
   static String? _weatherText(Weather? weather) {
     if (weather == null) return null;
-    if (weather.tempC == null) return weather.text;
-    return '${weather.text} ${weather.tempC!.round()}°';
+    return weather.text;
   }
 }

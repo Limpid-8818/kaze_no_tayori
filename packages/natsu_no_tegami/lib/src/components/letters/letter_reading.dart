@@ -26,6 +26,7 @@ class LetterReading extends StatelessWidget {
     this.width = 560,
     this.place,
     this.time,
+    this.dayPeriod,
     this.weather,
     this.signature,
   });
@@ -41,9 +42,12 @@ class LetterReading extends StatelessWidget {
 
   final double width;
 
-  /// meta 行（地点·时间·天气，底部右对齐）
+  /// meta 行（地点·日期·时段·天气，底部右对齐——四段与写信页同口径）
   final String? place;
   final String? time;
+
+  /// 时段单字（朝/昼/夕/夜）
+  final String? dayPeriod;
   final String? weather;
 
   /// 信尾署名 → 右下横排（hwAddress 手写；可空）
@@ -51,7 +55,7 @@ class LetterReading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [?place, ?time, ?weather];
+    final meta = [?place, ?time, ?dayPeriod, ?weather];
 
     return Container(
       width: width,

@@ -143,11 +143,10 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     );
   }
 
-  /// 「晴 26°」——封筒邮戳的天气刻文口径，与漂流页/读信页一致。
+  /// 只显示天气名，不带温度（2026-08 统一口径），与漂流页/读信页一致。
   static String? _weatherText(Weather? weather) {
     if (weather == null) return null;
-    if (weather.tempC == null) return weather.text;
-    return '${weather.text} ${weather.tempC!.round()}°';
+    return weather.text;
   }
 
   /// 信纸态：完整的写信滚动流（纸 → 托盘 → 表单 → 留投 → 寄出）。

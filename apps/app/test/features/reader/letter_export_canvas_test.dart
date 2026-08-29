@@ -18,7 +18,7 @@ LetterView _view({String? weatherIcon}) => LetterView(
   createdAt: DateTime(2026, 8, 26, 10), // 本地 10 点 → 朝
   signature: '赶海的人',
   place: '浙江 · 舟山',
-  weatherText: '多云 26°',
+  weatherText: '多云',
   weatherIcon: weatherIcon,
 );
 
@@ -46,6 +46,7 @@ void main() {
           seedId: view.id,
           place: view.place,
           time: view.timeLabel,
+          dayPeriod: view.dayPeriod,
           weather: view.weatherText,
           signature: view.signature,
           skyGradient: skyOfLetter(view),
@@ -58,8 +59,8 @@ void main() {
     expect(find.byType(LetterReading), findsOneWidget);
     expect(find.text('傍晚的海边风很大'), findsOneWidget);
     expect(find.text('赶海的人'), findsOneWidget);
-    // meta 行：地点 · 日期 · 天气（同一行内以「 · 」连接）
-    expect(find.text('浙江 · 舟山 · 8月26日 · 多云 26°'), findsOneWidget);
+    // meta 行：地点 · 日期 · 时段 · 天气（同一行内以「 · 」连接）
+    expect(find.text('浙江 · 舟山 · 8月26日 · 朝 · 多云'), findsOneWidget);
     // 水印：logo 图 + 「风信」
     expect(find.text('风信'), findsOneWidget);
     expect(

@@ -26,9 +26,9 @@ void main() {
     ]) {
       expect(keys.contains(banned), isFalse, reason: '$banned 不该出现在信件模型里');
     }
-    // 也不该有精确坐标
-    expect(keys.contains('lat'), isFalse);
-    expect(keys.contains('lon'), isFalse);
+    // 落点坐标按 2026-08 裁决随响应下发（读者算直线距离用）
+    expect(keys.contains('lat'), isTrue);
+    expect(keys.contains('lon'), isTrue);
   });
 
   test('叙事计数只有 5 个', () {

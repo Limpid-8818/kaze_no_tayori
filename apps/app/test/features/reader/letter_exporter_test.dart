@@ -28,7 +28,7 @@ LetterView _view({List<LetterBlock>? blocks}) => LetterView(
   createdAt: DateTime(2026, 8, 26, 10),
   signature: '赶海的人',
   place: '浙江 · 舟山',
-  weatherText: '多云 26°',
+  weatherText: '多云',
 );
 
 class _FailingProvider extends ImageProvider<Object> {

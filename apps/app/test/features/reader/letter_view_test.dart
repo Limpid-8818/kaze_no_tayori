@@ -63,12 +63,12 @@ void main() {
     expect(photo.note, '逆光');
   });
 
-  test('meta 组装：place / weatherText（带温度圆整）/ timeLabel', () {
+  test('meta 组装：place / weatherText（不带温度）/ timeLabel', () {
     final view = LetterView.from(
       _letter(weather: const Weather(text: '多云', tempC: 26.4)),
     );
     expect(view.place, '浙江 · 舟山');
-    expect(view.weatherText, '多云 26°');
+    expect(view.weatherText, '多云');
     expect(view.timeLabel, '8月26日');
   });
 
