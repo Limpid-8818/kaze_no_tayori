@@ -126,6 +126,16 @@ class MockApiAdapter implements HttpClientAdapter {
         RegExp(r'^/v1/letters/[^/]+/report$').hasMatch(path)) {
       return _json(204, null);
     }
+    // 反馈（设置页入口）：回提交确认体，与真实后端契约同形
+    if (method == 'POST' && path == '/v1/feedback') {
+      final body = options.data;
+      return _json(201, {
+        'id': 'mock-feedback-$_seq',
+        'category': body is Map ? (body['category'] ?? 'bug') : 'bug',
+        'status': 'open',
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      });
+    }
     if (method == 'POST' &&
         RegExp(r'^/v1/letters/[^/]+/resonance$').hasMatch(path)) {
       // 幂等：重复共鸣计数不再涨，但 me_resonated 依然为真

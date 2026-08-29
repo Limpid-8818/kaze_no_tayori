@@ -15,6 +15,7 @@ import 'ai_api.dart';
 import 'catalog_api.dart';
 import 'discover_api.dart';
 import 'drift_api.dart';
+import 'feedback_api.dart';
 import 'geo_api.dart';
 import 'letters_api.dart';
 import 'me_api.dart';
@@ -72,3 +73,6 @@ final weatherApiProvider = Provider(
   (ref) => WeatherApi(ref.watch(apiClientProvider)),
 );
 final geoApiProvider = Provider((ref) => GeoApi(ref.watch(apiClientProvider)));
+final feedbackApiProvider = Provider(
+  (ref) => FeedbackApi(ref.watch(apiClientProvider)),
+);

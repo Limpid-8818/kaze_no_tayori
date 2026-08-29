@@ -2,12 +2,15 @@
 ///
 /// 「背景自动跟随天色」的消费方是全局天色控制器（app/controllers/
 /// sky_controller.dart，F8）：关闭后全 App 回退默认昼·晴。
+/// 「反馈」目前挂在设置页；功能成熟后再升级为独立入口。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
+import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../app/widgets/kaze_scaffold.dart';
 import 'settings_store.dart';
@@ -53,6 +56,37 @@ class SettingsScreen extends ConsumerWidget {
                     onChanged: (v) => controller.setSkyAutoEnabled(v),
                   ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: KazeSpacing.xl),
+          Text('通用', style: theme.textTheme.labelMedium),
+          const SizedBox(height: KazeSpacing.sm),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(KazeSpacing.md),
+              child: InkWell(
+                onTap: () => context.push(Routes.feedback),
+                borderRadius: BorderRadius.circular(KazeRadius.card),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('反馈', style: theme.textTheme.titleMedium),
+                          const SizedBox(height: KazeSpacing.xs),
+                          Text(
+                            '反馈使用中的问题，或写下你的建议。',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: KazeSpacing.md),
+                    Icon(Icons.chevron_right, color: KazeColors.inkSoft),
+                  ],
+                ),
               ),
             ),
           ),

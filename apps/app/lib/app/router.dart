@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../features/about/about_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/drift/drift_screen.dart';
+import '../features/feedback/feedback_screen.dart';
 import '../features/my_letters/my_letters_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/reader/reader_screen.dart';
@@ -34,6 +35,7 @@ abstract final class Routes {
   static const scripbook = '/me/scripbook';
   static const notifications = '/me/notifications';
   static const settings = '/settings';
+  static const feedback = '/feedback';
   static const about = '/about';
 
   static String readerOf(String id) => '/letters/$id';
@@ -74,6 +76,9 @@ final router = GoRouter(
       builder: (_, _) => const NotificationsScreen(),
     ),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+
+    // 反馈：设置页入口；未来并入「帮助与反馈」独立入口
+    GoRoute(path: Routes.feedback, builder: (_, _) => const FeedbackScreen()),
 
     // 关于页：一张信纸卡承载品牌、致谢与出处（版本号读 pubspec）
     GoRoute(path: Routes.about, builder: (_, _) => const AboutScreen()),
