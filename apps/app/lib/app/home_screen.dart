@@ -27,44 +27,48 @@ class HomeScreen extends ConsumerWidget {
 
   final DateTime now;
 
+  // 显式 leading 时 AppBar 只对「裸 IconButton」做 Center 包裹与 48px
+  // ink 约束（见 AppBar 源码 leading is IconButton 分支），包 Builder 会
+  // 让 ink 被 leadingWidth 拉宽——开抽屉改走 scaffoldKey，保持 leading 纯净。
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadCountControllerProvider);
     return KazeSkyBox(
       // 环境是夏日天空，纸只在「信」的时候出现 —— 天色随当地天气×时段联动
       child: Scaffold(
+        key: _scaffoldKey,
         // 透明底让渐变从 body 一直透到 AppBar 之下
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           toolbarHeight: KazeHomeDims.appBarH,
           // 显式 leading：替代自动汉堡钮，好把未读红点叠在图标右上角
-          leading: Builder(
-            builder: (context) => IconButton(
-              tooltip: '菜单',
-              // 红点叠在 24px 图标本体的右上角（而非 48px 按钮的角），
-              // 负偏移让它略越出图标角、压住圆角
-              icon: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(Icons.menu),
-                  if (unreadCount > 0)
-                    Positioned(
-                      top: KazeHomeDims.hamburgerDotTop,
-                      right: KazeHomeDims.hamburgerDotRight,
-                      child: Container(
-                        key: const Key('hamburger_unread_dot'),
-                        width: KazeHomeDims.hamburgerDot,
-                        height: KazeHomeDims.hamburgerDot,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
+          leading: IconButton(
+            tooltip: '菜单',
+            // 红点叠在 24px 图标本体的右上角（而非 48px 按钮的角），
+            // 负偏移让它略越出图标角、压住圆角
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.menu),
+                if (unreadCount > 0)
+                  Positioned(
+                    top: KazeHomeDims.hamburgerDotTop,
+                    right: KazeHomeDims.hamburgerDotRight,
+                    child: Container(
+                      key: const Key('hamburger_unread_dot'),
+                      width: KazeHomeDims.hamburgerDot,
+                      height: KazeHomeDims.hamburgerDot,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.tertiary,
                       ),
                     ),
-                ],
-              ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+              ],
             ),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           // 右上角刻意不放品牌字样，保持干净。
         ),

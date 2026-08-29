@@ -348,6 +348,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('hamburger_unread_dot')), findsOneWidget);
 
+      // AppBar 只对「裸 IconButton」包 Center、把 ink 收在 48×48（与返回键一致）；
+      // 若 leading 被别的 widget（如 Builder）包住，ink 会被 leadingWidth 拉宽到 56。
+      final menuIcon = find.byIcon(Icons.menu);
+      expect(
+        find.ancestor(of: menuIcon, matching: find.byType(IconButton)),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(of: menuIcon, matching: find.byType(Center)),
+        findsOneWidget,
+      );
+
       // 无未读：红点退场（整树重挂，避免状态残留）
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(pumpApp());
