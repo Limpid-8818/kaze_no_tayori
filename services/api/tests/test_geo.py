@@ -62,15 +62,15 @@ def _make_mock_client(json_data: dict) -> tuple[AsyncMock, MagicMock]:
 @pytest.mark.parametrize(
     ("component", "expected"),
     [
-        # 直辖市：province == city，district 是有效粒度 → 市+区
+        # 直辖市：province == city，district 是有效粒度 → 市 · 区（后缀剥离）
         (
             {"province": "北京市", "city": "北京市", "district": "朝阳区", "township": "阜通街道"},
-            "北京市朝阳区",
+            "北京 · 朝阳",
         ),
         # 直辖市：空 district 时回退市级
         (
             {"province": "北京市", "city": "北京市", "district": "", "township": ""},
-            "北京市",
+            "北京",
         ),
         # 省 + 市 + 区（非直辖市）
         (
@@ -80,12 +80,22 @@ def _make_mock_client(json_data: dict) -> tuple[AsyncMock, MagicMock]:
                 "district": "中山区",
                 "township": "海军广场街道",
             },
-            "辽宁省大连市中山区",
+            "辽宁 · 大连 · 中山",
         ),
-        # city 为空（港澳台）→ 回退 province
+        # 自治区 → 短名映射（民族名在中间，后缀剥离覆盖不到）
+        (
+            {"province": "广西壮族自治区", "city": "南宁市", "district": "青秀区", "township": ""},
+            "广西 · 南宁 · 青秀",
+        ),
+        # 高德「市辖区」占位值视作无区，从拼接中剔除
+        (
+            {"province": "河南省", "city": "郑州市", "district": "市辖区", "township": ""},
+            "河南 · 郑州",
+        ),
+        # city 为空（港澳台）→ 回退 province（同样剥后缀，特别行政区 → 香港）
         (
             {"province": "香港特别行政区", "city": "", "district": "中西区", "township": "中环"},
-            "香港特别行政区",
+            "香港",
         ),
         # 全空
         ({"province": "", "city": "", "district": "", "township": ""}, ""),
@@ -106,7 +116,7 @@ async def test_fetch_reverse_geocode_success(monkeypatch: pytest.MonkeyPatch) ->
     )
     with patch("app.services.geo_service.httpx.AsyncClient", return_value=client):
         result = await _fetch_reverse_geocode(39.918, 116.487)
-    assert result == "北京市朝阳区"
+    assert result == "北京 · 朝阳"
 
 
 @pytest.mark.asyncio
@@ -168,9 +178,9 @@ async def test_fetch_reverse_geocode_missing_address_component(
 
 def test_cache_set_and_get() -> None:
     _CACHE.clear()
-    _cache_set("116.48700,39.91800", "北京市朝阳区")
+    _cache_set("116.48700,39.91800", "北京 · 朝阳")
     result = _cache_get("116.48700,39.91800")
-    assert result == "北京市朝阳区"
+    assert result == "北京 · 朝阳"
 
 
 def test_cache_expiry() -> None:
@@ -210,7 +220,7 @@ async def test_reverse_geocode_no_key(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_reverse_geocode_cache_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     _CACHE.clear()
 
-    _cache_set("116.48700,39.91800", "北京市朝阳区")
+    _cache_set("116.48700,39.91800", "北京 · 朝阳")
 
     # 在 geo_service 模块层面 mock get_settings，避开 @lru_cache 副作用
     mock_settings = MagicMock()
@@ -226,7 +236,7 @@ async def test_reverse_geocode_cache_hit(monkeypatch: pytest.MonkeyPatch) -> Non
     ):
         result = await reverse_geocode(39.918, 116.487)
 
-    assert result == "北京市朝阳区"
+    assert result == "北京 · 朝阳"
 
 
 @pytest.mark.asyncio
@@ -242,7 +252,7 @@ async def test_reverse_geocode_cache_expired(monkeypatch: pytest.MonkeyPatch) ->
     with patch("app.services.geo_service.httpx.AsyncClient", return_value=client):
         result = await reverse_geocode(39.918, 116.487)
 
-    assert result == "北京市海淀区"
+    assert result == "北京 · 海淀"
 
 
 @pytest.mark.asyncio
@@ -279,5 +289,5 @@ async def test_reverse_geocode_success_with_cache_write(
     ):
         result = await reverse_geocode(39.918, 116.487)
 
-    assert result == "辽宁省大连市中山区"
-    assert _cache_get("116.48700,39.91800") == "辽宁省大连市中山区"
+    assert result == "辽宁 · 大连 · 中山"
+    assert _cache_get("116.48700,39.91800") == "辽宁 · 大连 · 中山"

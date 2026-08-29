@@ -64,18 +64,15 @@ def test_letter_schemas_have_no_social_metrics(schema: type) -> None:
     )
 
 
-def test_public_letter_hides_precise_coordinates() -> None:
-    """对外响应只给 place_label，不给精确坐标。
-
-    精确坐标可被用来反查作者活动位置，与匿名精神冲突（PRD §8.1 位置可控）。
-    本人视角（LetterOwned）才可见自己的落点。
-    """
-    assert "lat" not in LetterPublic.model_fields
-    assert "lon" not in LetterPublic.model_fields
+def test_public_letter_exposes_drop_point_coordinates() -> None:
+    """落点坐标是公开的创作元素（2026-08 用户裁决）：对外响应带 lat/lon，
+    供读者计算与自己的直线距离；location 原始列与作者标识仍然缺席。"""
+    assert "lat" in LetterPublic.model_fields
+    assert "lon" in LetterPublic.model_fields
     assert "location" not in LetterPublic.model_fields
     assert "place_label" in LetterPublic.model_fields
 
-    # 本人可以看到自己的落点
+    # 本人视角（LetterOwned）坐标继承自 LetterPublic
     assert "lat" in LetterOwned.model_fields
     assert "lon" in LetterOwned.model_fields
 

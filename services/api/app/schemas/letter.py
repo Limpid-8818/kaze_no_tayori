@@ -2,9 +2,10 @@
 
 **这是匿名铁律的执行点（CLAUDE.md 红线 1）。**
 
-`LetterPublic` 刻意不含 `owner_user_id` 或任何作者标识，也不含精确坐标——
-一切对外的信件响应都必须用它。想「顺便带上作者」就得改这个类，而
-`tests/test_anonymity.py` 会立刻变红。
+`LetterPublic` 刻意不含 `owner_user_id` 或任何作者标识——一切对外的
+信件响应都必须用它。想「顺便带上作者」就得改这个类，而
+`tests/test_anonymity.py` 会立刻变红。落点坐标（lat/lon）按 2026-08
+裁决对外下发；location 原始列仍不出现。
 """
 
 from typing import Annotated, Any, Literal
@@ -12,6 +13,24 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import DeliveryMode, LetterStatus
+
+
+def _decode_point(location: Any) -> tuple[float | None, float | None]:
+    """Geography/Geometry 列 → (lat, lon)。
+
+    反解失败（None、未加载、非点几何）一律 (None, None)，与地理模块
+    同款降级纪律：坐标缺席不阻断信件响应。
+    """
+    if location is None:
+        return None, None
+    try:
+        from geoalchemy2.shape import to_shape
+
+        point = to_shape(location)
+        return float(point.y), float(point.x)
+    except Exception:
+        return None, None
+
 
 # ---------- 图文交替流（PRD 6.1 · blocks）----------
 
@@ -155,8 +174,11 @@ class LetterPublic(_BlocksMixin):
 
     刻意缺席的字段：
     - owner_user_id / 任何作者标识（匿名铁律）
-    - lat / lon 精确坐标（只给 place_label，避免反查作者活动位置，PRD §8.1）
     - status（读者只会看到 public 的信）
+
+    落点坐标（lat/lon）按 2026-08 裁决对外下发：落点坐标是公开的创作
+    元素（写信时作者主动选定的位置），读者用它计算与自己的直线距离；
+    location 原始列与作者标识仍然缺席。drift 信 / 无落点信为 null。
     """
 
     id: str  # UUID serialized as string
@@ -173,6 +195,10 @@ class LetterPublic(_BlocksMixin):
     parent_letter_id: str | None = None
     counts: LetterCounts
 
+    # 落点坐标（stay 信）；drift 信或反解失败为 null
+    lat: float | None = None
+    lon: float | None = None
+
     # 当前读者是否已共鸣过（一次性，详情接口按登录用户下发）。
     # 列表接口不计算、恒为 False——读信页总是重新拉详情，以详情为准。
     me_resonated: bool = False
@@ -181,6 +207,7 @@ class LetterPublic(_BlocksMixin):
     @classmethod
     def from_letter(cls, letter: Any, me_resonated: bool = False) -> "LetterPublic":
         """ORM Letter → 对外形状。counts/created_at 是派生字段，不能 from_attributes。"""
+        lat, lon = _decode_point(letter.location)
         return cls(
             id=str(letter.id),
             blocks=letter.blocks,
@@ -202,6 +229,8 @@ class LetterPublic(_BlocksMixin):
                 reply=letter.reply_count,
                 saved=letter.saved_count,
             ),
+            lat=lat,
+            lon=lon,
             me_resonated=me_resonated,
             created_at=letter.created_at.isoformat(),
         )
@@ -210,19 +239,21 @@ class LetterPublic(_BlocksMixin):
 class LetterOwned(LetterPublic):
     """本人视角，仅 /v1/me/* 路径返回。
 
-    比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——
-    自己不需要看自己的 id。
+    比 LetterPublic 多出 status。坐标继承自 LetterPublic 的落点反解；
+    **仍不含 owner_user_id**——自己不需要看自己的 id。
     """
 
     status: LetterStatus
-    lat: float | None = None
-    lon: float | None = None
 
     @classmethod
     def from_letter(
         cls, letter: Any, lat: float | None = None, lon: float | None = None
     ) -> "LetterOwned":
-        """lat/lon 由调用方（建信时来自 payload）传入，ORM 侧不反解 geography。"""
+        """lat/lon 由调用方（建信时来自 payload）传入，非 None 时覆盖落点反解。"""
         data = LetterPublic.from_letter(letter).model_dump()
-        data.update(status=letter.status, lat=lat, lon=lon)
+        data.update(status=letter.status)
+        if lat is not None:
+            data["lat"] = lat
+        if lon is not None:
+            data["lon"] = lon
         return cls(**data)

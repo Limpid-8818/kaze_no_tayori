@@ -132,6 +132,8 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
   "music_ref": {"album": "二人称", "song": "早朝、郵便受け", "lyrics": "……"},
   "place_label": "Tokyo",
   "weather": {"text": "小雨", "temp_c": 19.0, "icon": "rain"},
+  "lat": 35.68,
+  "lon": 139.76,
   "tags": ["travel", "sea"],
   "delivery_mode": "drift",
   "parent_letter_id": null,
@@ -141,13 +143,13 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 }
 ```
 
-**不含 `owner_user_id`、不含任何作者标识、不含精确坐标**（只给 `place_label`，避免反查作者位置）。
+**不含 `owner_user_id`、不含任何作者标识**。落点坐标 `lat`/`lon` 按 2026-08 裁决随响应下发（落点是作者主动选定的公开创作元素，读者用它计算与自己的直线距离）；drift 信 / 无落点信为 null。
 
 `me_resonated` 表示当前读者是否已经对该信共鸣。仅 `GET /v1/letters/{id}`
 按登录用户查询；匿名访问以及列表类接口中的 `LetterPublic` 均为 `false`。
 
 ### LetterOwned — 仅 `/v1/me/*` 路径，仅本人
-在 LetterPublic 基础上增加 `status`、`delivery_mode`、`lat`/`lon`（自己的信可见自己的落点）。**仍不含 owner_user_id**（自己不需要看自己的 id）。
+在 LetterPublic 基础上增加 `status`。坐标继承自 LetterPublic 的落点字段。**仍不含 owner_user_id**（自己不需要看自己的 id）。
 
 ---
 
@@ -208,7 +210,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/v1/weather/now?lat=&lon=` | 当前天气 `{text, temp_c, icon}`；取不到返回 null |
-| GET | `/v1/geo/reverse?lat=&lon=` | 逆地理：`{place_label}`（城市级，隐私截断）；取不到返回 null |
+| GET | `/v1/geo/reverse?lat=&lon=` | 逆地理：`{place_label}`（城市级，隐私截断；「 · 」分隔的纯名字，如「辽宁 · 大连 · 中山」，直辖市「北京 · 朝阳」）；取不到返回 null |
 
 ### 随机漂流（PRD 6.3）
 | 方法 | 路径 | 说明 |
@@ -319,7 +321,7 @@ P0 只做拉取，不做推送。
 | # | 偏差 | 原因 |
 |---|---|---|
 | 1 | 新增 `letter_reads` 表（served_at + opened_at） | PRD 6.3 要求抽「未读过」的信，`read_count` 只是聚合值无法判断个体已读。收信≠已读拆分后，served_at 服务送达去重、opened_at 服务开信计数与 discover 过滤。 |
-| 2 | `LetterPublic` 不返回精确坐标，只返回 `place_label` | PRD §8.1「位置可控/可模糊到城市级」。精确坐标外泄可反查作者活动位置，与匿名精神冲突。`LetterOwned` 里本人可见。 |
+| 2 | `LetterPublic` 落点坐标处置（2026-08 更新） | 原按 PRD §8.1 只给 `place_label`；2026-08 用户裁决改为随响应下发 `lat`/`lon`（落点是公开的创作元素，读者算直线距离用），`place_label` 保留为城市级展示。作者标识仍然缺席。 |
 | 3 | 新增 `POST /v1/letters/{id}/report` | PRD 8.2 要求举报入口，但 §9 未列实体。按最小实现落一张 `reports` 表。 |
 | 4 | 导出图片无后端接口 | PRD 6.11 的渲染在 Flutter 端用 `RepaintBoundary` 完成，无需服务端。 |
 | 5 | `music_ref`/`weather`/`tags`/`theme_skin` 用 jsonb 而非独立表 | 均为值对象、无需独立查询，jsonb 在 10 天赛期内更省事。若 P1 需要按标签聚合再抽表。 |

@@ -1,8 +1,8 @@
 """逆地理编码（模块⑦，可降级）。
 
 坐标 → 城市级地点名。取不到就返回 None，由用户手填 place_label。
-位置可控（PRD §8.1）：只返回省 + 市 + 区/乡镇，不带街道/门牌——
-精确地址会削弱匿名，且可能暴露作者日常活动范围。
+位置可控（PRD §8.1）：只返回省 · 市 · 区一级的纯名字（不带行政后缀），
+不带街道/门牌——精确地址会削弱匿名，且可能暴露作者日常活动范围。
 
 数据流：
     逆地理编码(lat,lon) → 内存缓存 → 城市级地址截断 → 返回 str | None
@@ -46,33 +46,63 @@ def _normalize_host(host: str) -> str:
     return host
 
 
+# 民族区域自治地的全名 → 短名（后缀剥离剥不掉中间的族名，逐一映射）
+_AUTONOMOUS_SHORT = {
+    "内蒙古自治区": "内蒙古",
+    "广西壮族自治区": "广西",
+    "西藏自治区": "西藏",
+    "宁夏回族自治区": "宁夏",
+    "新疆维吾尔自治区": "新疆",
+}
+
+_ADMIN_SUFFIXES = ("特别行政区", "自治区", "省", "自治州", "地区", "市", "区", "县", "旗")
+
+
+def _strip_admin_suffix(name: str) -> str:
+    """剥离行政后缀，只留名字：「辽宁省」→「辽宁」、「朝阳区」→「朝阳」。
+
+    后缀剥离是逐级尝试（先长后短，「自治区」先于「省」）；剥完为空
+    （名字本身就是后缀）或命中高德的「市辖区」占位值，返回空串，
+    由调用方从拼接中剔除。
+    """
+    if name in _AUTONOMOUS_SHORT:
+        return _AUTONOMOUS_SHORT[name]
+    if name == "市辖区":
+        return ""
+    for suffix in _ADMIN_SUFFIXES:
+        if name.endswith(suffix) and name != suffix:
+            return name[: -len(suffix)]
+    return name
+
+
 def _truncate_to_city_level(address_component: dict) -> str:
     """将高德 addressComponent 截断为城市级地址。
 
-    直辖市（北京/上海/天津/重庆）的 province == city，此时 district
-    就是有效粒度，返回「市+区」（如「北京市朝阳区」），不是只有市级。
+    输出统一为「 · 」分隔的纯名字，不带行政后缀：
 
-    常规城市返回「省+市+区」（如「辽宁省大连市中山区」）。
+    - 直辖市（北京/上海/天津/重庆）的 province == city，此时 district
+      就是有效粒度，返回「市 · 区」（如「北京 · 朝阳」），不是只有市级。
+    - 常规城市返回「省 · 市 · 区」（如「辽宁 · 大连 · 中山」）。
 
     隐私控制（PRD §8.1）：去掉 township 及更细粒度，防止精确位置反推。
     """
-    province = (address_component.get("province") or "").strip()
-    city = (address_component.get("city") or "").strip()
-    district = (address_component.get("district") or "").strip()
+    province = _strip_admin_suffix((address_component.get("province") or "").strip())
+    city = _strip_admin_suffix((address_component.get("city") or "").strip())
+    district = _strip_admin_suffix((address_component.get("district") or "").strip())
 
     # city 为空：港澳台或海外
     if not city:
-        if province:
-            return province
-        return district or province or ""
+        return province or district or ""
 
     # 直辖市：province == city（北京/上海/天津/重庆），district 是有效粒度
-    if province == city:
-        return province + district  # e.g. "北京市朝阳区"
-
-    # 常规城市：省 + 市 + 区
-    parts = [province, city, district]
-    return "".join(p for p in parts if p)
+    if (address_component.get("province") or "").strip() == (
+        address_component.get("city") or ""
+    ).strip():
+        parts = [city, district]
+    else:
+        # 常规城市：省 · 市 · 区
+        parts = [province, city, district]
+    return " · ".join(p for p in parts if p)
 
 
 async def _fetch_reverse_geocode(lat: float, lon: float) -> str | None:
@@ -117,7 +147,7 @@ async def _fetch_reverse_geocode(lat: float, lon: float) -> str | None:
 
 
 async def reverse_geocode(lat: float, lon: float) -> str | None:
-    """将坐标反译为城市级地点名，如「北京市朝阳区」。
+    """将坐标反译为城市级地点名，如「北京 · 朝阳」。
 
     契约：FEATURE_GEOCODE=false、无 key、调用失败或超时 → 一律返回 None，
     **不抛异常**。取不到由用户手填 place_label，不影响写信流程。

@@ -129,11 +129,11 @@ async def test_stay_letter_located_and_readable(  # type: ignore[no-untyped-def]
     )
     assert str(found) == letter_id
 
-    # 公开读 200，且不泄漏坐标
+    # 公开读 200，落点坐标按 2026-08 裁决对外下发（读者算直线距离用）
     got = await db_client.get(f"/v1/letters/{letter_id}")
     assert got.status_code == 200
     assert got.json()["place_label"] == "随机·落点"
-    assert "lat" not in got.json() and "lon" not in got.json()
+    assert got.json()["lat"] == lat and got.json()["lon"] == lon
     await _cleanup(db_session, user_id)
 
 

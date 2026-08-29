@@ -6,7 +6,8 @@
 PRD 6.14 的运营控制台是 P1，P0 阶段由这个脚本承担冷启动职责。
 
 种子信内容：12 封，全部国内坐标，无 owner，直接 public。
-drift 8 封 + stay 4 封，place_label 为简体中文城市级地名。
+drift 8 封 + stay 4 封，place_label 与逆地理服务同口径：
+「 · 」分隔的纯名字（不带行政后缀，直辖市只到「市 · 区」）。
 """
 
 import asyncio
@@ -92,9 +93,9 @@ def _letter(
 
 SEED_LETTERS: list[dict[str, object]] = [
     # ── DRIFT ──
-    # D-01 栈桥的傍晚 — 山东省・青岛
+    # D-01 栈桥的傍晚 — 山东 · 青岛
     _letter(
-        place_label="山东省・青岛",
+        place_label="山东 · 青岛",
         weather={"text": "晴", "temp_c": 27, "icon": "clear"},
         delivery_mode="drift",
         tags=["sea", "summer", "travel"],
@@ -105,9 +106,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-02 凌晨的便利店 — 四川省・成都
+    # D-02 凌晨的便利店 — 四川 · 成都
     _letter(
-        place_label="四川省・成都",
+        place_label="四川 · 成都",
         weather={"text": "多云", "temp_c": 22, "icon": "cloudy"},
         delivery_mode="drift",
         tags=["night", "alone", "miss"],
@@ -118,9 +119,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-03 末班地铁 — 重庆市・渝中区
+    # D-03 末班地铁 — 重庆 · 渝中
     _letter(
-        place_label="重庆市・渝中区",
+        place_label="重庆 · 渝中",
         weather={"text": "小雨", "temp_c": 19, "icon": "rain"},
         delivery_mode="drift",
         tags=["night", "alone", "summer"],
@@ -131,9 +132,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-04 老巷 — 云南省・大理
+    # D-04 老巷 — 云南 · 大理
     _letter(
-        place_label="云南省・大理",
+        place_label="云南 · 大理",
         weather={"text": "晴", "temp_c": 18, "icon": "clear"},
         delivery_mode="drift",
         tags=["travel", "alone", "summer"],
@@ -144,9 +145,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-05 长江大桥 — 湖北省・武汉
+    # D-05 长江大桥 — 湖北 · 武汉
     _letter(
-        place_label="湖北省・武汉",
+        place_label="湖北 · 武汉",
         weather={"text": "多云", "temp_c": 24, "icon": "cloudy"},
         delivery_mode="drift",
         tags=["summer", "travel", "night"],
@@ -157,9 +158,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-06 路灯下 — 上海市・静安区
+    # D-06 路灯下 — 上海 · 静安
     _letter(
-        place_label="上海市・静安区",
+        place_label="上海 · 静安",
         weather={"text": "小雨", "temp_c": 20, "icon": "rain"},
         delivery_mode="drift",
         tags=["night", "miss", "alone"],
@@ -170,9 +171,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-07 山顶 — 陕西省・华山
+    # D-07 山顶 — 陕西 · 华山
     _letter(
-        place_label="陕西省・华山",
+        place_label="陕西 · 华山",
         weather={"text": "晴", "temp_c": 21, "icon": "clear"},
         delivery_mode="drift",
         tags=["travel", "summer", "miss"],
@@ -183,9 +184,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # D-08 电话亭 — 黑龙江省・哈尔滨
+    # D-08 电话亭 — 黑龙江 · 哈尔滨
     _letter(
-        place_label="黑龙江省・哈尔滨",
+        place_label="黑龙江 · 哈尔滨",
         weather={"text": "晴", "temp_c": 15, "icon": "clear"},
         delivery_mode="drift",
         tags=["alone", "night", "miss"],
@@ -197,9 +198,9 @@ SEED_LETTERS: list[dict[str, object]] = [
         ],
     ),
     # ── STAY ──
-    # S-01 埋在海边 — 福建省・厦门
+    # S-01 埋在海边 — 福建 · 厦门
     _letter(
-        place_label="福建省・厦门",
+        place_label="福建 · 厦门",
         weather={"text": "晴", "temp_c": 27, "icon": "clear"},
         delivery_mode="stay",
         lat=24.4448,
@@ -212,9 +213,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # S-02 图书馆的窗边 — 浙江省・杭州
+    # S-02 图书馆的窗边 — 浙江 · 杭州
     _letter(
-        place_label="浙江省・杭州",
+        place_label="浙江 · 杭州",
         weather={"text": "多云", "temp_c": 23, "icon": "cloudy"},
         delivery_mode="stay",
         lat=30.2741,
@@ -227,9 +228,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # S-03 岛上 — 海南省・三亚
+    # S-03 岛上 — 海南 · 三亚
     _letter(
-        place_label="海南省・三亚",
+        place_label="海南 · 三亚",
         weather={"text": "晴", "temp_c": 28, "icon": "clear"},
         delivery_mode="stay",
         lat=18.2524,
@@ -242,9 +243,9 @@ SEED_LETTERS: list[dict[str, object]] = [
             }
         ],
     ),
-    # S-04 月台 — 湖南省・张家界
+    # S-04 月台 — 湖南 · 张家界
     _letter(
-        place_label="湖南省・张家界",
+        place_label="湖南 · 张家界",
         weather={"text": "晴", "temp_c": 24, "icon": "clear"},
         delivery_mode="stay",
         lat=29.1249,
