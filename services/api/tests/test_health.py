@@ -43,8 +43,9 @@ async def test_forbidden_endpoints_absent(client: AsyncClient) -> None:
     """明确不存在的接口（CLAUDE.md 红线 2 / API_CONTRACT.md §4）。
 
     这些路径一旦出现，说明有人在往社交产品的方向走。
+    按路径段匹配而非子串：/v1/feedback 的 "feed" 是反馈语义，不是信息流。
     """
     schema = (await client.get("/openapi.json")).json()
-    paths = " ".join(schema["paths"])
+    segments = {seg for path in schema["paths"] for seg in path.split("/")}
     for banned in ("like", "follow", "feed", "trending", "ranking", "leaderboard", "message"):
-        assert banned not in paths, f"出现了被禁止的接口语义：{banned}"
+        assert banned not in segments, f"出现了被禁止的接口语义：{banned}"

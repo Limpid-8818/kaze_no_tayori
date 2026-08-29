@@ -4,6 +4,7 @@
     {"error": {"code": "letter_not_found", "message": "...", "detail": null}}
 """
 
+from collections.abc import Sequence
 from typing import Any
 
 from asyncpg.exceptions import PostgresError
@@ -113,6 +114,19 @@ def _unavailable(exc: Exception) -> JSONResponse:
     )
 
 
+def _json_safe_errors(errors: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """pydantic 的 errors() 会把 ValueError 原对象塞进 ctx，JSONResponse
+    序列化会崩成 500（本应 422）。这里把 ctx 值降级为字符串。"""
+    safe: list[dict[str, Any]] = []
+    for err in errors:
+        item = {k: v for k, v in err.items() if k != "ctx"}
+        ctx = err.get("ctx")
+        if isinstance(ctx, dict):
+            item["ctx"] = {k: str(v) for k, v in ctx.items()}
+        safe.append(item)
+    return safe
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _app_error(_: Request, exc: AppError) -> JSONResponse:
@@ -125,7 +139,7 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
             status_code=422,
-            content=_body("validation_error", "请求参数不合法", exc.errors()),
+            content=_body("validation_error", "请求参数不合法", _json_safe_errors(exc.errors())),
         )
 
     @app.exception_handler(SQLAlchemyError)
