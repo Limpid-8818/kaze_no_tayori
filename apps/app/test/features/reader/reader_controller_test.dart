@@ -14,6 +14,7 @@ import '../../fakes/scripted_adapter.dart';
 Map<String, dynamic> _letterJson({
   String id = 'letter_1',
   bool meResonated = false,
+  int readCount = 3,
 }) => {
   'id': id,
   'blocks': const [
@@ -27,8 +28,8 @@ Map<String, dynamic> _letterJson({
   'signature': '赶海的人',
   'parent_letter_id': null,
   'me_resonated': meResonated,
-  'counts': const {
-    'read': 3,
+  'counts': {
+    'read': readCount,
     'resonance': 2,
     'voice': 0,
     'reply': 0,
@@ -119,15 +120,21 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
     ]);
     await h.controller.start();
 
     expect(h.state.phase, ReaderPhase.ready);
     expect(h.state.view?.id, 'letter_1');
     expect(h.state.resonanceCount, 2);
+    expect(h.state.view?.readCount, 4);
 
     final paths = h.adapter.requests.map((r) => r.uri.path).toList();
-    expect(paths, ['/v1/letters/letter_1', '/v1/letters/letter_1/read']);
+    expect(paths, [
+      '/v1/letters/letter_1',
+      '/v1/letters/letter_1/read',
+      '/v1/letters/letter_1',
+    ]);
     h.dispose();
   });
 
@@ -144,6 +151,7 @@ void main() {
       ScriptedResponse.fail(_server('/v1/letters/letter_1')),
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
     ]);
     await h.controller.start();
     expect(h.state.phase, ReaderPhase.error);
@@ -168,6 +176,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson(meResonated: true)),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(meResonated: true, readCount: 4)),
     ]);
     await h.controller.start();
 
@@ -181,6 +190,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       ScriptedResponse.ok(201, {'resonance_count': 7}),
     ]);
     await h.controller.start();
@@ -191,7 +201,7 @@ void main() {
     expect(h.state.resonanceCount, 7);
 
     await h.controller.resonate(); // 一次性：忽略
-    expect(h.adapter.requests, hasLength(3));
+    expect(h.adapter.requests, hasLength(4));
     h.dispose();
   });
 
@@ -199,6 +209,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       ScriptedResponse.fail(_server('/v1/letters/letter_1/resonance')),
     ]);
     await h.controller.start();
@@ -214,6 +225,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       const ScriptedResponse.ok(204),
     ]);
     await h.controller.start();
@@ -232,6 +244,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       ScriptedResponse.fail(_server('/v1/me/scripbook')),
     ]);
     await h.controller.start();
@@ -247,6 +260,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       const ScriptedResponse.ok(204),
     ]);
     await h.controller.start();
@@ -264,8 +278,10 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       ScriptedResponse.ok(200, _letterJson(id: 'letter_0')),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(id: 'letter_0', readCount: 4)),
     ]);
     await h.controller.start(); // 原信页 letter_1 → ready
 
@@ -282,6 +298,7 @@ void main() {
     final h = _Harness([
       ScriptedResponse.ok(200, _letterJson()),
       const ScriptedResponse.ok(204),
+      ScriptedResponse.ok(200, _letterJson(readCount: 4)),
       ScriptedResponse.fail(_notFound('/v1/letters/x')),
     ]);
     await h.controller.start();

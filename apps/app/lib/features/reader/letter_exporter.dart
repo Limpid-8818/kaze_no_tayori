@@ -90,6 +90,10 @@ Future<Uint8List> exportLetterImage(
             dayPeriod: view.dayPeriod,
             weather: view.weatherText,
             signature: view.signature,
+            poem: view.poem,
+            readCount: view.readCount,
+            interactionCount: view.interactionCount,
+            replyCount: view.replyCount,
             skyGradient: skyOfLetter(view),
           ),
         ),
@@ -103,11 +107,14 @@ Future<Uint8List> exportLetterImage(
     // 落在第二帧——只等一帧会间歇性拍到 logo/照片空白（竞态）
     await binding.endOfFrame;
 
-    // 高度落定后才定像素比：默认 3x 出高清长图，超高信降 2x 保住
-    // 设备纹理上限
+    // 高度落定后才定像素比：默认 3x 出高清长图，超高信逐级降档
+    // （3→2→1）保住设备纹理上限——只降一档在叙事计数区加入后不够
     final box = boundaryKey.currentContext?.findRenderObject();
     final height = box is RenderBox ? box.size.height : 0.0;
-    final ratio = height * 3 > KazeExportDims.maxTexPx ? 2.0 : 3.0;
+    var ratio = 3.0;
+    while (height * ratio > KazeExportDims.maxTexPx && ratio > 1) {
+      ratio -= 1;
+    }
 
     var png = await captureLetterPng(boundaryKey, pixelRatio: ratio);
     if (png == null) {

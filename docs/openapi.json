@@ -3511,7 +3511,7 @@
     },
     "/v1/letters": {
       "post": {
-        "description": "写一封信并投放。\n\ndelivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。\n提交后入审，默认 status=pending。\n审核通过的公开信在响应后由后台任务自动补写 AI 短诗\n（客户端已自带 poem 或 FEATURE_AI 关闭时跳过）。",
+        "description": "写一封信并投放。\n\ndelivery_mode 必选：stay（锚定位置）或 drift（入随机漂流池）。\n提交后入审，默认 status=pending。短诗只有在用户预览并采纳后才由\n客户端随 payload.poem 提交；拒绝候选或 AI 关闭时保持为空。",
         "operationId": "create_letter_v1_letters_post",
         "requestBody": {
           "content": {

@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazenotayori/app/controllers/location_controller.dart';
+import 'package:kazenotayori/core/env.dart';
 import 'package:kazenotayori/data/api/api_client.dart';
 import 'package:kazenotayori/data/api/providers.dart';
 import 'package:kazenotayori/data/device/image_gateway.dart';
@@ -76,6 +77,17 @@ Map<String, dynamic> _letterOwnedJson(Map<String, dynamic> body) => {
   'created_at': '2026-08-26T10:00:00Z',
   'status': 'pending',
 };
+
+DioException _apiError(int status, String code, String message) => DioException(
+  requestOptions: RequestOptions(path: '/v1/ai'),
+  response: Response(
+    requestOptions: RequestOptions(path: '/v1/ai'),
+    statusCode: status,
+    data: {
+      'error': {'code': code, 'message': message},
+    },
+  ),
+);
 
 class _Harness {
   _Harness({
@@ -278,6 +290,173 @@ void main() {
     expect(File(photo.localPath).existsSync(), isFalse);
   });
 
+  test('AI 润色先给候选，采纳后只替换文字并保持照片位置', () async {
+    final harness = _Harness(
+      images: [_png()],
+      script: [
+        ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+        ScriptedResponse.ok(200, {'polished': '润色后的前半段'}),
+        ScriptedResponse.ok(200, {'polished': '润色后的后半段'}),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '前半段和后半段');
+    harness.controller.reportCursor(0, 3);
+    await harness.controller.addPhotosAtCursor();
+    await harness.settle();
+    final before = List<WriteBlock>.of(harness.state.blocks);
+    final photoId = harness.state.photos.single.id;
+
+    final suggestion = await harness.controller.suggestPolish();
+
+    expect(suggestion?.preview, '润色后的前半段\n\n润色后的后半段');
+    expect(harness.state.blocks, before); // 预览不会自动改正文
+    expect(harness.adapter.requests.map((request) => request.path), [
+      '/v1/uploads/images',
+      '/v1/ai/polish',
+      '/v1/ai/polish',
+    ]);
+
+    harness.controller.adoptPolish(suggestion!);
+    final blocks = harness.state.blocks;
+    expect((blocks[0] as WriteTextBlock).text, '润色后的前半段');
+    expect(blocks[1], isA<WritePhotoBlock>());
+    expect(blocks[1].id, photoId);
+    expect((blocks[2] as WriteTextBlock).text, '润色后的后半段');
+  });
+
+  test('多段润色任一请求失败时保持原文，并进入可降级状态', () async {
+    final harness = _Harness(
+      images: [_png()],
+      script: [
+        ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+        ScriptedResponse.ok(200, {'polished': '润色后的前半段'}),
+        ScriptedResponse.fail(_apiError(503, 'feature_disabled', 'AI 当前不可用')),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '前半段和后半段');
+    harness.controller.reportCursor(0, 3);
+    await harness.controller.addPhotosAtCursor();
+    await harness.settle();
+    final before = List<WriteBlock>.of(harness.state.blocks);
+
+    final suggestion = await harness.controller.suggestPolish();
+
+    expect(suggestion, isNull);
+    expect(harness.state.blocks, before);
+    expect(harness.state.aiUnavailable, isTrue);
+    expect(harness.state.aiBusy, isNull);
+    expect(harness.state.notice?.message, 'AI 暂时没有回应，继续手写就好');
+  });
+
+  test('润色候选生成后正文有变化则拒绝采纳', () async {
+    final harness = _Harness(
+      script: [
+        ScriptedResponse.ok(200, {'polished': '润色后的正文'}),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '原正文');
+    final suggestion = await harness.controller.suggestPolish();
+    harness.controller.updateText(0, '用户后来改过的正文');
+
+    harness.controller.adoptPolish(suggestion!);
+
+    expect((harness.state.blocks.single as WriteTextBlock).text, '用户后来改过的正文');
+    expect(harness.state.notice?.message, '正文已经改过了，请重新润色');
+  });
+
+  test('800 字多文本块生成短诗时保留全部正文且请求不超过接口上限', () async {
+    final first = List.filled(400, '甲').join();
+    final second = List.filled(400, '乙').join();
+    final harness = _Harness(
+      images: [_png()],
+      script: [
+        ScriptedResponse.ok(201, {'url': 'https://t/u1.jpg'}),
+        ScriptedResponse.ok(200, {'poem': '晚风经过纸页\n蝉声停在句尾\n远山替我寄出'}),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '$first$second');
+    harness.controller.reportCursor(0, 400);
+    await harness.controller.addPhotosAtCursor();
+    await harness.settle();
+
+    final suggestion = await harness.controller.suggestPoem();
+
+    expect(suggestion, isNotNull);
+    final request = harness.adapter.requests.last;
+    expect(request.path, '/v1/ai/poem');
+    final content = (request.data as Map<String, dynamic>)['content'] as String;
+    expect(content.length, Env.letterMaxChars);
+    expect(content, '$first$second');
+  });
+
+  test('正文超过上限时 AI 辅助显式拒绝且不发请求', () async {
+    final harness = _Harness();
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(
+      0,
+      List.filled(Env.letterMaxChars + 1, '风').join(),
+    );
+
+    expect(await harness.controller.suggestPolish(), isNull);
+    expect(harness.state.notice?.message, '正文太长了，精简到 800 字以内再润色');
+    expect(await harness.controller.suggestPoem(), isNull);
+    expect(harness.state.notice?.message, '正文太长了，精简到 800 字以内再生成短诗');
+    expect(harness.adapter.requests, isEmpty);
+  });
+
+  test('短诗候选只在正文未变化时采纳，并随草稿和寄信请求持久化', () async {
+    final harness = _Harness(
+      script: [
+        ScriptedResponse.ok(200, {'poem': '晚风经过纸页\n蝉声停在句尾\n远山替我寄出'}),
+        ScriptedResponse.ok(200, {'poem': '旧正文的诗'}),
+        ScriptedResponse.ok(201, _letterOwnedJson({})),
+      ],
+    );
+    addTearDown(harness.dispose);
+
+    await harness.controller.start();
+    harness.controller.updateText(0, '正文一句话');
+    final adopted = await harness.controller.suggestPoem();
+    harness.controller.adoptPoem(adopted!);
+    expect(harness.state.poem, '晚风经过纸页\n蝉声停在句尾\n远山替我寄出');
+    await harness.flushDraft();
+    final draft = await harness.container
+        .read(draftStoreProvider)
+        .loadJson('write');
+    expect(draft?['poem'], harness.state.poem);
+
+    final stale = await harness.controller.suggestPoem();
+    harness.controller.updateText(0, '正文已经改过');
+    harness.controller.adoptPoem(stale!);
+    expect(harness.state.poem, adopted.poem);
+    expect(harness.state.notice?.message, '正文已经改过了，请重新生成短诗');
+
+    harness.controller.setDelivery(DeliveryMode.drift);
+    final poem = harness.state.poem;
+    expect(await harness.controller.send(), isNotNull);
+    final sent =
+        harness.adapter.requests
+                .lastWhere((request) => request.path == '/v1/letters')
+                .data
+            as Map<String, dynamic>;
+    expect(sent['poem'], poem);
+    expect(harness.state.poem, isNull);
+  });
+
   test('留/投必选：不选就寄出会被拦下，不发请求', () async {
     final harness = _Harness();
     addTearDown(harness.dispose);
@@ -390,13 +569,16 @@ void main() {
     expect(harness.state.textCharCount, 5);
   });
 
-  test('草稿防抖保存后，新会话能恢复文本/落款（投递方式不进草稿）', () async {
+  test('草稿防抖保存后，新会话能恢复文本/落款/短诗（投递方式不进草稿）', () async {
     final harness = _Harness();
     addTearDown(harness.dispose);
 
     await harness.controller.start();
     harness.controller.updateText(0, '断网前写的半句话');
     harness.controller.setSignature('小海');
+    harness.controller.adoptPoem(
+      const PoemSuggestion(source: '断网前写的半句话', poem: '风停在纸页'),
+    );
     harness.controller.setDelivery(DeliveryMode.drift);
     await harness.flushDraft();
 
@@ -418,6 +600,7 @@ void main() {
     expect(state.restored, isTrue);
     expect(state.textCharCount, 8);
     expect(state.signature, '小海');
+    expect(state.poem, '风停在纸页');
     expect(state.deliveryMode, isNull); // 模式不算手动内容，不进草稿
     expect(state.notice?.message, '已恢复上次的草稿');
   });

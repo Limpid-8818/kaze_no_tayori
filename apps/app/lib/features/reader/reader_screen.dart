@@ -2,9 +2,8 @@
 /// 信抵达时的封筒封面（正放预览，工具行原地切换）；「⋯」里可把这封
 /// 信导出成匿名长图。
 ///
-/// **不渲染任何作者信息**（服务端也不会给）。短诗、音乐引用本阶段
-/// 不展示（mapper 丢弃）。控制逻辑全在 [ReaderController]，本文件只做
-/// 布局与交互挂接。
+/// **不渲染任何作者信息**（服务端也不会给）。短诗与读/互动/回信计数
+/// 和正文同屏；控制逻辑全在 [ReaderController]，本文件只做布局与交互挂接。
 library;
 
 import 'dart:async' show unawaited;
@@ -23,6 +22,7 @@ import '../../app/widgets/kaze_view_toggle.dart';
 import 'letter_exporter.dart';
 import 'letter_view.dart';
 import 'reader_controller.dart';
+import 'widgets/letter_export_canvas.dart' show LetterContent;
 import 'widgets/letter_export_sheet.dart';
 import 'widgets/reader_action_bar.dart';
 import 'widgets/reader_empty_state.dart';
@@ -146,15 +146,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget _letterView(LetterView view) {
     return Center(
       key: const ValueKey('paper'),
-      child: LetterReading(
+      child: LetterContent(
         blocks: view.blocks,
         photoResolver: cachedPhotoResolver,
+        readCount: view.readCount,
+        interactionCount: view.interactionCount,
+        replyCount: view.replyCount,
         seedId: view.id,
         place: view.place,
         time: view.timeLabel,
         dayPeriod: view.dayPeriod,
         weather: view.weatherText,
         signature: view.signature,
+        poem: view.poem,
       ),
     );
   }

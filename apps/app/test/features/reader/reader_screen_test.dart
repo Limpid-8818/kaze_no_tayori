@@ -31,17 +31,34 @@ Map<String, dynamic> _letterJson({
   'place_label': '浙江 · 舟山',
   'weather': const {'text': '多云', 'temp_c': 26.0},
   'signature': '赶海的人',
+  'poem': '晚风经过纸页\n蝉声停在句尾',
   'addressee': '某人',
   'parent_letter_id': parentLetterId,
   'counts': const {
     'read': 3,
     'resonance': 2,
-    'voice': 0,
-    'reply': 0,
+    'voice': 1,
+    'reply': 1,
     'saved': 0,
   },
   'created_at': '2026-08-26T10:00:00Z',
 };
+
+List<ScriptedResponse> _openedLetter({
+  String id = 'letter_1',
+  String? parentLetterId,
+  String text = '傍晚的海边风很大',
+}) => [
+  ScriptedResponse.ok(
+    200,
+    _letterJson(id: id, parentLetterId: parentLetterId, text: text),
+  ),
+  const ScriptedResponse.ok(204),
+  ScriptedResponse.ok(
+    200,
+    _letterJson(id: id, parentLetterId: parentLetterId, text: text),
+  ),
+];
 
 DioException _notFound(String path) => DioException(
   requestOptions: RequestOptions(path: path, baseUrl: 'http://test'),
@@ -113,16 +130,15 @@ class _Harness {
 
 void main() {
   testWidgets('ready：信纸渲染正文/署名，底部共鸣与回信在位', (tester) async {
-    final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
-    ]);
+    final h = _Harness(_openedLetter());
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
     expect(find.byType(LetterReading), findsOneWidget);
     expect(find.text('傍晚的海边风很大'), findsOneWidget);
     expect(find.text('赶海的人'), findsOneWidget);
+    expect(find.text('晚风经过纸页\n蝉声停在句尾'), findsOneWidget);
+    expect(find.text('曾被 3 个陌生人读到，留下 3 次回响，收到 1 封回信。'), findsOneWidget);
     expect(find.byType(NatsuResonance), findsOneWidget);
     expect(find.text('回以一封信'), findsOneWidget);
     // 非回信没有「看原信」入口
@@ -144,8 +160,7 @@ void main() {
   testWidgets('服务错误：空态 + 再试一次可恢复', (tester) async {
     final h = _Harness([
       ScriptedResponse.fail(_server('/v1/letters/letter_1')),
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
+      ..._openedLetter(),
     ]);
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
@@ -158,8 +173,7 @@ void main() {
 
   testWidgets('点共鸣：落章后出现句子式计数', (tester) async {
     final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
+      ..._openedLetter(),
       ScriptedResponse.ok(201, {'resonance_count': 3}),
     ]);
     await tester.pumpWidget(h.app());
@@ -173,10 +187,7 @@ void main() {
   });
 
   testWidgets('回以一封信：带 parent 跳写信路由', (tester) async {
-    final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
-    ]);
+    final h = _Harness(_openedLetter());
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
@@ -186,10 +197,7 @@ void main() {
   });
 
   testWidgets('信纸↔封筒：工具行原地切换，封筒正放且封面要素带出', (tester) async {
-    final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
-    ]);
+    final h = _Harness(_openedLetter());
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
@@ -219,11 +227,7 @@ void main() {
   });
 
   testWidgets('「更多」菜单：记入抄本常驻，选中后 POST 落库并冒提示', (tester) async {
-    final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
-      const ScriptedResponse.ok(204),
-    ]);
+    final h = _Harness([..._openedLetter(), const ScriptedResponse.ok(204)]);
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
@@ -248,10 +252,8 @@ void main() {
 
   testWidgets('「看原信」：工具行居右入口，点击叠开原信且两页状态独立', (tester) async {
     final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson(parentLetterId: 'letter_0')),
-      const ScriptedResponse.ok(204),
-      ScriptedResponse.ok(200, _letterJson(id: 'letter_0', text: '海风把回信吹来了')),
-      const ScriptedResponse.ok(204),
+      ..._openedLetter(parentLetterId: 'letter_0'),
+      ..._openedLetter(id: 'letter_0', text: '海风把回信吹来了'),
     ]);
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
@@ -280,10 +282,7 @@ void main() {
   });
 
   testWidgets('⋯ 菜单导出图片：装图 → 预览 sheet 弹出（捕获须真实异步）', (tester) async {
-    final h = _Harness([
-      ScriptedResponse.ok(200, _letterJson()),
-      const ScriptedResponse.ok(204),
-    ]);
+    final h = _Harness(_openedLetter());
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 

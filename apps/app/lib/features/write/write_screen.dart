@@ -2,7 +2,7 @@
 ///
 /// 单页滚动：切换工具行 → 信纸（所见即所得）→ 图片托盘 → 表单卡
 /// （地点/收信人/落款）→ 寄往何处（留/投必选）→ 寄出。P0 固定夏主题
-/// 默认皮肤；音乐/标签/AI 润色不进首个闭环。
+/// 默认皮肤；AI 润色与短诗均先预览、由用户明确采纳。
 ///
 /// 封筒态：工具行切到正放的封筒封面预览，表单区整体退场——宛名/落点/
 /// 日期/天气都在封面上，是「寄出前最后看一眼这封信会以什么样子抵达」
@@ -171,6 +171,17 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
           ),
         ],
         const SizedBox(height: KazeSpacing.sm),
+        _AiAssistBar(
+          hasContent: state.textCharCount > 0,
+          hasPoem: state.poem != null,
+          unavailable: state.aiUnavailable,
+          busy: state.aiBusy,
+          onPolish: _suggestPolish,
+          onPoem: _suggestPoem,
+          onRemovePoem: () =>
+              ref.read(writeControllerProvider.notifier).clearPoem(),
+        ),
+        const SizedBox(height: KazeSpacing.md),
         PhotoTray(
           photos: state.photos,
           onAdd: () =>
@@ -206,6 +217,66 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
   }
 
   // ---------- 交互编排 ----------
+
+  Future<void> _suggestPolish() async {
+    FocusScope.of(context).unfocus();
+    final controller = ref.read(writeControllerProvider.notifier);
+    final suggestion = await controller.suggestPolish();
+    if (!mounted || suggestion == null) return;
+    await _showAiSuggestion(
+      title: '润色后的正文',
+      content: suggestion.preview,
+      onAdopt: () => controller.adoptPolish(suggestion),
+    );
+  }
+
+  Future<void> _suggestPoem() async {
+    FocusScope.of(context).unfocus();
+    final controller = ref.read(writeControllerProvider.notifier);
+    final suggestion = await controller.suggestPoem();
+    if (!mounted || suggestion == null) return;
+    await _showAiSuggestion(
+      title: '从信里找到的短诗',
+      content: suggestion.poem,
+      poem: true,
+      onAdopt: () => controller.adoptPoem(suggestion),
+    );
+  }
+
+  Future<void> _showAiSuggestion({
+    required String title,
+    required String content,
+    required VoidCallback onAdopt,
+    bool poem = false,
+  }) async {
+    await showNatsuDialog<void>(
+      context: context,
+      title: Text(title),
+      body: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 360),
+        child: SingleChildScrollView(
+          child: Text(content, style: poem ? KazeLetterType.poem : null),
+        ),
+      ),
+      actions: [
+        NatsuButton(
+          size: NatsuButtonSize.sm,
+          variant: NatsuButtonVariant.ghost,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('保留原稿'),
+        ),
+        NatsuButton(
+          size: NatsuButtonSize.sm,
+          variant: NatsuButtonVariant.primary,
+          onPressed: () {
+            Navigator.of(context).pop();
+            onAdopt();
+          },
+          child: const Text('采纳'),
+        ),
+      ],
+    );
+  }
 
   /// 选「留在这里」且还没有落点时，顺手带出落点确认——
   /// 没拿到坐标也允许先选上，寄出时的校验兜底。
@@ -268,6 +339,97 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     if (!mounted || owned == null) return;
     showNatsuToast(context, '信已寄出，正在等风把它送到下一个地方');
     context.pop();
+  }
+}
+
+/// 写信页 AI 辅助入口。这里只呈现状态与动作，不直接调用接口。
+class _AiAssistBar extends StatelessWidget {
+  const _AiAssistBar({
+    required this.hasContent,
+    required this.hasPoem,
+    required this.unavailable,
+    required this.busy,
+    required this.onPolish,
+    required this.onPoem,
+    required this.onRemovePoem,
+  });
+
+  final bool hasContent;
+  final bool hasPoem;
+  final bool unavailable;
+  final AiAssistKind? busy;
+  final VoidCallback onPolish;
+  final VoidCallback onPoem;
+  final VoidCallback onRemovePoem;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (unavailable) {
+      return Text('AI 暂时没有回应，继续手写就好', style: theme.textTheme.bodySmall);
+    }
+
+    final enabled = hasContent && busy == null;
+    return Wrap(
+      spacing: KazeSpacing.sm,
+      runSpacing: KazeSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        NatsuButton(
+          size: NatsuButtonSize.sm,
+          onPressed: enabled ? onPolish : null,
+          child: _AssistLabel(
+            icon: Icons.auto_fix_high_outlined,
+            label: busy == AiAssistKind.polish ? '正在润色…' : 'AI 润色',
+            busy: busy == AiAssistKind.polish,
+          ),
+        ),
+        NatsuButton(
+          size: NatsuButtonSize.sm,
+          onPressed: enabled ? onPoem : null,
+          child: _AssistLabel(
+            icon: Icons.format_quote_outlined,
+            label: busy == AiAssistKind.poem
+                ? '正在找诗…'
+                : hasPoem
+                ? '重写短诗'
+                : '生成短诗',
+            busy: busy == AiAssistKind.poem,
+          ),
+        ),
+        if (hasPoem)
+          NatsuButton(
+            size: NatsuButtonSize.sm,
+            variant: NatsuButtonVariant.ghost,
+            onPressed: busy == null ? onRemovePoem : null,
+            child: const Text('移除短诗'),
+          ),
+      ],
+    );
+  }
+}
+
+class _AssistLabel extends StatelessWidget {
+  const _AssistLabel({
+    required this.icon,
+    required this.label,
+    required this.busy,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (busy) const NatsuSpinner(size: NatsuSpinnerSize.sm) else Icon(icon),
+        const SizedBox(width: KazeSpacing.xs),
+        Text(label),
+      ],
+    );
   }
 }
 

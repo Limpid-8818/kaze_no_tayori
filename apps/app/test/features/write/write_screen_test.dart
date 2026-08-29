@@ -191,6 +191,95 @@ void main() {
     await _flushTimers(tester);
   });
 
+  testWidgets('AI 候选先预览；保留润色原稿，采纳及移除短诗都显式生效', (tester) async {
+    await tester.pumpWidget(
+      await _writeApp(
+        script: [
+          ScriptedResponse.ok(200, {'polished': '海风轻轻经过纸页'}),
+          ScriptedResponse.ok(200, {'poem': '晚风经过纸页\n蝉声停在句尾\n远山替我寄出'}),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '写了一句话');
+    await tester.pump();
+    await tester.ensureVisible(find.text('AI 润色'));
+    await tester.tap(find.text('AI 润色'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('海风轻轻经过纸页'), findsOneWidget);
+    expect(find.text('保留原稿'), findsOneWidget);
+    await tester.tap(find.text('保留原稿'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(EditablePaper),
+        matching: find.text('写了一句话'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(find.text('生成短诗'));
+    await tester.tap(find.text('生成短诗'));
+    await tester.pumpAndSettle();
+    expect(find.text('从信里找到的短诗'), findsOneWidget);
+    expect(find.text('晚风经过纸页\n蝉声停在句尾\n远山替我寄出'), findsOneWidget);
+    await tester.tap(find.text('采纳'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(EditablePaper),
+        matching: find.text('晚风经过纸页\n蝉声停在句尾\n远山替我寄出'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('重写短诗'), findsOneWidget);
+    expect(find.text('移除短诗'), findsOneWidget);
+
+    await tester.tap(find.text('移除短诗'));
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byType(EditablePaper),
+        matching: find.text('晚风经过纸页\n蝉声停在句尾\n远山替我寄出'),
+      ),
+      findsNothing,
+    );
+    await _flushTimers(tester);
+  });
+
+  testWidgets('AI 503 后写信页降级为纯手写，不弹候选对话框', (tester) async {
+    final failure = DioException(
+      requestOptions: RequestOptions(path: '/v1/ai/polish'),
+      response: Response(
+        requestOptions: RequestOptions(path: '/v1/ai/polish'),
+        statusCode: 503,
+        data: {
+          'error': {'code': 'feature_disabled', 'message': 'AI 当前不可用'},
+        },
+      ),
+    );
+    await tester.pumpWidget(
+      await _writeApp(script: [ScriptedResponse.fail(failure)]),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '写了一句话');
+    await tester.pump();
+    await tester.ensureVisible(find.text('AI 润色'));
+    await tester.tap(find.text('AI 润色'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('润色后的正文'), findsNothing);
+    expect(find.text('AI 润色'), findsNothing);
+    expect(find.text('生成短诗'), findsNothing);
+    expect(find.text('AI 暂时没有回应，继续手写就好'), findsWidgets);
+    expect(find.byType(EditablePaper), findsOneWidget);
+    await _flushTimers(tester);
+  });
+
   testWidgets('插入照片后托盘按信内顺序显示，满三张加号消失', (tester) async {
     await tester.pumpWidget(
       await _writeApp(

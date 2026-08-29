@@ -20,6 +20,11 @@ LetterView _view({String? weatherIcon}) => LetterView(
   place: '浙江 · 舟山',
   weatherText: '多云',
   weatherIcon: weatherIcon,
+  poem: '晚风经过纸页\n蝉声停在句尾',
+  readCount: 3,
+  resonanceCount: 2,
+  voiceCount: 1,
+  replyCount: 1,
 );
 
 Widget _wrap(Widget child) => MaterialApp(
@@ -49,6 +54,10 @@ void main() {
           dayPeriod: view.dayPeriod,
           weather: view.weatherText,
           signature: view.signature,
+          poem: view.poem,
+          readCount: view.readCount,
+          interactionCount: view.interactionCount,
+          replyCount: view.replyCount,
           skyGradient: skyOfLetter(view),
         ),
       ),
@@ -59,6 +68,8 @@ void main() {
     expect(find.byType(LetterReading), findsOneWidget);
     expect(find.text('傍晚的海边风很大'), findsOneWidget);
     expect(find.text('赶海的人'), findsOneWidget);
+    expect(find.text('晚风经过纸页\n蝉声停在句尾'), findsOneWidget);
+    expect(find.text('曾被 3 个陌生人读到，留下 3 次回响，收到 1 封回信。'), findsOneWidget);
     // meta 行：地点 · 日期 · 时段 · 天气（同一行内以「 · 」连接）
     expect(find.text('浙江 · 舟山 · 8月26日 · 朝 · 多云'), findsOneWidget);
     // 水印：logo 图 + 「风信」

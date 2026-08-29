@@ -84,6 +84,25 @@ typedef WriteNotice = ({String message, int seq});
 /// 焦点请求：插完照片把光标放回正文断点处。
 typedef WriteFocusRequest = ({int blockId, int offset, int seq});
 
+enum AiAssistKind { polish, poem }
+
+/// 润色候选按原文本块返回，采纳时只替换对应文字，不移动夹在信中的照片。
+class PolishSuggestion {
+  const PolishSuggestion({required this.originals, required this.blocks});
+
+  final Map<int, String> originals;
+  final Map<int, String> blocks;
+
+  String get preview => blocks.values.join('\n\n');
+}
+
+class PoemSuggestion {
+  const PoemSuggestion({required this.source, required this.poem});
+
+  final String source;
+  final String poem;
+}
+
 class WriteState {
   /// 非空 [now] 由控制器随生命周期推进（进页置初值、前台每 30 秒、
   /// 回前台时刷新）——纸尾日期时间永远与「此刻」一致，草稿恢复也不例外。
@@ -94,9 +113,12 @@ class WriteState {
     this.addressee = '',
     this.dropPoint,
     this.weather,
+    this.poem,
     this.deliveryMode,
     this.locationBusy = false,
     this.sending = false,
+    this.aiUnavailable = false,
+    this.aiBusy,
     this.restored = false,
     this.notice,
     this.focusRequest,
@@ -113,11 +135,16 @@ class WriteState {
   final DropPoint? dropPoint;
   final Weather? weather;
 
+  /// 用户明确采纳的 AI 短诗；候选在采纳前不进入写信状态与提交体。
+  final String? poem;
+
   /// 留/投二选一——初始 null，**不许有默认值悄悄带过**（PRD 6.1）。
   final DeliveryMode? deliveryMode;
 
   final bool locationBusy;
   final bool sending;
+  final bool aiUnavailable;
+  final AiAssistKind? aiBusy;
 
   /// 本次进入页面时恢复了历史草稿（用于提示与测试）。
   final bool restored;
@@ -144,9 +171,12 @@ class WriteState {
     String? addressee,
     Object? dropPoint = _unset,
     Object? weather = _unset,
+    Object? poem = _unset,
     Object? deliveryMode = _unset,
     bool? locationBusy,
     bool? sending,
+    bool? aiUnavailable,
+    Object? aiBusy = _unset,
     bool? restored,
     WriteNotice? notice,
     Object? focusRequest = _unset,
@@ -159,11 +189,14 @@ class WriteState {
       addressee: addressee ?? this.addressee,
       dropPoint: dropPoint == _unset ? this.dropPoint : dropPoint as DropPoint?,
       weather: weather == _unset ? this.weather : weather as Weather?,
+      poem: poem == _unset ? this.poem : poem as String?,
       deliveryMode: deliveryMode == _unset
           ? this.deliveryMode
           : deliveryMode as DeliveryMode?,
       locationBusy: locationBusy ?? this.locationBusy,
       sending: sending ?? this.sending,
+      aiUnavailable: aiUnavailable ?? this.aiUnavailable,
+      aiBusy: aiBusy == _unset ? this.aiBusy : aiBusy as AiAssistKind?,
       restored: restored ?? this.restored,
       notice: notice ?? this.notice,
       focusRequest: focusRequest == _unset
@@ -330,6 +363,7 @@ class WriteController extends Notifier<WriteState> {
       blocks: blocks,
       signature: (json['signature'] as String?) ?? '',
       addressee: (json['addressee'] as String?) ?? '',
+      poem: _nullIfBlank((json['poem'] as String?) ?? ''),
       restored: true,
     );
     _notice('已恢复上次的草稿');
@@ -591,6 +625,187 @@ class WriteController extends Notifier<WriteState> {
   void setAddressee(String value) =>
       _mutate((s) => s.copyWith(addressee: value));
 
+  // ---------- AI 辅助 ----------
+
+  /// 每个非空文本块独立润色，保证采纳时照片位置与图文顺序不变。
+  /// 任一请求失败则整次不产生候选，不把半封润色结果混进原文。
+  Future<PolishSuggestion?> suggestPolish() async {
+    if (state.aiBusy != null || state.aiUnavailable) return null;
+    if (state.textCharCount > Env.letterMaxChars) {
+      _notice('正文太长了，精简到 ${Env.letterMaxChars} 字以内再润色');
+      return null;
+    }
+    final texts = {
+      for (final block in state.blocks)
+        if (block is WriteTextBlock && block.text.trim().isNotEmpty)
+          block.id: block.text,
+    };
+    if (texts.isEmpty) {
+      _notice('先写一点正文，再请 AI 帮忙润色');
+      return null;
+    }
+
+    state = state.copyWith(aiBusy: AiAssistKind.polish);
+    try {
+      final api = ref.read(aiApiProvider);
+      final polished = <int, String>{};
+      for (final entry in texts.entries) {
+        final response = await api.polish(entry.value);
+        if (!ref.mounted) return null;
+        final value = response.polished.trim();
+        if (value.isEmpty || value.length > Env.textBlockMaxChars) {
+          _notice('这次润色没有得到可采纳的结果');
+          return null;
+        }
+        polished[entry.key] = value;
+      }
+      final total = polished.values.fold<int>(
+        0,
+        (sum, value) => sum + value.length,
+      );
+      if (total > Env.letterMaxChars) {
+        _notice('这次润色后的正文太长了，没有采纳');
+        return null;
+      }
+      return PolishSuggestion(originals: texts, blocks: polished);
+    } on ApiFailure catch (error) {
+      if (!ref.mounted) return null;
+      _handleAiFailure(error);
+      return null;
+    } finally {
+      if (ref.mounted) state = state.copyWith(aiBusy: null);
+    }
+  }
+
+  /// 采纳是独立动作；预览候选不会自动改写正文。
+  void adoptPolish(PolishSuggestion suggestion) {
+    final current = {
+      for (final block in state.blocks)
+        if (block is WriteTextBlock &&
+            suggestion.originals.containsKey(block.id))
+          block.id: block.text,
+    };
+    if (current.length != suggestion.originals.length ||
+        suggestion.originals.entries.any(
+          (entry) => current[entry.key] != entry.value,
+        )) {
+      _notice('正文已经改过了，请重新润色');
+      return;
+    }
+    _mutate(
+      (s) => s.copyWith(
+        blocks: [
+          for (final block in s.blocks)
+            if (block is WriteTextBlock &&
+                suggestion.blocks.containsKey(block.id))
+              WriteTextBlock(id: block.id, text: suggestion.blocks[block.id]!)
+            else
+              block,
+        ],
+      ),
+    );
+    _notice('已采纳润色，仍可以继续修改');
+  }
+
+  Future<PoemSuggestion?> suggestPoem() async {
+    if (state.aiBusy != null || state.aiUnavailable) return null;
+    final source = _plainText;
+    if (source.isEmpty) {
+      _notice('先写一点正文，再从里面找一首短诗');
+      return null;
+    }
+    if (state.textCharCount > Env.letterMaxChars) {
+      _notice('正文太长了，精简到 ${Env.letterMaxChars} 字以内再生成短诗');
+      return null;
+    }
+
+    state = state.copyWith(aiBusy: AiAssistKind.poem);
+    try {
+      final response = await ref.read(aiApiProvider).poem(_aiPlainText);
+      if (!ref.mounted) return null;
+      final poem = response.poem.trim();
+      final lines = poem
+          .split('\n')
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
+      if (lines.isEmpty || lines.length > 4) {
+        _notice('这次没有找到合适的短诗');
+        return null;
+      }
+      return PoemSuggestion(source: source, poem: lines.join('\n'));
+    } on ApiFailure catch (error) {
+      if (!ref.mounted) return null;
+      _handleAiFailure(error);
+      return null;
+    } finally {
+      if (ref.mounted) state = state.copyWith(aiBusy: null);
+    }
+  }
+
+  void adoptPoem(PoemSuggestion suggestion) {
+    if (_plainText != suggestion.source) {
+      _notice('正文已经改过了，请重新生成短诗');
+      return;
+    }
+    _mutate((s) => s.copyWith(poem: suggestion.poem));
+    _notice('短诗已夹进信里');
+  }
+
+  void clearPoem() {
+    _mutate((s) => s.copyWith(poem: null));
+    _notice('已移除短诗');
+  }
+
+  String get _plainText => state.blocks
+      .whereType<WriteTextBlock>()
+      .map((block) => block.text.trim())
+      .where((text) => text.isNotEmpty)
+      .join('\n\n');
+
+  /// AI 接口的 content 上限与整封正文一致。照片拆出的文本块需要分隔符，
+  /// 但分隔符不属于用户正文计数；接近上限时按预算保留尽可能多的换行，
+  /// 不截断任何正文字符。
+  String get _aiPlainText {
+    final texts = state.blocks
+        .whereType<WriteTextBlock>()
+        .map((block) => block.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (texts.length < 2) return texts.join();
+
+    final textLength = texts.fold<int>(0, (sum, text) => sum + text.length);
+    var separatorBudget = Env.letterMaxChars - textLength;
+    final separators = List<String>.filled(texts.length - 1, '');
+
+    // 先让尽可能多的段落至少有一个换行，再把余量补成双换行。
+    for (var i = 0; i < separators.length && separatorBudget > 0; i++) {
+      separators[i] = '\n';
+      separatorBudget--;
+    }
+    for (var i = 0; i < separators.length && separatorBudget > 0; i++) {
+      separators[i] += '\n';
+      separatorBudget--;
+    }
+
+    final buffer = StringBuffer(texts.first);
+    for (var i = 1; i < texts.length; i++) {
+      buffer
+        ..write(separators[i - 1])
+        ..write(texts[i]);
+    }
+    return buffer.toString();
+  }
+
+  void _handleAiFailure(ApiFailure error) {
+    if (error.isDegradable) {
+      state = state.copyWith(aiUnavailable: true);
+      _notice('AI 暂时没有回应，继续手写就好');
+      return;
+    }
+    _notice(error.message);
+  }
+
   // ---------- 落点 ----------
 
   /// 消费全局 LocationController 的候选值：必要时弹权限，拿到坐标后
@@ -799,8 +1014,9 @@ class WriteController extends Notifier<WriteState> {
     final drop = state.dropPoint;
     return LetterCreateRequest(
       blocks: blocks,
-      // P0 固定夏主题默认皮肤；音乐/标签/AI 不进首个闭环（F2 路线图）
+      // P0 固定夏主题默认皮肤；音乐/标签仍不进当前闭环。
       themeId: 'natsu',
+      poem: state.poem,
       signature: _nullIfBlank(state.signature),
       addressee: _nullIfBlank(state.addressee),
       deliveryMode: state.deliveryMode!,
@@ -832,14 +1048,15 @@ class WriteController extends Notifier<WriteState> {
     );
   }
 
-  /// 有没有「手动填入」的内容：文本、照片、落款、收信人。
+  /// 有没有需要保留的内容：文本、照片、落款、收信人、已采纳短诗。
   /// 落点与投递方式不算——地点随定位走、模式不算内容，
   /// 只有这些时不存草稿。
   bool get _hasManualContent =>
       state.textCharCount > 0 ||
       state.photoCount > 0 ||
       state.signature.trim().isNotEmpty ||
-      state.addressee.trim().isNotEmpty;
+      state.addressee.trim().isNotEmpty ||
+      state.poem != null;
 
   Future<void> _persist() async {
     if (!ref.mounted) return;
@@ -873,6 +1090,7 @@ class WriteController extends Notifier<WriteState> {
       ],
       'signature': state.signature,
       'addressee': state.addressee,
+      'poem': state.poem,
       'savedAt': DateTime.now().toIso8601String(),
     };
   }

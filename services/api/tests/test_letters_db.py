@@ -10,6 +10,7 @@ import pytest
 from geoalchemy2 import WKTElement
 from sqlalchemy import delete, func, select
 
+from app.core.config import get_settings
 from app.models.letter import Letter
 from app.models.user import User
 from app.services import moderation_service
@@ -161,4 +162,70 @@ async def test_signature_addressee_roundtrip(  # type: ignore[no-untyped-def]
     got2 = await db_client.get(f"/v1/letters/{resp2.json()['id']}")
     assert got2.json()["signature"] is None
     assert got2.json()["addressee"] is None
+    await _cleanup(db_session, user_id)
+
+
+async def test_poem_submitted_persisted_verbatim(  # type: ignore[no-untyped-def]
+    db_client, db_session, moderation_on
+):
+    """客户端随建信提交 poem → 响应回显 + 落库逐字一致（不覆盖、不改写）。"""
+    poem = "晚风掠过海面\n灯塔独自亮着\n想你"
+    token, user_id = await _make_user(db_client)
+    resp = await db_client.post(
+        "/v1/letters",
+        json=_letter_body(poem=poem, signature="夏未", addressee="远方的你"),
+        headers=_auth(token),
+    )
+    assert resp.status_code == 201
+    letter_id = resp.json()["id"]
+    # 建信响应回显客户端提交的短诗
+    assert resp.json()["poem"] == poem
+    # 数据库原样持久化（含换行，逐字节一致）
+    stored = await db_session.scalar(
+        select(Letter.poem).where(Letter.id == uuid.UUID(letter_id))
+    )
+    assert stored == poem
+    # 公开读 round-trip 同样逐字回显
+    got = await db_client.get(f"/v1/letters/{letter_id}")
+    assert got.status_code == 200
+    assert got.json()["poem"] == poem
+    await _cleanup(db_session, user_id)
+
+
+async def test_poem_absent_stays_null_even_with_ai_on(  # type: ignore[no-untyped-def]
+    db_client, db_session, moderation_on, monkeypatch
+):
+    """FEATURE_AI=true + public 空诗信 → poem 保持 NULL，不自动补诗、不调用 LLM。
+
+    旧行为（已删 poem_service）会在 public + AI 开 + 无 poem 时后台自动补写；
+    新语义：短诗只在用户预览并采纳后随 payload.poem 提交，服务端不自动补诗。
+    """
+    calls = {"n": 0}
+
+    async def _record_llm(*args: object, **kwargs: object) -> str:  # type: ignore[no-untyped-def]
+        calls["n"] += 1
+        return "不应被调用"
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "feature_ai", True)
+    monkeypatch.setattr(settings, "openai_api_key", "test-key")
+    monkeypatch.setattr(settings, "openai_base_url", "https://llm.example.com/v1")
+    monkeypatch.setattr(settings, "openai_model", "test-model")
+    # ai_service 顶层导入了 chat_completion，必须 patch 它自己的命名空间。
+    monkeypatch.setattr("app.services.ai_service.chat_completion", _record_llm)
+
+    token, user_id = await _make_user(db_client)
+    resp = await db_client.post("/v1/letters", json=_letter_body(), headers=_auth(token))
+    assert resp.status_code == 201
+    body = resp.json()
+    # 恰是旧自动补诗触发的场景：public + AI 开 + 无 poem
+    assert body["status"] == "public"
+    assert body["poem"] is None
+
+    stored = await db_session.scalar(
+        select(Letter.poem).where(Letter.id == uuid.UUID(body["id"]))
+    )
+    assert stored is None
+    # 全程零 LLM 调用
+    assert calls["n"] == 0
     await _cleanup(db_session, user_id)

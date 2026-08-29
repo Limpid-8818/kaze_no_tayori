@@ -26,6 +26,9 @@ class MockApiAdapter implements HttpClientAdapter {
   /// 已拆封的信——发掘/漂流池不再回给同一台设备（对齐服务端语义）。
   final Set<String> _openedIds = {};
 
+  /// 当前 mock 会话造成的首次开信增量，供详情回读最新 read_count。
+  final Map<String, int> _readIncrements = {};
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -49,6 +52,14 @@ class MockApiAdapter implements HttpClientAdapter {
       return _json(201, {
         'url': 'https://mock.kaze.local/uploads/photo_$_seq.jpg',
       });
+    }
+    if (method == 'POST' && path == '/v1/ai/polish') {
+      final body = options.data is Map ? options.data as Map : const {};
+      final content = (body['content'] as String?)?.trim() ?? '';
+      return _json(200, {'polished': content});
+    }
+    if (method == 'POST' && path == '/v1/ai/poem') {
+      return _json(200, const {'poem': '晚风翻过纸页\n蝉声停在句尾\n远山替我寄出'});
     }
     if (method == 'POST' &&
         (path == '/v1/letters' ||
@@ -102,11 +113,20 @@ class MockApiAdapter implements HttpClientAdapter {
     // 读一封公开信：种子信可读，其余 404（读信空态可测）
     final letterMatch = RegExp(r'^/v1/letters/([^/]+)$').firstMatch(path);
     if (method == 'GET' && letterMatch != null) {
-      final json = _publicLetterById(letterMatch.group(1)!);
+      final id = letterMatch.group(1)!;
+      final json = _publicLetterById(id);
+      final counts = json == null
+          ? null
+          : Map<String, Object?>.from(json['counts']! as Map);
+      if (counts != null) {
+        counts['read'] =
+            (counts['read']! as num).toInt() + (_readIncrements[id] ?? 0);
+      }
       return json != null
           ? _json(200, {
               ...json,
-              'me_resonated': _resonatedIds.contains(letterMatch.group(1)),
+              'counts': counts,
+              'me_resonated': _resonatedIds.contains(id),
             })
           : _json(404, const {
               'error': {
@@ -119,7 +139,12 @@ class MockApiAdapter implements HttpClientAdapter {
     if (method == 'POST' &&
         RegExp(r'^/v1/letters/[^/]+/read$').hasMatch(path)) {
       final readMatch = RegExp(r'^/v1/letters/([^/]+)/read$').firstMatch(path);
-      if (readMatch != null) _openedIds.add(readMatch.group(1)!);
+      if (readMatch != null) {
+        final id = readMatch.group(1)!;
+        if (_openedIds.add(id)) {
+          _readIncrements.update(id, (count) => count + 1, ifAbsent: () => 1);
+        }
+      }
       return _json(204, null);
     }
     if (method == 'POST' &&
@@ -229,7 +254,7 @@ class MockApiAdapter implements HttpClientAdapter {
     return {
       'id': 'mock_letter_${_seq++}',
       'blocks': body['blocks'] ?? const <Object>[],
-      'poem': null,
+      'poem': body['poem'],
       'signature': body['signature'],
       'addressee': body['addressee'],
       'theme_id': body['theme_id'] ?? 'natsu',

@@ -5,9 +5,8 @@
 /// 页面不得各写一份。图片引用统一经 [cachedPhotoResolver] 走缓存网络图，
 /// 页面里不出现散装的图片来源逻辑。
 ///
-/// 短诗（poem）、音乐引用（musicRef）与标签在本阶段没有对应展示位——
-/// mapper 直接丢弃，后续阶段在这里扩展，页面不动。宛名与皮肤有了展示
-/// 位（信纸 ↔ 封筒视图切换），经 [addressee]/[skin] 供给封筒封面。
+/// 短诗与叙事计数也在这里收口，读信页与导出图消费同一个 [LetterView]，
+/// 避免两套展示口径。音乐引用与标签暂时没有对应展示位。
 library;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -28,8 +27,12 @@ class LetterView {
     this.place,
     this.weatherText,
     this.weatherIcon,
+    this.poem,
     this.parentLetterId,
+    this.readCount = 0,
     this.resonanceCount = 0,
+    this.voiceCount = 0,
+    this.replyCount = 0,
     this.resonated = false,
     this.addressee,
     this.skin = const natsu.LetterSkin(),
@@ -45,8 +48,12 @@ class LetterView {
   /// 天气归类档（sunny/cloudy/rainy）—— 读信页天空以信携带的天色为准；
   /// null = 信没带天气（背景回退默认昼·晴）。
   final String? weatherIcon;
+  final String? poem;
   final String? parentLetterId;
+  final int readCount;
   final int resonanceCount;
+  final int voiceCount;
+  final int replyCount;
 
   /// 当前读者已共鸣过（详情接口 me_resonated 下发）——重进这封信时章
   /// 常亮，不再反直觉地熄着；列表来源的模型恒 false，以详情为准。
@@ -58,6 +65,36 @@ class LetterView {
 
   /// 皮肤（邮票/邮戳图案两槽）——封筒视图消费；全空 = 组件默认。
   final natsu.LetterSkin skin;
+
+  /// PRD 的互动口径 = 共鸣 + 留声；抄本是个人行为，不进入公开互动。
+  int get interactionCount => resonanceCount + voiceCount;
+
+  LetterView copyWith({
+    int? readCount,
+    int? resonanceCount,
+    int? voiceCount,
+    int? replyCount,
+    bool? resonated,
+  }) {
+    return LetterView(
+      id: id,
+      blocks: blocks,
+      createdAt: createdAt,
+      signature: signature,
+      place: place,
+      weatherText: weatherText,
+      weatherIcon: weatherIcon,
+      poem: poem,
+      parentLetterId: parentLetterId,
+      readCount: readCount ?? this.readCount,
+      resonanceCount: resonanceCount ?? this.resonanceCount,
+      voiceCount: voiceCount ?? this.voiceCount,
+      replyCount: replyCount ?? this.replyCount,
+      resonated: resonated ?? this.resonated,
+      addressee: addressee,
+      skin: skin,
+    );
+  }
 
   /// 信纸 meta 行的时间项——只到日，不读到分钟。
   String get timeLabel => '${createdAt.month}月${createdAt.day}日';
@@ -89,12 +126,21 @@ class LetterView {
       place: letter.placeLabel,
       weatherText: _weatherText(letter.weather),
       weatherIcon: letter.weather?.icon,
+      poem: _nonBlank(letter.poem),
       parentLetterId: letter.parentLetterId,
+      readCount: letter.counts.read,
       resonanceCount: letter.counts.resonance,
+      voiceCount: letter.counts.voice,
+      replyCount: letter.counts.reply,
       resonated: letter.meResonated,
       addressee: letter.addressee,
       skin: _skin(letter.themeSkin),
     );
+  }
+
+  static String? _nonBlank(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   /// API 皮肤 → 组件库皮肤（stamp/postmark 两槽；decor 属于信纸不贴

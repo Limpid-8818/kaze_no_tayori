@@ -82,16 +82,11 @@ class ReaderController extends Notifier<ReaderState> {
 
   Future<void> _load() async {
     final api = ref.read(lettersApiProvider);
+    late LetterView view;
     try {
       final letter = await api.get(arg);
       if (!ref.mounted) return;
-      final view = LetterView.from(letter);
-      state = state.copyWith(
-        phase: ReaderPhase.ready,
-        view: view,
-        resonated: view.resonated,
-        resonanceCount: view.resonanceCount,
-      );
+      view = LetterView.from(letter);
     } on ApiFailure catch (failure) {
       if (!ref.mounted) return;
       state = state.copyWith(
@@ -101,12 +96,22 @@ class ReaderController extends Notifier<ReaderState> {
       );
       return;
     }
-    // 开信上报不阻断阅读：失败静默（幂等，下次打开还有机会）。
+
+    // 开信上报失败不阻断阅读（幂等，下次打开还有机会）。成功后回读
+    // 一次详情，再进入 ready，让页面与导出从第一帧就包含这次首次开信。
     try {
       await api.markRead(arg);
+      view = LetterView.from(await api.get(arg));
     } on ApiFailure {
-      // 故意忽略
+      // 阅读仍使用第一次 GET 的内容与计数
     }
+    if (!ref.mounted) return;
+    state = state.copyWith(
+      phase: ReaderPhase.ready,
+      view: view,
+      resonated: view.resonated,
+      resonanceCount: view.resonanceCount,
+    );
   }
 
   /// ✦ 共鸣：先落章再上报，用服务端计数校正；失败回滚。
@@ -114,23 +119,30 @@ class ReaderController extends Notifier<ReaderState> {
     if (state.phase != ReaderPhase.ready || state.resonated) return;
 
     final before = state.resonanceCount;
-    state = state.copyWith(resonated: true, resonanceCount: before + 1);
+    _setResonance(resonated: true, count: before + 1);
     try {
       final res = await ref.read(lettersApiProvider).addResonance(arg);
       if (!ref.mounted) return;
       // 服务端为真源，但只在有出入时校正——乐观值碰巧等于真值就不必
       // 重建一帧，句子也免得白白淡变一次
       if (res.resonanceCount != state.resonanceCount) {
-        state = state.copyWith(resonanceCount: res.resonanceCount);
+        _setResonance(resonated: true, count: res.resonanceCount);
       }
     } on ApiFailure {
       if (!ref.mounted) return;
+      _setResonance(resonated: false, count: before);
       state = state.copyWith(
-        resonated: false,
-        resonanceCount: before,
         notice: (message: '没有成功，再试一次', seq: (state.notice?.seq ?? 0) + 1),
       );
     }
+  }
+
+  void _setResonance({required bool resonated, required int count}) {
+    state = state.copyWith(
+      resonated: resonated,
+      resonanceCount: count,
+      view: state.view?.copyWith(resonated: resonated, resonanceCount: count),
+    );
   }
 
   /// 记入抄本（PRD 6.10，个人行为）。服务端幂等（PK 冲突忽略、

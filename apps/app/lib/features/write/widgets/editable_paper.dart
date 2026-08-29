@@ -99,6 +99,10 @@ class _EditablePaperState extends ConsumerState<EditablePaper> {
                   ),
                 },
               ],
+              if (state.poem != null) ...[
+                const SizedBox(height: KazeSpacing.lg),
+                Text(state.poem!, style: KazeLetterType.poem),
+              ],
               // 落款实时渲染：表单里输入的同时落在纸上（右下横排 hwAddress）
               if (state.signature.trim().isNotEmpty) ...[
                 const SizedBox(height: KazeSpacing.md),

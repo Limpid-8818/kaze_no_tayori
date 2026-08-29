@@ -21,7 +21,7 @@ LetterPublic _letter({
     blocks: blocks ?? const [],
     themeId: 'natsu',
     deliveryMode: DeliveryMode.drift,
-    counts: const LetterCounts(read: 3, resonance: 5),
+    counts: const LetterCounts(read: 3, resonance: 5, voice: 2, reply: 1),
     createdAt: DateTime.parse('2026-08-26T10:00:00Z'),
     poem: '四行短诗',
     signature: '赶海的人',
@@ -80,15 +80,18 @@ void main() {
     expect(LetterView.from(_letter()).weatherText, isNull);
   });
 
-  test('共鸣计数与溯源 parent 带出；poem/music/tags 不进视图', () {
+  test('短诗、读/互动/回信计数与溯源 parent 带出', () {
     final view = LetterView.from(_letter());
+    expect(view.poem, '四行短诗');
+    expect(view.readCount, 3);
     expect(view.resonanceCount, 5);
+    expect(view.voiceCount, 2);
+    expect(view.interactionCount, 7);
+    expect(view.replyCount, 1);
     expect(view.parentLetterId, 'letter_0');
     // me_resonated 带出（默认不亮）
     expect(view.resonated, isFalse);
     expect(LetterView.from(_letter(meResonated: true)).resonated, isTrue);
-    // LetterView 没有 poem/music/tags 字段——丢弃即断言不出现在
-    // 渲染模型上；这里用视图字段的穷尽读取保证编译期没有加回来的位置。
     expect(view.signature, '赶海的人');
     expect(view.id, 'letter_1');
   });

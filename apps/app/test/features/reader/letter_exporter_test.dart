@@ -172,8 +172,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    // 每段 38px 高 + 24 间距，60 段 ≈ 3600 逻辑高：×3 超 8192，×2 不超
-    final blocks = [for (var i = 0; i < 60; i++) TextBlock('第$i段，海边有风。')];
+    // 每段 38px 高 + 24 间距：58 段 ≈ 3900 逻辑高，×3 超 8192、×2 不超
+    // （叙事计数区加入后 60 段 ×2 也超限，逐级降档才有 2x 可言）
+    final blocks = [for (var i = 0; i < 58; i++) TextBlock('第$i段，海边有风。')];
     final ctxKey = GlobalKey();
     await tester.pumpWidget(_host(ctxKey));
 
