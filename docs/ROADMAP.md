@@ -26,6 +26,12 @@
 > 不会再漂流回来）。入口在读信页「⋯」菜单「记入抄本」（后端幂等、菜单项恒可点），
 > 列表页复用 MyLetters 四相骨架与 letter_preview 口径；mock 补三条 scripbook 路由。
 >
+> 更新（2026-08-29）：J3-P0 双设备核心验收已完成。iPhone 16 与 iPhone SE（第三代）
+> iOS 18.2 Simulator 连接真实后端，走通「埋信→同地发掘→拆信→共鸣→回信→原作者通知→
+> 打开公开回信」和「投递→随机收到→封筒→拆信」两条路径。另将真实 HEIC 导入 iOS 照片库，
+> 验证系统 picker 输出 JPEG、上传对象 MIME/字节与跨设备图片渲染。当前开发环境关闭审核，
+> 验收信按保守降级落为 pending 后仅对精确记录人工放行为 public；这不替代生产审核配置验收。
+>
 > 更新（2026-08-29）：运营控制台（P1，PRD 6.14）完成设计——形态定为 Flutter Web，
 > v1 含审核队列/下架/举报/反馈/统计/种子信件管理。设计见 `docs/ADMIN_CONSOLE.md`，
 > 契约已补入 `API_CONTRACT.md` §3「管理端」，实施阶段为下方 A 系列（A0→A2，J4 验收）。
@@ -141,12 +147,12 @@
 
 ### F2 · 写信最小闭环（1.5–2 天，全 App 最复杂）
 - [x] `WriteController` + 分步流：blocks 图文编辑 → 落点确认 → **必选留/投**；P0 固定 `theme_id=natsu` 且默认皮肤，不把音乐/标签/皮肤搭配混进首个闭环
-- [x] 图片 gateway：系统 picker 限长边与质量，按实际字节识别 MIME，顺序上传；~~用 iOS 真机照片验证 HEIC→JPEG 输出~~（本环境无 iOS 设备，HEIC→JPEG 转码路径待真机补验）
+- [x] 图片 gateway：系统 picker 限长边与质量，按实际字节识别 MIME，顺序上传；iOS 18.2 Simulator 照片库导入真实 HEIC，已验证 picker 转为 JPEG 后上传及跨设备渲染
 - [x] 建立 `DropPoint(lat, lon, publicLabel)`：消费全局 `LocationController` 的候选值后由用户确认；改地名不改坐标，只有地名时不得提交 stay
 - [x] 客户端校验镜像产品与契约：整封文字 ≤800、单块 ≤800、blocks 1–20、照片 ≤3、照片手记 ≤200、署名/宛名 ≤32、地点 ≤128
 - [x] `DraftStore`：版本化 JSON + 应用目录图片引用 + 防抖自动保存；只保证离开/断网不丢编辑，不做离线发送队列
 - [x] 留/投二选一的 UI 必须是显式一步，不许有默认值悄悄带过（PRD 6.1 必选）
-- **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通 —— ✅ 2026-08-26 模拟器 E2E：drift（正文+3 图+署名宛名）与 stay（定位落点+天气）均落库；杀进程草稿恢复；`USE_MOCK_API` 无后端寄出。附带修复后端 `letter_service` weather 未 model_dump 进 JSONB 的 503
+- **验收**：stay 与 drift 各写成一封；断网时草稿还在；AI 关闭时写信流纯手动可走通 —— ✅ 2026-08-26 模拟器 E2E：drift（正文+3 图+署名宛名）与 stay（定位落点+天气）均落库；杀进程草稿恢复；`USE_MOCK_API` 无后端寄出。附带修复后端 `letter_service` weather 未 model_dump 进 JSONB 的 503。✅ 2026-08-29 HEIC Simulator E2E：HEIF/HEVC 源文件经系统 picker 后上传为 1024×1024 JPEG（`Content-Type: image/jpeg`），另一台 Simulator 阅读页正常渲染
 
 ### F3 · 阅读器基础（1 天，提前消除汇合风险）
 - [x] 集中实现 data model → 设计系统 view model 的单向 mapper（`features/reader/letter_view.dart`，短诗/音乐/skin 本阶段丢弃）；图片 resolver 统一走缓存网络图，不在页面散写映射
@@ -217,6 +223,9 @@
 | J3-P0 | B6 + F2–F6 | 双设备核心验收（埋信→发掘→共鸣→回信→通知；投递→收到→拆封） |
 | J3-P1 | F7 | 增强验收（音乐/标签/皮肤、抄本、导出），不阻塞 P0 判定 |
 | J4 | A0 + A1–A2 | 运营控制台全链路（审核/举报/种子信，验收口径见 ADMIN_CONSOLE.md §5） |
+
+J3-P0：✅ 2026-08-29 以两台 iOS 18.2 Simulator + 真实后端完成；结果与审核关闭时的
+人工放行边界见文首更新记录。
 
 ### 单人顺序（推荐）
 ```

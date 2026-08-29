@@ -47,7 +47,7 @@ class ImagePickerGateway implements ImageGateway {
 ///
 /// 后端白名单是 image/jpeg | image/png | image/webp，这里只嗅探这三种。
 /// iOS 的 HEIC 在 image_picker 设置 imageQuality 后会被平台转码为
-/// JPEG（本项目无 macOS 环境，此路径待真机验证，见 F2 路线图）。
+/// JPEG；该路径已用 iOS 18.2 Simulator 照片库中的真实 HEIC 验证。
 String? sniffImageMime(List<int> bytes) {
   bool at(int i, int v) => bytes.length > i && bytes[i] == v;
 
