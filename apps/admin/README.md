@@ -1,34 +1,36 @@
-# 运营控制台（占位）
+# 运营控制台（apps/admin）
 
-> PRD 6.14，**P1**。本目录当前只是占位，没有代码。
+> PRD 6.14，**P1**。形态已裁决（2026-08-29）：**Flutter Web**。
+> 本目录当前仍无代码，实施随 ROADMAP **A 系列**（A0 后端补齐 → A1 骨架+审核 → A2 举报/反馈/种子信）启动。
+> **设计事实来源：[docs/ADMIN_CONSOLE.md](../../docs/ADMIN_CONSOLE.md)**；契约见 [docs/API_CONTRACT.md](../../docs/API_CONTRACT.md) §3「管理端」。
 
-## 它将来要做什么
+## v1 范围
 
-独立的后端管理控制台，供运营/评审/开发者手动管理信池：
+- 审核队列：pending → public / rejected（两段式确认）
+- 信件管理：下架（→ taken_down）/ 恢复 / 赦免
+- 举报处理：下架并 actioned / dismissed（reports 表迁移随 A0）
+- 反馈管理：复用现有 `/v1/admin/feedbacks` 接口
+- 统计概览：状态分布 / 池健康 / 待办角标
+- 种子信件管理：列表 / 新建 / 编辑 / 下架恢复（owner=NULL，public 直接入池）
 
-- 预填充种子信（解决漂流池冷启动）
-- 审核队列：把 `pending` 的信放行为 `public` 或打成 `rejected`
-- 下架违规信（→ `taken_down`）
-- 统计概览
+账号与匿名用户体系完全隔离（`admin_accounts` 表，`scripts/create_admin.py` 创建；
+`admin` 可写、`viewer` 只读），不向访客暴露作者。
 
-控制台账号与匿名用户体系**完全隔离**（`admin_accounts` 表），且**不向访客暴露作者**。
+## 实施前怎么办
 
-## P0 阶段怎么办
-
-冷启动与审核放行由后端脚本承担，不等控制台：
+冷启动与审核放行仍由后端脚本承担：
 
 ```bash
 make seed    # services/api/scripts/seed_letters.py
 ```
 
-## 形态待定
+## 将来怎么跑（A1 落地后）
 
-初始化阶段刻意不选技术栈。到 P1 再定，候选：
+```bash
+cd apps/admin
+flutter run -d chrome        # API base 指向本机 services/api
+flutter build web            # 生产构建
+```
 
-| 方案 | 权衡 |
-|---|---|
-| React + Vite | 表格/批量操作开发快；代价是 monorepo 多一条 pnpm 工具链 |
-| Flutter Web | 语言单一、可复用设计系统；代价是后台表格体验一般，且易与匿名端的设计纪律混淆 |
-| 纯 CLI（Typer） | 几乎零成本、可脚本化；代价是评审演示时没有可视界面 |
-
-决定后在此更新，并同步根 `CLAUDE.md` 的目录导航。
+技术栈：Flutter + Riverpod + go_router；只复用 `packages/natsu_no_tegami` 的 token 层
+（色板/字体），不复用叙事组件——管理端是中性密集工作台风格。

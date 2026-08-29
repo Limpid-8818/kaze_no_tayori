@@ -102,6 +102,9 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ### feedbacks
 `id UUID PK` · `user_id FK→users SET NULL`（可空，设备退场后保留）· `category enum(bug,suggestion)` · `content TEXT` · `app_version varchar(32)` · `platform varchar(16)` · `status enum(open,resolved) default open` · `admin_note TEXT` · `handled_at` · `created_at`。用户反馈（问题/建议），提交侧无历史回显，管理侧查看/备注/流转状态。
 
+### reports
+`id UUID PK` · `letter_id FK→letters CASCADE` · `reporter_user_id FK→users SET NULL`（匿名举报可空）· `reason varchar(32)` · `detail TEXT NULL` · `status enum(open,dismissed,actioned) default open` · `admin_note TEXT` · `handled_at` · `created_at`。举报（PRD 8.2，最小实现落表）；status/admin_note/handled_at 为运营控制台补齐（2026-08-29 设计裁决，见 docs/ADMIN_CONSOLE.md）——处置时可选联动信件状态机（下架→actioned）。
+
 ### 索引
 | 名称 | 定义 | 用途 |
 |---|---|---|
@@ -111,6 +114,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | `ix_letters_owner` | (owner_user_id, created_at DESC) | 我的信 |
 | `ix_notifications_inbox` | (user_id, is_read) | 通知列表 |
 | `ix_feedbacks_status_created` | (status, created_at) | 反馈管理端筛选 |
+| `ix_reports_status_created` | (status, created_at) | 举报管理端筛选 |
 
 ---
 
@@ -292,11 +296,24 @@ P0 只做拉取，不做推送。
 | POST | `/v1/feedback` | `{category: bug\|suggestion, content(1-2000), app_version?, platform?}` → 201 `FeedbackPublic`。JWT 必带 |
 
 ### 管理端（AdminAccount 登录，独立 `typ=admin` JWT，12h 时效）
+设计依据 docs/ADMIN_CONSOLE.md。所有写端点（POST/PATCH）要求 `role=admin`，viewer 只读（403 `admin_forbidden`）。
+
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/v1/admin/login` | `{username, password}` → `{access_token}`。凭据错误一律 401 |
+| GET | `/v1/admin/stats` | 概览聚合：`{letters_by_status, users_total, letters_7d, letters_30d, pool:{drift_available, stay_active}, todo:{pending_letters, open_reports, open_feedbacks}}` |
+| GET | `/v1/admin/letters` | `?status&delivery_mode&owner(seed\|user)&limit(≤50)&cursor` → `Page[AdminLetterSummary]`（含非 public；时间倒序） |
+| GET | `/v1/admin/letters/{id}` | `AdminLetterDetail`：全量 blocks + meta + counts + `owner_user_id`（仅管理端可见，用途=区分种子信/处置举报） |
+| PATCH | `/v1/admin/letters/{id}/status` | `{status, note?}`。状态机：pending→public\|rejected；public↔taken_down；rejected→public。表外流转 409 `invalid_transition` |
+| GET | `/v1/admin/reports` | `?status(默认 open)&limit(≤50)&cursor` → `Page[AdminReportPublic]`（含涉事信摘要） |
+| PATCH | `/v1/admin/reports/{id}` | `{status: dismissed\|actioned, admin_note?}`；置已处理回写 handled_at，回退清空。处置=下架信件由前端另行调 letters 状态机 |
 | GET | `/v1/admin/feedbacks` | `?status&category&limit(≤50)` → `Page[AdminFeedbackPublic]` |
 | PATCH | `/v1/admin/feedbacks/{id}` | `{status?, admin_note?}` 至少一项；置 resolved 回写 handled_at，回退清空 |
+| GET | `/v1/admin/seed-letters` | 种子信列表（owner IS NULL），响应同 AdminLetterSummary |
+| POST | `/v1/admin/seed-letters` | 新建种子信。body 同写信创建 body；复用写信校验（blocks 1–20、照片 ≤3、文字 ≤800），落库 owner=NULL、status=public 直接入池 |
+| PATCH | `/v1/admin/seed-letters/{id}` | 编辑 blocks/place_label/weather/delivery_mode 等；仅限 owner IS NULL 的信，否则 403 `seed_letter_only`；theme_id/theme_skin 永久绑定不可改 |
+
+`uploads` 的 JWT 鉴权放宽为 user 或 admin 均可（控制台传图）。
 
 账号创建：`cd services/api && uv run python scripts/create_admin.py --username ops --password '...' [--role admin|viewer]`（同名 upsert）。
 

@@ -25,6 +25,10 @@
 > 更新（2026-08-27）：F7 抄本已完成——收藏列表 + 移出（两段式确认：读过的信
 > 不会再漂流回来）。入口在读信页「⋯」菜单「记入抄本」（后端幂等、菜单项恒可点），
 > 列表页复用 MyLetters 四相骨架与 letter_preview 口径；mock 补三条 scripbook 路由。
+>
+> 更新（2026-08-29）：运营控制台（P1，PRD 6.14）完成设计——形态定为 Flutter Web，
+> v1 含审核队列/下架/举报/反馈/统计/种子信件管理。设计见 `docs/ADMIN_CONSOLE.md`，
+> 契约已补入 `API_CONTRACT.md` §3「管理端」，实施阶段为下方 A 系列（A0→A2，J4 验收）。
 
 ---
 
@@ -170,7 +174,34 @@
 
 ---
 
-## 3. 联调节点与排期
+## 3. 运营控制台路线（apps/admin + services/api）
+
+> 设计事实来源：`docs/ADMIN_CONSOLE.md`。契约：`API_CONTRACT.md` §3「管理端」。
+> 依赖链：`A0 后端补齐 → A1 控制台骨架+审核 → A2 举报/反馈/种子信`；全程 P1，不插核心闭环。
+
+### A0 · 契约与后端补齐（1–1.5 天）
+- [ ] `GET/PATCH /v1/admin/letters`（列表/详情/状态机 PATCH /status；状态机 pending→public|rejected、public↔taken_down、rejected→public，表外流转 409）
+- [ ] `GET/PATCH /v1/admin/reports`；迁移：reports 表补 status/admin_note/handled_at + 索引（`make revision`）
+- [ ] `GET /v1/admin/stats` 概览聚合；`GET/POST/PATCH /v1/admin/seed-letters`（owner=NULL、public 入池、复用写信校验；仅 owner IS NULL 可编辑）
+- [ ] `require_role("admin")` 挂全部写端点（viewer 403）；uploads 鉴权放宽为 user 或 admin
+- [ ] db/接口测试（状态机表外流转、seed_letter_only、viewer 只读、匿名守卫持续绿）
+- **验收**：`make openapi` 后契约零漂移；curl 全端点走查
+
+### A1 · 控制台骨架 + 审核（1.5 天）
+- [ ] apps/admin Flutter Web 骨架：登录（sessionStorage 会话 + 401 踢回）、工作台壳（导航 + 待办角标）、概览 Dashboard
+- [ ] 审核队列：pending 列表 → 双栏审核页（左侧读者视角预览复用 natsu_no_tegami token 层与 letter_view 口径 + 右侧操作面板），通过/驳回两段式确认
+- [ ] 信件管理：筛选 + 下架/恢复/赦免（赦免二次确认）
+- **验收**：pending 信经控制台通过后 App 可读；下架后读者侧 404
+
+### A2 · 举报 / 反馈 / 种子信（1–1.5 天）
+- [ ] 举报处理：open 列表 + 下架并 actioned / dismissed
+- [ ] 反馈管理：复用现有 feedbacks 管理端点接 UI
+- [ ] 种子信件管理：列表 / 新建（图传走 uploads）/ 编辑（实时预览，theme 绑定不可改）/ 下架恢复；池健康度展示
+- **验收**：J4 全口径——审核、举报→下架→读者 404、控制台新建种子信 App 可抽、viewer 全 403
+
+---
+
+## 4. 联调节点与排期
 
 | 节点 | 前置 | 内容 |
 |---|---|---|
@@ -178,6 +209,7 @@
 | J2 | B3+B4 + F3–F5 | 双入口收信 + 阅读 + 共鸣 + 回信 + 通知 |
 | J3-P0 | B6 + F2–F6 | 双设备核心验收（埋信→发掘→共鸣→回信→通知；投递→收到→拆封） |
 | J3-P1 | F7 | 增强验收（音乐/标签/皮肤、抄本、导出），不阻塞 P0 判定 |
+| J4 | A0 + A1–A2 | 运营控制台全链路（审核/举报/种子信，验收口径见 ADMIN_CONSOLE.md §5） |
 
 ### 单人顺序（推荐）
 ```
@@ -192,11 +224,11 @@ B0 → B1 → B2 → F0 → F1 → F2 →(J1)→ B3 → B4 → F3 → F4 → F5 
               └──J1──┘    └────J2────┘      └─J3─┘
 ```
 
-按剩余工作量执行，不再用过期自然日倒排：先 F2/J1，再 F3 阅读器基础，随后 F4–F5/J2，最后 F6/J3-P0；任何 P1 项不得插到核心闭环之前。
+按剩余工作量执行，不再用过期自然日倒排：先 F2/J1，再 F3 阅读器基础，随后 F4–F5/J2，最后 F6/J3-P0；任何 P1 项不得插到核心闭环之前。P0 全链路走通后按余量启动 A 系列（A0 → A1 → A2 → J4）。
 
 ---
 
-## 4. 风险与待决
+## 5. 风险与待决
 
 | # | 项 | 影响 | 对策 |
 |---|---|---|---|
@@ -214,7 +246,7 @@ B0 → B1 → B2 → F0 → F1 → F2 →(J1)→ B3 → B4 → F3 → F4 → F5 
 
 ---
 
-## 5. 每个里程碑的完成定义
+## 6. 每个里程碑的完成定义
 
 1. `make check`（后端含 `not db` 测试 / 前端 analyze + test）全绿
 2. 涉及 endpoint 的，`make openapi` 后 git diff 无契约漂移

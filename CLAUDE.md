@@ -38,7 +38,7 @@
 docs/          产品与契约文档。PRD.md 是事实来源，改实体/endpoint 必须同步 API_CONTRACT.md
 services/api/  FastAPI 后端（唯一 Python 包）。业务逻辑在 app/services/，router 只做 HTTP 转换
 apps/app/      Flutter 主应用。feature-first：一个功能一个目录
-apps/admin/    运营控制台占位（P1 再定形态）。P0 冷启动用 services/api/scripts/seed_letters.py
+apps/admin/    运营控制台（P1，Flutter Web，尚无代码）。设计见 docs/ADMIN_CONSOLE.md，实施随 ROADMAP A 系列；P0 冷启动用 services/api/scripts/seed_letters.py
 packages/      Dart 包。natsu_no_tegami = 设计系统（当前是空壳，见其 COPY_IN.md，禁止手改）
 infra/         云端部署产物（docker-compose 等）。本地开发不跑它
 scripts/       跨语言的仓库级脚本
