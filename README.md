@@ -32,10 +32,10 @@
 cp .env.example .env      # 填入云数据库连接串与密钥（没有也能起后端）
 make bootstrap            # 环境自检 + 装依赖 + 装 git hook
 make api                  # 起后端 → http://localhost:8000/docs
-make app                  # 起 App（Web / Edge）
+make app                  # 起 App（Web；可用 APP_DEVICE 覆盖设备）
 ```
 
-数据库在比赛云服务器上，本地直连远程 PostGIS。首次需要 `make migrate` 建表。
+PostGIS 可用 `make db-up` 在本机启动，也可通过 `.env` 连接共享云实例。首次需要 `make migrate` 建表。
 
 其余命令 `make help`。
 
@@ -47,9 +47,9 @@ make app                  # 起 App（Web / Edge）
 docs/          产品与契约文档（PRD / 架构 / API 契约 / 开发环境）
 services/api/  FastAPI 后端（PostgreSQL + PostGIS）
 apps/app/      Flutter 应用（Android 主，Web 演示兜底）
-apps/admin/    运营控制台占位（P1）
+apps/admin/    Flutter Web 运营控制台（P1，审核/信件/举报/反馈/种子信/统计）
 packages/      Dart 包：natsu_no_tegami 设计系统
-infra/         云端部署产物（docker-compose）
+infra/         本地 PostGIS 与云端部署产物（docker-compose）
 scripts/       仓库级脚本
 ```
 

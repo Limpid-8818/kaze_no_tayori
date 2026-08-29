@@ -61,8 +61,8 @@ lib/features/  write drift discover reader reply my_letters scripbook notificati
 
 ## 平台
 
-- 只有 android + web。Web 用 `make app`（走 `-d edge`，**本机无 Chrome**）。
-- 真机调试：`make app-android API_BASE_URL=http://<局域网IP>:8000`，不能用 localhost。
+- 当前维护 Android、iOS 与 Web。Web 用 `make app`，需要时通过 `APP_DEVICE` 指定浏览器。
+- 真机调试：Android 用 `make app-android`，iOS 用 `make app-ios IOS_DEVICE=<id>`；`API_BASE_URL` 必须指向开发机局域网 IP，不能用 localhost。
 - applicationId / namespace 是 `com.aisquare.kazenotayori`。早期用过 `fun.kazenotayori`，但 `fun` 是
   Kotlin 保留字、包声明只能写反引号畸形语法，2026-08-20 已整体迁移，别改回去。
 - Android 构建（2026-08-20 实测）：`permission_handler` 钉在 **12.x**、`flutter_secure_storage` 的 compileSdk 靠

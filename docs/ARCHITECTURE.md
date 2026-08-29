@@ -247,6 +247,6 @@ Flutter 会给依赖包 `pubspec.yaml` 声明的字体 family 加 `packages/nats
 
 ## 7. 环境与部署
 
-- **本地开发**：后端跑在本机，数据库连比赛云服务器的远程 PostGIS（本机无 Docker）。每人一个 `dev_<name>` schema。
-- **云端部署**：`infra/docker-compose.yml`（postgis + api + minio），满足 PRD §11 DoD。本地不跑。
+- **本地开发**：后端跑在本机；PostGIS 可由 `make db-up` 在本机启动，也可连接共享云实例。两种方式都使用独立 `dev_<name>` schema。
+- **云端部署**：`infra/docker-compose.yml`（postgis + api + minio），满足 PRD §11 DoD。
 - **App 真机调试**：`API_BASE_URL` 要用局域网 IP，不能用 `localhost`。

@@ -1,6 +1,6 @@
 # 风信 · 开发环境说明
 
-> 本机环境事实见根 `CLAUDE.md` §5。本文只讲怎么把环境跑起来、以及踩到坑时怎么办。
+> 跨平台环境约定见根 `CLAUDE.md` §5。本文讲怎么把环境跑起来、以及踩到坑时怎么办。
 
 ---
 
@@ -139,7 +139,7 @@ make app-ios IOS_DEVICE=<id> API_BASE_URL=http://192.168.x.x:8000
 浏览器 Geolocation 需要 secure context。`localhost` 可用于本机调试；通过局域网 IP 给其他设备打开 Web 时必须使用 HTTPS。权限网关在 Web 使用插件支持的 `location` 权限，不使用移动端专属的 `locationWhenInUse`。
 
 **Android 构建失败**
-仓库刻意放在纯 ASCII 路径（`D:\CodeRepository\misc\kazenotayori`）——中文路径下 Gradle/NDK 有已知构建失败风险。**不要把仓库移回含中文的目录。**
+仓库应放在纯 ASCII 路径——中文路径下 Gradle/NDK 有已知构建失败风险。不要在通用文档中固化某台机器的绝对路径。
 
 **`flutter analyze` 报找不到 `*.g.dart` / `*.freezed.dart`**
 生成物不入库。跑 `make gen`。

@@ -3,8 +3,8 @@
 > 由 `PRD.md` §6 优先级 + `API_CONTRACT.md` 契约推导。前后端两条线可并行，
 > 在三个联调节点（J1–J3）汇合。改契约/改优先级时同步本文。
 >
-> 现状基线（2026-08-20）：骨架完备、契约冻结（openapi.json 已导出）、质量关卡全绿；
-> 全部 endpoint 与 service 是带契约注释的 stub，**初始迁移与 .env 未生成**。
+> 历史基线（2026-08-20，已被下方完成记录取代）：当时骨架完备、契约冻结，
+> endpoint 与 service 仍是 stub，初始迁移与 `.env` 尚未生成。
 >
 > 更新（2026-08-25）：后端 B0–B7 已完成；前端数据层 F0 与应用基础设施 F1 已完成。
 > F1 补齐了统一页面骨架、权限/定位全局控制器、生命周期入口、Android 权限清单和字体命名空间；
@@ -36,12 +36,16 @@
 > v1 含审核队列/下架/举报/反馈/统计/种子信件管理。设计见 `docs/ADMIN_CONSOLE.md`，
 > 契约已补入 `API_CONTRACT.md` §3「管理端」，实施阶段为下方 A 系列（A0→A2，J4 验收）。
 >
-> 更新（2026-08-29）：A0–A2 全部完成（feat/admin-console 分支）。后端 12 端点 +
+> 更新（2026-08-29）：A0–A2 全部完成并已进入 `main`。后端 12 端点 +
 > reports 迁移 + viewer 角色闸 + uploads 双身份（db 测试 8 个，52 db 全绿）；
 > apps/admin Flutter Web 六页工作台（登录/sessionStorage 会话/概览/审核双栏/
 > 信件管理/举报/反馈/种子信编辑实时预览，app 级测试 9 个）；`make check` 全绿
 > + `flutter build web` 通过 + 真实浏览器 E2E：登录→概览→审核通过→读者侧 200、
 > viewer 全 403。Makefile 增 `admin` / `admin-build`，check-dart 纳入 admin。
+>
+> 状态复核（2026-08-29）：核心双路径与运营控制台均已完成；“P0 完成”指核心链路
+> 验收完成，不等于 PRD 展示项全部收口。当前仍需补齐 App 侧 AI 润色/短诗采纳与展示、
+> 读/互动/回信叙事计数，再继续音乐/标签/皮肤、账号升级和完整离线写作等 P1 项。
 
 ---
 
@@ -50,7 +54,7 @@
 - **契约先行**：契约已冻结，前端不等后端。后端每完成一个里程碑，前端把 mock 换成真接口即可。
 - **核心循环优先**：写→漂/掘→读→共鸣/回信→通知，任何时刻这条链路的完成度都高于周边功能。
 - **降级路径同步做**：每个可降级模块实装时，同时验证它的关闭分支（不能只写开通路径）。
-- P1 功能（音乐、标签、自选皮肤、抄本、导出图、共鸣短句墙、运营控制台）只在 P0 全链路走通后才动。
+- P0 核心链路已走通。后续先收口下方“当前规格对齐待办”，再继续尚未完成的 P1 表达与账号能力。
 
 ---
 
@@ -159,7 +163,7 @@
 - [x] 信纸渲染：`地点·时间·天气` + blocks 图文流 + 共鸣句子式计数（组件库 `NatsuResonance.sentence`）。短诗/音乐/skin 的专门展示位顺延
 - [x] `ReaderController`：加载（loading/ready/notFound/error 四态 + 空态文案）、markRead 调用边界（失败静默）、✦ 共鸣幂等乐观回显（乐观落章→服务端校正→失败回滚）、回信入口（带 parent 跳 F2）、举报（AppBar「⋯」菜单 + 预设理由弹层）
 - [x] 溯源：parent_letter_id 非空可跳原信（public 才可达，404 就 404）
-- **验收**：PRD 6.3 展示项全齐；页面上不存在任何作者位 —— ✅ 2026-08-27 真实接口 E2E（种子信）：图文流/meta 渲染、共鸣计数 0→1 且重启幂等、回信跳 F2、举报 204、404 空态；`make check-dart` 全绿。另：KazeScaffold 增加 `bottom` 槽位、router 支持 `INITIAL_ROUTE` dart-define 调试直通车（F4 接 UI 入口前的 E2E 手段）、MockApiAdapter 补读信端点
+- **验收**：核心阅读项已齐且页面不存在任何作者位；短诗、音乐与完整叙事计数仍见下方规格对齐待办 —— ✅ 2026-08-27 真实接口 E2E（种子信）：图文流/meta 渲染、共鸣计数 0→1 且重启幂等、回信跳 F2、举报 204、404 空态；`make check-dart` 全绿。另：KazeScaffold 增加 `bottom` 槽位、router 支持 `INITIAL_ROUTE` dart-define 调试直通车（F4 接 UI 入口前的 E2E 手段）、MockApiAdapter 补读信端点
 
 ### F4 · 收信双入口（1 天）
 - [x] drift：抽信只展示 `Envelope`，用户拆封后 `markRead` 恰一次再进入 F3 阅读器；池空展示叙事态「此刻还没有漂来的信」（实现口径：markRead 由 ReaderController 进入即幂等上报，drift/discover 侧不重复调；开信走 `pushReplacement`——拆封是一次性仪式）
@@ -184,6 +188,13 @@
 - [ ] 完整离线写作：如确有需要，再设计待发送队列与冲突/重试；不与 P0 草稿自动保存混为一谈
 
 **前端 P0 合计约 5.5–7 人日。**
+
+### 当前规格对齐待办（复核于 2026-08-29）
+
+- [ ] P0：写信页接入 AI 润色与短诗，保持用户可选采纳；AI 关闭时继续走纯手动流程
+- [ ] P0：读信页与导出图展示短诗，并补齐读/互动/回信叙事计数
+- [ ] P1：用户侧实现 `/v1/auth/upgrade` 与 `/v1/auth/login`，补足可选账号和跨设备登录
+- [ ] P1：共鸣短句输入；匿名碎片墙仍按 PRD 延后到 P2
 
 ---
 
@@ -240,7 +251,7 @@ B0 → B1 → B2 → F0 → F1 → F2 →(J1)→ B3 → B4 → F3 → F4 → F5 
               └──J1──┘    └────J2────┘      └─J3─┘
 ```
 
-按剩余工作量执行，不再用过期自然日倒排：先 F2/J1，再 F3 阅读器基础，随后 F4–F5/J2，最后 F6/J3-P0；任何 P1 项不得插到核心闭环之前。P0 全链路走通后按余量启动 A 系列（A0 → A1 → A2 → J4）。
+当前执行顺序：先完成“当前规格对齐待办”中的 P0 两项，再做 F7 写信增强和可选账号；完整离线写作最后评估。B0–B7、F0–F6、J1–J4 与 A0–A2 均已结束，不再保留旧阶段倒排。
 
 ---
 
@@ -248,17 +259,10 @@ B0 → B1 → B2 → F0 → F1 → F2 →(J1)→ B3 → B4 → F3 → F4 → F5 
 
 | # | 项 | 影响 | 对策 |
 |---|---|---|---|
-| 1 | `.env` 未配置，云库连接串未落 | **阻塞 B0，即阻塞一切 DB 工作** | 最优先向用户要连接串 |
-| 2 | ~~种子信文案待定~~（已解决：初版 12 封于 B6 灌入） | — | 后续按运营反馈迭代文案即可 |
-| 3 | FEATURE_MODERATION 关闭时信停在 pending，演示时「信发不出去」 | demo 体验 | 开发期 `FEATURE_MODERATION=true` + 空关键词表；LLM 审核接入后再收紧 |
-| 4 | ApiClient 未验证 204 空 body | F0 一并处理 | postJson 对空响应返回 `{}` |
-| 5 | cursor 分页未实现（next_cursor 恒 null） | demo 量级无影响 | 契约已留字段，不额外投入 |
-| 6 | 共享库多人同时 `make revision` | 迁移链分叉 | 改 schema 前 `git pull`（CLAUDE.md §6 已立规） |
-| 7 | ~~迁移文件硬编码 `schema="dev_limpid"`~~（已解决：迁移使用连接 `search_path`，PostGIS 固定安装在 public） | — | 新数据库执行 `make migrate` 冒烟验证；DB 业务测试仍用独立 `test_<name>` schema |
-| 8 | ~~页面直接调用定位/权限插件，形成多份当前坐标和拒绝分支~~ | — | F1 全局 controller + gateway；feature 禁止直接 import 插件 |
-| 9 | ~~依赖包字体已打包但 family 带 package 前缀，token 引用无前缀导致回落系统字体~~ | — | token 的 `TextStyle` 显式传 package；构建产物检查 FontManifest |
-| 10 | 真机用 HTTP 局域网 API，发布环境必须 HTTPS | 验收日网络失败或误把明文配置带进 release | Android 仅 debug 放行；iOS 仅 local networking；demo 前核对 API_BASE_URL、图片 public_base_url/S3 与双设备可达性 |
-| 11 | ~~设置页“主题随环境变化”只有持久化、没有实际消费者~~ | — | 已撤下假开关及死存储链路；接入真实天气/时段主题与消费端测试后再恢复 |
+| 1 | FEATURE_MODERATION 关闭时信停在 pending，演示时看似“没有发出” | demo 体验 | 演示前配置可用审核；审核不可用时继续保守停在 pending，禁止放宽为自动公开 |
+| 2 | cursor 分页未实现（next_cursor 恒 null） | demo 量级无影响，数据量增长后列表不完整 | v1 契约已留字段；进入真实运营量级前实现 |
+| 3 | 共享库多人同时 `make revision` | 迁移链分叉 | 改 schema 前 `git pull`，迁移生成期间避免并发改表 |
+| 4 | 真机用 HTTP 局域网 API，发布环境必须 HTTPS | 验收日网络失败或误把明文配置带进 release | Android 仅 debug 放行；iOS 仅 local networking；发布前核对 API_BASE_URL、图片 public_base_url/S3 与双设备可达性 |
 
 ---
 

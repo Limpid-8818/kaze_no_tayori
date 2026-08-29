@@ -1,7 +1,7 @@
 # 运营控制台（apps/admin）
 
 > PRD 6.14，**P1**。形态已裁决（2026-08-29）：**Flutter Web**。
-> 本目录当前仍无代码，实施随 ROADMAP **A 系列**（A0 后端补齐 → A1 骨架+审核 → A2 举报/反馈/种子信）启动。
+> ROADMAP **A0–A2 已完成**：后端管理端点、登录与角色权限、审核、信件、举报、反馈、统计和种子信管理均已落地。
 > **设计事实来源：[docs/ADMIN_CONSOLE.md](../../docs/ADMIN_CONSOLE.md)**；契约见 [docs/API_CONTRACT.md](../../docs/API_CONTRACT.md) §3「管理端」。
 
 ## v1 范围
@@ -16,18 +16,19 @@
 账号与匿名用户体系完全隔离（`admin_accounts` 表，`scripts/create_admin.py` 创建；
 `admin` 可写、`viewer` 只读），不向访客暴露作者。
 
-## 实施前怎么办
+## 冷启动脚本
 
-冷启动与审核放行仍由后端脚本承担：
+运营台可管理种子信；需要批量初始化默认种子数据时仍可使用后端脚本：
 
 ```bash
 make seed    # services/api/scripts/seed_letters.py
 ```
 
-## 将来怎么跑（已随 A1/A2 落地）
+## 运行
 
 ```bash
-make admin          # flutter run -d edge（Windows 无 Chrome，见根 CLAUDE.md）
+make admin          # 使用平台默认 Web 设备
+make admin APP_DEVICE=edge  # 也可显式指定设备
 make admin-build    # flutter build web
 ```
 

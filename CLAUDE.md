@@ -38,9 +38,9 @@
 docs/          产品与契约文档。PRD.md 是事实来源，改实体/endpoint 必须同步 API_CONTRACT.md
 services/api/  FastAPI 后端（唯一 Python 包）。业务逻辑在 app/services/，router 只做 HTTP 转换
 apps/app/      Flutter 主应用。feature-first：一个功能一个目录
-apps/admin/    运营控制台（P1，Flutter Web，尚无代码）。设计见 docs/ADMIN_CONSOLE.md，实施随 ROADMAP A 系列；P0 冷启动用 services/api/scripts/seed_letters.py
-packages/      Dart 包。natsu_no_tegami = 设计系统（当前是空壳，见其 COPY_IN.md，禁止手改）
-infra/         云端部署产物（docker-compose 等）。本地开发不跑它
+apps/admin/    Flutter Web 运营控制台（P1）。审核、信件、举报、反馈、统计和种子信管理均已落地
+packages/      Dart 包。natsu_no_tegami = 设计系统；通过 make sync-ds 与上游同步，禁止绕过同步流程散改
+infra/         PostGIS/API 容器与云端部署产物；本机有 Docker 时也可只启动 PostGIS
 scripts/       跨语言的仓库级脚本
 ```
 
@@ -53,14 +53,16 @@ scripts/       跨语言的仓库级脚本
 
 ## 4. 常用命令
 
-一律走根目录 Makefile，不要手敲长命令（本机 make 在 `D:\ProgramFiles\GnuWin32\bin\make`）。
+一律走根目录 Makefile，不要手敲长命令。GNU Make 需在当前平台的 `PATH` 中。
 
 | 命令 | 作用 |
 |---|---|
 | `make bootstrap` | 环境自检 + 装依赖 + 装 git hook |
 | `make api` | 起后端（reload） |
-| `make app` | 起 App（Web，`-d edge`） |
+| `make app` | 起 App（Web；设备由平台默认值或 `APP_DEVICE` 决定） |
 | `make app-android` | 起 App（Android 设备） |
+| `make app-ios IOS_DEVICE=<id>` | 起 App（iOS 真机或模拟器） |
+| `make admin` | 起运营控制台（Flutter Web） |
 | `make gen` | Flutter 代码生成（freezed / riverpod） |
 | `make revision m="..."` | Alembic autogenerate |
 | `make migrate` | Alembic upgrade head |
@@ -72,23 +74,20 @@ scripts/       跨语言的仓库级脚本
 
 ---
 
-## 5. 环境事实（别重新探测，已于 2026-08-20 实测）
+## 5. 环境约定
 
-- Flutter 3.47.0 / Dart 3.13.0；**Android SDK 36.0.0 已装**；Java 21。
-- 可用设备：`edge`（web）、`windows`（desktop）。
-- **本机无 Chrome** → Web 一律 `flutter run -d edge`，不要用 `-d chrome`。
-- **本机无 Docker** → `infra/docker-compose.yml` 只是云端部署产物，不要试图本地 `docker compose up`。
-- **本机无 `gh` CLI**，仓库无 remote、无 CI。质量关卡靠 `make check` + git hook。
-- 数据库在**比赛云服务器**上，本地开发直连远程 PostGIS。
-- Python 用 uv 托管的 3.13（不要用系统 3.12）；uv 0.9.18。
-- VS C++ 组件缺失 → 只影响 Windows desktop 构建，与 P0 无关，不用管。
-- 仓库路径为纯 ASCII（`D:\CodeRepository\misc\kazenotayori`），这是刻意的：中文路径下 Gradle/NDK 有构建失败风险。**不要把仓库移回含中文的路径。**
+- Flutter 3.47.0+ / Dart 3.13.0+；Python 使用 uv 托管的 3.13，不使用系统 Python 代替。
+- Web 设备由 Makefile 按平台选择（Windows 默认 Edge，其他平台默认 Chrome）；需要时用 `APP_DEVICE` 覆盖，不在文档中硬编码某台机器的设备列表。
+- Docker 是可选项：本机可用时用 `make db-up` 启动 PostGIS；也可以连接共享云 PostGIS。两种方式都保留独立 `DB_SCHEMA`。
+- iOS 开发需要 Xcode/CocoaPods；Android 开发需要 Android SDK 与 Java。具体自检和启动步骤见 `docs/DEV_SETUP.md`。
+- Windows desktop 构建不是 P0 交付范围，缺少 VS C++ 组件不阻塞 Android、iOS 或 Web。
+- Android/Gradle 对中文路径兼容性不稳定，仓库应放在纯 ASCII 路径；不要把某台机器的绝对路径写进通用规则。
 
 ---
 
 ## 6. 数据库纪律（共享云 DB，容易互相踩）
 
-所有人/所有 Agent 共用一台远程 PG，因此：
+使用共享云 PG 时，所有人/所有 Agent 共用同一实例，因此：
 
 - 每人一个 schema：`.env` 里 `DB_SCHEMA=dev_<yourname>`，连接时设 `search_path`。PostGIS extension 只装在 `public`，各 schema 共用其函数。
 - **改 schema 前先 `git pull`**，再 `make revision`。禁止两人同时生成迁移。

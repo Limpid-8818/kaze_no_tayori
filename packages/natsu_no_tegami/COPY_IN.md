@@ -16,8 +16,8 @@
 
 | 项 | 值 |
 |---|---|
-| 仓库 | `D:\CodeRepository\Flutter\natsu_no_tegami` |
-| 分支 | `main`（无 remote） |
+| 仓库 | 本机的上游 checkout；同步时显式传 `make sync-ds UPSTREAM=<绝对路径>` |
+| 分支 | `main` |
 | 已拷入的源 commit | `6bf5204` |
 
 上游是一个纯展示层组件库 + 交互式画廊 App，零业务依赖（只有 flutter + cupertino_icons + flutter_lints）。
@@ -38,7 +38,7 @@
 
 - `lib/main.dart` 与 `lib/showcase/` —— 那是画廊 App，不是库。若要保留可视验收，另建 `packages/natsu_no_tegami/example/`。
 - `android/ ios/ web/ windows/ linux/ macos/` —— 六个平台目录全是未定制的 `flutter create` 脚手架（`com.example` 占位），本包是库不需要它们。
-- `design_spec/` —— 那是指向仓库外的**符号链接**（`C:\Users\Yukai Shen\WorkBuddy\Spark from Yorushika`）。其中的 PRD / 需求分析 / 设计叙事已在本仓库 `docs/` 里，不要重复引入。
+- `design_spec/` —— 那是指向上游仓库外部设计资料的符号链接。其中的 PRD / 需求分析 / 设计叙事已在本仓库 `docs/` 里，不要重复引入。
 - `design_tokens/natsu-tokens-v2.json` —— 本仓库 `docs/natsu-tokens-v2.json` 已有同内容镜像。
 
 ## 拷完做什么
