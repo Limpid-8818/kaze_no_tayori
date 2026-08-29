@@ -370,6 +370,93 @@ async def test_non_owner_take_down_returns_404(
     assert r.status_code == 404
 
 
+async def test_hide_taken_down_letter_removes_from_list(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str], moderation_on: None
+) -> None:
+    """已下架的信 hide → 204，/v1/me/letters 不再返回；行仍在（软删）。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+
+    # 先下架（公开中不可直接 hide）
+    r = await db_client.delete(f"/v1/me/letters/{letter_id}", headers=_auth(actors["author_token"]))
+    assert r.status_code == 204
+
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["author_token"])
+    )
+    assert r.status_code == 204
+
+    # 列表不再返回
+    page = (
+        await db_client.get("/v1/me/letters?limit=20", headers=_auth(actors["author_token"]))
+    ).json()
+    assert letter_id not in [item["id"] for item in page["items"]]
+
+    # 软删位已置，行未删（回信链不塌的前提）
+    row = await db_session.execute(
+        sql_text("SELECT deleted_at FROM letters WHERE id = CAST(:id AS uuid)"), {"id": letter_id}
+    )
+    assert row.scalar_one() is not None
+
+
+async def test_hide_public_letter_returns_409(
+    db_client: Any, actors: dict[str, str], moderation_on: None
+) -> None:
+    """公开中的信不可直接 hide → 409 letter_not_retired，须先下架。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["author_token"])
+    )
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "letter_not_retired"
+
+
+async def test_hide_rejected_letter_allowed(
+    db_client: Any, db_session: AsyncSession, actors: dict[str, str]
+) -> None:
+    """未通过（rejected）也是退场：可直接 hide，列表不再返回。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    await db_session.execute(
+        sql_text("UPDATE letters SET status = 'rejected' WHERE id = CAST(:id AS uuid)"),
+        {"id": letter_id},
+    )
+    await db_session.commit()
+
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["author_token"])
+    )
+    assert r.status_code == 204
+    page = (
+        await db_client.get("/v1/me/letters?limit=20", headers=_auth(actors["author_token"]))
+    ).json()
+    assert letter_id not in [item["id"] for item in page["items"]]
+
+
+async def test_hide_twice_and_non_owner_returns_404(
+    db_client: Any, actors: dict[str, str], moderation_on: None
+) -> None:
+    """重复 hide 与非 owner hide → 404（不区分「不存在」与「不是你的」）。"""
+    letter_id = await _create_letter(db_client, actors["author_token"])
+    r = await db_client.delete(f"/v1/me/letters/{letter_id}", headers=_auth(actors["author_token"]))
+    assert r.status_code == 204
+
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["author_token"])
+    )
+    assert r.status_code == 204
+
+    # 已隐藏再 hide → 404
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["author_token"])
+    )
+    assert r.status_code == 404
+
+    # 非 owner hide（信已退场，但不是你的）→ 404
+    r = await db_client.post(
+        f"/v1/me/letters/{letter_id}/hide", headers=_auth(actors["reader_token"])
+    )
+    assert r.status_code == 404
+
+
 async def test_scripbook_add_idempotent(
     db_client: Any, db_session: AsyncSession, actors: dict[str, str], moderation_on: None
 ) -> None:

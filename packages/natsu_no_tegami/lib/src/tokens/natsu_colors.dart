@@ -66,6 +66,20 @@ abstract final class NatsuColors {
   /// 珊瑚 — 邮戳/邮票/旅行标记（配给色，装饰图形）
   static const Color coralStamp = Color(0xFFE07A5F);
 
+  // ---- 语义状态点 --------------------------------------------------------------
+  /// 信件状态徽标的 6px 色点专用（NatsuTag.dot）；只做小面积填充，
+  /// 不作文字色。别名既有暖色盘，不引入新异色。
+  /// 错误态直接用 [error]。
+
+  /// 公开中 — 叶绿（生长/在旅途）
+  static const Color statusSuccess = leaf;
+
+  /// 审核中 — 阳光黄（等待/未定；点是填充，不违反「永不作文字色」）
+  static const Color statusWarning = sunlightYellow;
+
+  /// 已下架/退场 — 淡墨（离场/静默）
+  static const Color statusMuted = inkFaint;
+
   // ---- 状态层 -----------------------------------------------------------------
   /// 悬停 — 墨蓝 4% 覆盖
   static const Color hoverOverlay = Color(0x0A2B3A55);

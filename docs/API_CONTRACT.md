@@ -257,8 +257,9 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 ### 我的信
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/v1/me/letters` | 我写的信（`LetterOwned`，含 pending），`limit` 1–50，默认 20 |
+| GET | `/v1/me/letters` | 我写的信（`LetterOwned`，含 pending），`limit` 1–50，默认 20；已「不再显示」（`deleted_at` 软删位）的行不返回 |
 | DELETE | `/v1/me/letters/{id}` | 下架（→ `taken_down`），非硬删 |
+| POST | `/v1/me/letters/{id}/hide` | 不再显示（`deleted_at` 软删位，列表彻底不返回）。仅已退场（`taken_down`/`rejected`）的信可隐藏，否则 409 `letter_not_retired`；非硬删，回信链与计数保留 |
 
 ### 通知（PRD 6.5）
 | 方法 | 路径 | 说明 |

@@ -35,6 +35,16 @@ async def take_down_letter(letter_id: UUID, session: Session, user_id: CurrentUs
     await letter_service.take_down(session, letter_id, user_id)
 
 
+@router.post("/letters/{letter_id}/hide", status_code=204)
+async def hide_letter(letter_id: UUID, session: Session, user_id: CurrentUser) -> None:
+    """不再显示自己的信（F6 后续）：deleted_at 软删位，/v1/me/letters 不再返回。
+
+    处置决定而非视图筛选：仅已退场（taken_down / rejected）的信可隐藏，
+    公开中/审核中须先下架（409 letter_not_retired）。非硬删，回信链与计数保留。
+    """
+    await letter_service.hide(session, letter_id, user_id)
+
+
 # ---------- 抄本 ----------
 @router.get("/scripbook", response_model=Page[LetterPublic])
 async def my_scripbook(

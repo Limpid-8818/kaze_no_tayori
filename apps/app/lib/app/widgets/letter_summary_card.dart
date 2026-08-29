@@ -11,8 +11,9 @@
 /// meta 行左侧是「位置信息槽」：后端因匿名铁律暂不下发距离，当前由
 /// 地点名占位；`distanceLabel` 已预留，后端补字段后 mapper 一处接线。
 /// `statusLabel`（F6 我的信）贴右、时间左侧，用设计系统 NatsuTag(sm)
-/// 纯文字呈现——不启用语义点：NatsuTag 文档把 dot 配给场景/情绪/旅行
-/// 三种用途，状态不在其列，配色纪律优先于信息密度。参数保持纯字符串。
+/// 呈现；F6 后续起启用语义色点 `statusDot`（状态徽标专用 6px 点，
+/// 令牌 NatsuColors.status*），取代早前「状态不配点」的裁决——
+/// 小面积点綴不伤配色纪律，反而让状态一眼可辨。参数保持纯字符串+可选色。
 /// 偏差记录：画布 meta 字号 11 → 令牌 labelMedium 13；内边距 18/16、
 /// 行距 10 → 最近刻度 md/sm。
 library;
@@ -30,6 +31,7 @@ class LetterSummaryCard extends StatelessWidget {
     this.placeLabel,
     this.distanceLabel,
     this.statusLabel,
+    this.statusDot,
     this.onTap,
     this.onLongPress,
     super.key,
@@ -49,8 +51,11 @@ class LetterSummaryCard extends StatelessWidget {
   /// 距离（如「230m」）——后端补齐 discover 距离字段后接线。
   final String? distanceLabel;
 
-  /// 状态徽标文案（我的信：审核中/公开中/…）；null = 不渲染（发掘列表不受影响）。
+  /// 状态徽标文案（我的信：审核中/公开/…）；null = 不渲染（发掘列表不受影响）。
   final String? statusLabel;
+
+  /// 状态徽标语义色点（NatsuColors.status*）；null = 无点（纯文字徽标）。
+  final Color? statusDot;
 
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -132,7 +137,7 @@ class LetterSummaryCard extends StatelessWidget {
         // （此前 Flexible 会与 Expanded 平分空间，标签悬在半程）。
         // 状态徽标再往左一位（我的信），无 statusLabel 时整段不出现。
         if (statusLabel != null) ...[
-          NatsuTag(label: statusLabel!, size: NatsuTagSize.sm),
+          NatsuTag(label: statusLabel!, dot: statusDot, size: NatsuTagSize.sm),
           const SizedBox(width: KazeSpacing.sm),
         ],
         Text(timeLabel, style: metaStyle),

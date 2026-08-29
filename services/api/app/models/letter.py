@@ -107,6 +107,10 @@ class Letter(Base, UUIDPrimaryKey, TimestampCreated):
     # 预留字段，默认 NULL=永驻。初赛不启用过期
     expire_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # 本人「不再显示」软删位（F6 后续）：置后 /v1/me/letters 不再返回。
+    # 非硬删——回信链（parent_letter_id）、计数、通知全部保留
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # ---------- 叙事计数（替代空间轨迹，不跨信排行）----------
     read_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     resonance_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))

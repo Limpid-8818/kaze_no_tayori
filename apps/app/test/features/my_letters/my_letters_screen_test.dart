@@ -1,5 +1,6 @@
-/// 我的信页冒烟（F6）：四态徽标渲染、公开信点按直读、长按/点按弹
-/// 操作区、两段式下架确认（再想想可回退）、确认后徽标翻转 + toast。
+/// 我的信页冒烟（F6）：四态徽标渲染（含语义色点）、公开信点按直读、
+/// 长按/点按弹操作区、两段式下架确认（再想想可回退）、确认后徽标翻转 +
+/// toast、已退场信两段式「不再显示」后卡片消失。
 library;
 
 import 'package:dio/dio.dart';
@@ -104,9 +105,14 @@ void main() {
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('公开中'), findsOneWidget);
+    expect(find.text('公开'), findsOneWidget);
     expect(find.text('审核中'), findsOneWidget);
     expect(find.text('候鸟排成人字 把我的问候带走 往更南的南方'), findsOneWidget);
+
+    // 语义色点：公开 = 叶绿（success），审核中 = 阳光黄（warning）
+    final tags = tester.widgetList<NatsuTag>(find.byType(NatsuTag)).toList();
+    expect(tags[0].dot, NatsuColors.statusSuccess);
+    expect(tags[1].dot, NatsuColors.statusWarning);
 
     // 公开信：点击 = 拆开重读
     await tester.tap(find.text('候鸟排成人字 把我的问候带走 往更南的南方'));
@@ -222,6 +228,47 @@ void main() {
     final request = h.adapter.requests.last;
     expect(request.method, 'DELETE');
     expect(request.uri.path, '/v1/me/letters/mine_a');
+
+    // 收尾把 toast 的定时器走完，避免测试悬挂计时器报错
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('已下架卡两段确认「不再显示」：POST hide 落库，卡片消失并冒提示', (tester) async {
+    final h = _Harness([
+      _page([
+        _ownedJson('mine_a', status: 'taken_down'),
+        _ownedJson('mine_b', status: 'pending'),
+      ]),
+      const ScriptedResponse.ok(204),
+    ]);
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+
+    // 退场信（已下架）点按不进阅读器，弹操作区；段一动作是「不再显示」
+    await tester.tap(find.text('已下架'));
+    await tester.pumpAndSettle();
+    expect(find.text('不再显示这封信'), findsOneWidget);
+    expect(find.text('下架这封信'), findsNothing);
+
+    await tester.tap(find.text('不再显示这封信'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('从「我的信」里消失'), findsOneWidget);
+    expect(find.text('确认收起'), findsOneWidget);
+
+    await tester.tap(find.text('确认收起'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // 已下架卡从列表消失，审核中卡仍在
+    expect(find.text('已下架'), findsNothing);
+    expect(find.text('审核中'), findsOneWidget);
+    expect(find.byType(NatsuToast), findsOneWidget);
+
+    // 恰两次：开页 GET + hide POST
+    expect(h.adapter.requests, hasLength(2));
+    final request = h.adapter.requests.last;
+    expect(request.method, 'POST');
+    expect(request.uri.path, '/v1/me/letters/mine_a/hide');
 
     // 收尾把 toast 的定时器走完，避免测试悬挂计时器报错
     await tester.pump(const Duration(seconds: 3));

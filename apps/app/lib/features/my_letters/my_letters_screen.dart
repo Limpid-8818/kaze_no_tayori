@@ -2,13 +2,13 @@
 ///
 /// 交互纪律：点按 = 读（只有公开的能读）；其余一律弹「长按操作区」
 /// ——服务端对非 public 信对读者侧 404，与其让阅读器抛叙事空态，
-/// 不如就地解释状态并给出唯一可用动作。下架走两段式确认（同 sheet
-/// 内翻面），destructive 只落在确认一段。
+/// 不如就地解释状态并给出可用动作。破坏性动作一律两段式确认（同
+/// sheet 内翻面），destructive 只落在确认一段：公开中/审核中可下架；
+/// 已退场（已下架/未通过）的信可「不再显示」——deleted_at 软删位，
+/// 从列表收起但数据保留，回信链不塌。
 ///
 /// 布局纪律与发掘页一致：默认 KazeScaffold、卡片直排。离开-返回（阅读
 /// 器/写信）走静默刷新，列表不闪加载图；操作区的开合不算回焦、不发请求。
-/// 列表不移除已下架的信——本页是唯一能
-/// 看到自己落点与下场的地方。
 library;
 
 import 'package:flutter/material.dart';
@@ -118,7 +118,7 @@ class _MyLettersScreenState extends ConsumerState<MyLettersScreen>
     _openActionSheet(view);
   }
 
-  /// 长按操作区：状态一句话 + （能下架时的）唯一动作。
+  /// 长按操作区：状态一句话 + 唯一可用动作（下架或不再显示）。
   Future<void> _openActionSheet(MyLetterItemView view) async {
     _inActionSheet = true;
     try {
@@ -130,6 +130,10 @@ class _MyLettersScreenState extends ConsumerState<MyLettersScreen>
           onConfirmTakeDown: () {
             Navigator.of(context).pop();
             ref.read(myLettersControllerProvider.notifier).takeDown(view.id);
+          },
+          onConfirmHide: () {
+            Navigator.of(context).pop();
+            ref.read(myLettersControllerProvider.notifier).hide(view.id);
           },
         ),
       );
@@ -194,6 +198,7 @@ class _ListBody extends StatelessWidget {
             previewText: view.previewText,
             placeLabel: view.placeLabel,
             statusLabel: view.statusLabel,
+            statusDot: view.statusDot,
             onTap: () => onOpenItem(view),
             onLongPress: () => onActions(view),
           );
@@ -205,21 +210,27 @@ class _ListBody extends StatelessWidget {
 
 /// 长按操作区本体——两段式：状态解释 → 确认。段内自持 busy 位，
 /// 双发在按钮禁用层挡住；成功提示由 notice 协议冒泡到页面 toast。
+/// 动作按状态分流：公开中/审核中可下架；已退场（已下架/未通过）可
+/// 「不再显示」（hide 软删位）。
 class _OwnerActionSheet extends StatefulWidget {
   const _OwnerActionSheet({
     required this.status,
     required this.onConfirmTakeDown,
+    required this.onConfirmHide,
   });
 
   final LetterStatus status;
   final VoidCallback onConfirmTakeDown;
+  final VoidCallback onConfirmHide;
 
   @override
   State<_OwnerActionSheet> createState() => _OwnerActionSheetState();
 }
 
+enum _SheetStage { explain, confirmTakeDown, confirmHide }
+
 class _OwnerActionSheetState extends State<_OwnerActionSheet> {
-  bool _confirming = false;
+  _SheetStage _stage = _SheetStage.explain;
   bool _busy = false;
 
   /// 一句叙事把当前处境说清：操作区的第一行永远是「它在哪」。
@@ -234,6 +245,22 @@ class _OwnerActionSheetState extends State<_OwnerActionSheet> {
       widget.status == LetterStatus.public ||
       widget.status == LetterStatus.pending;
 
+  bool get _canHide =>
+      widget.status == LetterStatus.takenDown ||
+      widget.status == LetterStatus.rejected;
+
+  String get _finePrint => switch (_stage) {
+    // 下架确认段的语义边界：说清「不是删除」与「不可撤销」两件事。
+    _SheetStage.confirmTakeDown =>
+      '不是删除——它从漂流与发掘中退场，别人写给它的回信不受影响；'
+          '这一步无法撤销。',
+    // 收起确认段：说清「列表里消失但数据仍在」与「不可撤销」。
+    _SheetStage.confirmHide =>
+      '它会从「我的信」里消失——不删数据，别人写给它的回信不受影响；'
+          '这一步无法撤销。',
+    _SheetStage.explain => _statusSentence,
+  };
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -242,23 +269,37 @@ class _OwnerActionSheetState extends State<_OwnerActionSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          _confirming ? _takeDownFinePrint : _statusSentence,
+          _finePrint,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: KazeColors.inkSoft,
           ),
         ),
         const SizedBox(height: KazeSpacing.md),
-        if (!_confirming) _buildStageOne() else _buildStageTwo(),
+        _buildBody(),
       ],
     );
+  }
+
+  Widget _buildBody() {
+    return switch (_stage) {
+      _SheetStage.explain => _buildStageOne(),
+      _ => _buildStageTwo(),
+    };
   }
 
   Widget _buildStageOne() {
     if (_canTakeDown) {
       return NatsuButton(
         variant: NatsuButtonVariant.destructive,
-        onPressed: () => setState(() => _confirming = true),
+        onPressed: () => setState(() => _stage = _SheetStage.confirmTakeDown),
         child: const Text('下架这封信'),
+      );
+    }
+    if (_canHide) {
+      return NatsuButton(
+        variant: NatsuButtonVariant.destructive,
+        onPressed: () => setState(() => _stage = _SheetStage.confirmHide),
+        child: const Text('不再显示这封信'),
       );
     }
     // 无可操作状态的收尾钮：ghost 低强调，弹层本身也可点纸缘关闭。
@@ -269,14 +310,30 @@ class _OwnerActionSheetState extends State<_OwnerActionSheet> {
   }
 
   Widget _buildStageTwo() {
+    final confirmingHide = _stage == _SheetStage.confirmHide;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         NatsuButton(
           variant: NatsuButtonVariant.destructive,
-          onPressed: _busy ? null : widget.onConfirmTakeDown,
-          child: Text(_busy ? '正在把它收回……' : '确认下架'),
+          onPressed: _busy
+              ? null
+              : () {
+                  setState(() => _busy = true);
+                  if (confirmingHide) {
+                    widget.onConfirmHide();
+                  } else {
+                    widget.onConfirmTakeDown();
+                  }
+                },
+          child: Text(
+            _busy
+                ? '正在处理……'
+                : confirmingHide
+                ? '确认收起'
+                : '确认下架',
+          ),
         ),
         const SizedBox(height: KazeSpacing.sm),
         NatsuButton(
@@ -284,16 +341,11 @@ class _OwnerActionSheetState extends State<_OwnerActionSheet> {
               ? null
               : () => setState(() {
                   _busy = false;
-                  _confirming = false;
+                  _stage = _SheetStage.explain;
                 }),
           child: const Text('再想想'),
         ),
       ],
     );
   }
-
-  /// 确认段的语义边界：说清「不是删除」与「不可撤销」两件事。
-  static const String _takeDownFinePrint =
-      '不是删除——它从漂流与发掘中退场，别人写给它的回信不受影响；'
-      '这一步无法撤销。';
 }

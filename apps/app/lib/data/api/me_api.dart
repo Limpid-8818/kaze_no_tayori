@@ -28,6 +28,12 @@ class MeApi {
     await _client.delete('/v1/me/letters/$letterId');
   }
 
+  /// 不再显示（deleted_at 软删位，列表彻底不返回）。仅已退场的信可隐藏，
+  /// 公开中/审核中先下架（服务端 409 letter_not_retired）。非硬删，回信链不塌。
+  Future<void> hideLetter(String letterId) async {
+    await _client.postJson('/v1/me/letters/$letterId/hide');
+  }
+
   /// 抄本列表。
   Future<Page<LetterPublic>> scripbook({int? limit}) async {
     final json = await _client.getJson(

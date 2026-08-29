@@ -1,5 +1,6 @@
 /// 我的信控制器测试（F6）：列表加载与徽标映射、空/错误态、
-/// 下架成功翻状态 + 提示、下架失败仅提示不动列表。
+/// 下架成功翻状态 + 提示、下架失败仅提示不动列表、
+/// 不再显示（hide）成功移除/失败保留。
 library;
 
 import 'package:dio/dio.dart';
@@ -95,7 +96,7 @@ void main() {
     expect(state.items, hasLength(4));
     expect(
       [for (final item in state.items) item.statusLabel],
-      ['公开中', '审核中', '未通过', '已下架'],
+      ['公开', '审核中', '未通过', '已下架'],
     );
     // 有诗 → 逐行；无诗 → 首个文字块预览（共享 letter_preview 口径）
     expect(state.items[0].poemLines, hasLength(3));
@@ -155,6 +156,58 @@ void main() {
     expect(state.notice?.message, '没能下架，稍后再试');
   });
 
+  test('不再显示成功：POST hide 命中，本地移除该项并提示', () async {
+    final c = container([
+      _page([
+        _ownedJson('mine_a', status: 'taken_down'),
+        _ownedJson('mine_b', status: 'pending'),
+      ]),
+      const ScriptedResponse.ok(204),
+    ]);
+    final controller = c.read(myLettersControllerProvider.notifier);
+    await controller.start();
+
+    await controller.hide('mine_a');
+
+    final state = c.read(myLettersControllerProvider);
+    expect(state.phase, MyLettersPhase.ready);
+    expect([for (final item in state.items) item.id], ['mine_b']);
+    expect(state.notice?.message, '已经收起来了');
+
+    final request = adapter.requests.last;
+    expect(request.method, 'POST');
+    expect(request.uri.path, '/v1/me/letters/mine_a/hide');
+  });
+
+  test('不再显示成功且列表清空：落 empty 相态', () async {
+    final c = container([
+      _page([_ownedJson('mine_a', status: 'taken_down')]),
+      const ScriptedResponse.ok(204),
+    ]);
+    final controller = c.read(myLettersControllerProvider.notifier);
+    await controller.start();
+
+    await controller.hide('mine_a');
+
+    expect(c.read(myLettersControllerProvider).phase, MyLettersPhase.empty);
+  });
+
+  test('不再显示失败：列表原样保留，只发失败提示，不抛错', () async {
+    final c = container([
+      _page([_ownedJson('mine_a', status: 'taken_down')]),
+      ScriptedResponse.fail(_server('/v1/me/letters/mine_a/hide')),
+    ]);
+    final controller = c.read(myLettersControllerProvider.notifier);
+    await controller.start();
+
+    await controller.hide('mine_a');
+
+    final state = c.read(myLettersControllerProvider);
+    expect(state.phase, MyLettersPhase.ready);
+    expect(state.items.single.id, 'mine_a');
+    expect(state.notice?.message, '没能收起，稍后再试');
+  });
+
   test('静默刷新成功：列表原位替换，不清相位不闪加载态', () async {
     final c = container([
       _page([_ownedJson('mine_a', status: 'pending')]),
@@ -170,7 +223,7 @@ void main() {
     final state = c.read(myLettersControllerProvider);
     expect(state.phase, MyLettersPhase.ready);
     expect(state.items.single.id, 'mine_b');
-    expect(state.items.single.statusLabel, '公开中');
+    expect(state.items.single.statusLabel, '公开');
   });
 
   test('静默刷新失败：手里有列表就当没发生（保持原状，不出错误态）', () async {

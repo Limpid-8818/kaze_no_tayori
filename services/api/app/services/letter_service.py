@@ -9,7 +9,7 @@ from sqlalchemy import cast as sql_cast
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import LetterNotFound, StayRequiresLocation
+from app.core.errors import LetterNotFound, LetterNotRetired, StayRequiresLocation
 from app.models.enums import LetterStatus
 from app.models.letter import Letter
 from app.models.letter_read import LetterRead
@@ -155,6 +155,7 @@ async def list_owned_letters(
     坐标从 geography 列反解：ST_X / ST_Y 仅接受 geometry，
     因此显式 CAST(location AS geometry)（PostGIS 3.6 实测）。
     drift 信 location 为 NULL → 坐标返回 None。
+    已「不再显示」（deleted_at 软删位）的行不返回。
     """
     result = await session.execute(
         select(
@@ -162,7 +163,7 @@ async def list_owned_letters(
             func.st_x(sql_cast(Letter.location, Geometry)).label("lon"),
             func.st_y(sql_cast(Letter.location, Geometry)).label("lat"),
         )
-        .where(Letter.owner_user_id == owner_user_id)
+        .where(Letter.owner_user_id == owner_user_id, Letter.deleted_at.is_(None))
         .order_by(Letter.created_at.desc())
         .limit(limit)
     )
@@ -182,3 +183,21 @@ async def take_down(session: AsyncSession, letter_id: UUID, owner_user_id: UUID)
     )
     if result.rowcount == 0:
         raise LetterNotFound("信不存在或你没有权限操作此信")
+
+
+async def hide(session: AsyncSession, letter_id: UUID, owner_user_id: UUID) -> None:
+    """「不再显示」→ deleted_at 软删位，/v1/me/letters 不再返回。
+
+    处置决定而非视图筛选：仅已退场（taken_down / rejected）的信可隐藏，
+    公开中/审核中须先下架。非硬删，回信链与计数保留。
+    """
+    letter = (
+        await session.execute(
+            select(Letter).where(Letter.id == letter_id, Letter.owner_user_id == owner_user_id)
+        )
+    ).scalar_one_or_none()
+    if letter is None or letter.deleted_at is not None:
+        raise LetterNotFound("信不存在或你没有权限操作此信")
+    if letter.status not in (LetterStatus.TAKEN_DOWN, LetterStatus.REJECTED):
+        raise LetterNotRetired("公开中或审核中的信要先下架，才能从列表收起")
+    letter.deleted_at = func.now()

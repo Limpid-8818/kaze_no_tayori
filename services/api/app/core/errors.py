@@ -65,6 +65,13 @@ class LetterNotFound(NotFound):
     code = "letter_not_found"
 
 
+class LetterNotRetired(AppError):
+    """未退场（taken_down / rejected 之外）的信不可「不再显示」，须先下架。"""
+
+    status_code = status.HTTP_409_CONFLICT
+    code = "letter_not_retired"
+
+
 class InvalidImage(AppError):
     """上传的内容不是可解码的图片。"""
 

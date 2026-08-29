@@ -1,13 +1,15 @@
-/// 我的信页控制器（F6）—— LetterOwned 列表与下架的编排者。
+/// 我的信页控制器（F6）—— LetterOwned 列表与下架/收起的编排者。
 ///
 /// MVC 分工与 NotificationsController 一致：本类持有唯一可变状态
 /// [MyLettersState]，页面只做布局与交互挂接。列表含 pending/rejected/
 /// taken_down（`/v1/me/letters` 是唯一下发本人视角的入口）；下架 =
-/// taken_down 非硬删，成功后本地翻状态保留在列表里——这页是唯一能
-/// 看到自己信件下场的地方，徽标翻成「已下架」比移除更诚实。
+/// taken_down 非硬删，成功后本地翻状态保留在列表里；「不再显示」
+/// （hide，软删位）是退场后的进一步处置，成功后本地移除。
 library;
 
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:natsu_no_tegami/natsu_no_tegami.dart';
 
 import '../../core/letter_preview.dart';
 import '../../core/relative_time.dart';
@@ -35,12 +37,19 @@ class MyLetterItemView {
   final String? previewText;
   final String? placeLabel;
 
-  /// 徽标纯文字，配色归 NatsuTag 默认样式（不引入新语义点）。
+  /// 徽标文案与语义色点（NatsuColors.status* 令牌，见 natsu_colors.dart）。
   String get statusLabel => switch (status) {
     LetterStatus.pending => '审核中',
-    LetterStatus.public => '公开中',
+    LetterStatus.public => '公开',
     LetterStatus.rejected => '未通过',
     LetterStatus.takenDown => '已下架',
+  };
+
+  Color get statusDot => switch (status) {
+    LetterStatus.pending => NatsuColors.statusWarning,
+    LetterStatus.public => NatsuColors.statusSuccess,
+    LetterStatus.rejected => NatsuColors.error,
+    LetterStatus.takenDown => NatsuColors.statusMuted,
   };
 
   static MyLetterItemView from(LetterOwned letter) {
@@ -168,6 +177,27 @@ class MyLettersController extends Notifier<MyLettersState> {
             item,
       ],
       notice: (message: '已经下架了', seq: ++_noticeSeq),
+    );
+  }
+
+  /// 不再显示（hide，deleted_at 软删位；服务端保证仅已退场的信可隐藏，
+  /// 公开中/审核中会 409）。成功后本地移除该项——不是翻徽标，是让它
+  /// 从列表里退场；列表清空则落 empty 相态。不做乐观更新，口径同下架。
+  Future<void> hide(String letterId) async {
+    try {
+      await ref.read(meApiProvider).hideLetter(letterId);
+    } on ApiFailure {
+      state = state.copyWith(notice: (message: '没能收起，稍后再试', seq: ++_noticeSeq));
+      return;
+    }
+    final items = [
+      for (final item in state.items)
+        if (item.id != letterId) item,
+    ];
+    state = state.copyWith(
+      items: items,
+      phase: items.isEmpty ? MyLettersPhase.empty : null,
+      notice: (message: '已经收起来了', seq: ++_noticeSeq),
     );
   }
 }
