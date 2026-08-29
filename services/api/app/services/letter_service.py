@@ -23,12 +23,15 @@ async def create_letter(
     payload: LetterCreate,
     owner_user_id: UUID | None,
     parent_letter_id: UUID | None = None,
+    *,
+    status: LetterStatus | None = None,
 ) -> Letter:
     """建信。
 
     契约：
     - delivery_mode=stay 时 lat/lon 必填，写入 location（geography POINT 4326）
     - 走审核（moderation_service）决定 status；审核不可用时停在 pending
+    - status 直通（运营控制台种子信）时跳过审核，运营自己就是审核者
     - theme 写入后永久绑定，后续不得批量迁移
     - parent_letter_id 仅由 service 预置（回信场景），schema 不接受客户端直传
     """
@@ -53,7 +56,8 @@ async def create_letter(
         # Pydantic 模型不能直接进 JSONB（json.dumps 不认），与上面两个嵌套体一致先 dump
         weather=payload.weather.model_dump() if payload.weather else None,
         delivery_mode=payload.delivery_mode,
-        status=await moderation_service.moderate([b.model_dump() for b in payload.blocks]),
+        status=status
+        or await moderation_service.moderate([b.model_dump() for b in payload.blocks]),
         owner_user_id=owner_user_id,
         parent_letter_id=parent_letter_id,
     )

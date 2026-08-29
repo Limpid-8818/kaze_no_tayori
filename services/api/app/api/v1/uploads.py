@@ -8,7 +8,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile
 
-from app.core.deps import CurrentUser
+from app.core.deps import ActorId
 from app.core.errors import UnsupportedImageType
 from app.schemas.common import UploadResponse
 from app.services import storage_service
@@ -20,12 +20,13 @@ _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 @router.post("/images", response_model=UploadResponse, status_code=201)
 async def upload_image(
-    user_id: CurrentUser,
+    actor_id: ActorId,
     file: Annotated[UploadFile, File()],
 ) -> UploadResponse:
     """上传单张图片，返回可公开访问的 URL。
 
     存储不可用时降级为本地磁盘——图片失败不应阻断写信主流程。
+    身份放宽为 user 或 admin JWT 均可（运营控制台传图，2026-08-29 裁决）。
     """
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
         raise UnsupportedImageType("仅支持 JPEG / PNG / WebP 图片")

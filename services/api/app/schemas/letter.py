@@ -27,7 +27,8 @@ def _decode_point(location: Any) -> tuple[float | None, float | None]:
         from geoalchemy2.shape import to_shape
 
         point = to_shape(location)
-        return float(point.y), float(point.x)
+        # to_shape 静态返回 BaseGeometry，运行时是 Point（x/y 只在 Point 上）
+        return float(point.y), float(point.x)  # type: ignore[attr-defined]
     except Exception:
         return None, None
 

@@ -73,6 +73,27 @@ class LetterNotRetired(AppError):
     code = "letter_not_retired"
 
 
+class InvalidTransition(AppError):
+    """管理端信件状态机：目标状态不在当前状态允许的流转表内。"""
+
+    status_code = status.HTTP_409_CONFLICT
+    code = "invalid_transition"
+
+
+class AdminForbidden(AppError):
+    """viewer 角色打管理端写端点（仅 admin 可写）。"""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "admin_forbidden"
+
+
+class SeedLetterOnly(AppError):
+    """种子信编辑端点打到了有主信上：仅 owner IS NULL 的信可编辑。"""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "seed_letter_only"
+
+
 class InvalidImage(AppError):
     """上传的内容不是可解码的图片。"""
 

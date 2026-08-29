@@ -1,6 +1,839 @@
 {
   "components": {
     "schemas": {
+      "AdminFeedbackPublic": {
+        "description": "管理端视图：含提交环境上下文与处理标注。",
+        "properties": {
+          "admin_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "category": {
+            "$ref": "#/components/schemas/FeedbackCategory"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "handled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FeedbackStatus"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "category",
+          "content",
+          "app_version",
+          "platform",
+          "status",
+          "admin_note",
+          "handled_at",
+          "created_at"
+        ],
+        "title": "AdminFeedbackPublic",
+        "type": "object"
+      },
+      "AdminFeedbackUpdateRequest": {
+        "description": "管理端标注：改状态和/或写备注，至少动一项。",
+        "properties": {
+          "admin_note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeedbackStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AdminFeedbackUpdateRequest",
+        "type": "object"
+      },
+      "AdminLetterDetail": {
+        "description": "管理端信件详情 = 读者可见形状 + status + owner_user_id。\n\nowner_user_id 是匿名设备 UUID，仅管理端可见（区分种子信/处置举报），\n对访客「不暴露作者」的口径不变（ADMIN_CONSOLE.md §1）。",
+        "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/LetterCounts"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "me_resonated": {
+            "default": false,
+            "title": "Me Resonated",
+            "type": "boolean"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "parent_letter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Letter Id"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LetterStatus"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "theme_id": {
+            "title": "Theme Id",
+            "type": "string"
+          },
+          "theme_skin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LetterSkin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "blocks",
+          "id",
+          "theme_id",
+          "delivery_mode",
+          "counts",
+          "created_at",
+          "status"
+        ],
+        "title": "AdminLetterDetail",
+        "type": "object"
+      },
+      "AdminLetterStatusUpdate": {
+        "description": "管理端信件状态流转。表内合法流转见 admin_service._ALLOWED_TRANSITIONS。",
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LetterStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "AdminLetterStatusUpdate",
+        "type": "object"
+      },
+      "AdminLetterSummary": {
+        "description": "管理端信件列表项（含非 public）。刻意不含 blocks 全量与 owner。",
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/LetterCounts"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LetterStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "delivery_mode",
+          "counts",
+          "created_at"
+        ],
+        "title": "AdminLetterSummary",
+        "type": "object"
+      },
+      "AdminLoginRequest": {
+        "properties": {
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "AdminLoginRequest",
+        "type": "object"
+      },
+      "AdminPoolHealth": {
+        "description": "池健康度：口径同漂流/发掘筛选（status=public 按投放方式分列）。\n\ndrift_available 是全局池量（不含个体已读/冷却过滤——那是 per-viewer 的）。",
+        "properties": {
+          "drift_available": {
+            "title": "Drift Available",
+            "type": "integer"
+          },
+          "stay_active": {
+            "title": "Stay Active",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "drift_available",
+          "stay_active"
+        ],
+        "title": "AdminPoolHealth",
+        "type": "object"
+      },
+      "AdminReportLetterBrief": {
+        "description": "举报列表内嵌的涉事信摘要（区别于独立 AdminLetterSummary：少坐标计数）。",
+        "properties": {
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LetterStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "delivery_mode"
+        ],
+        "title": "AdminReportLetterBrief",
+        "type": "object"
+      },
+      "AdminReportPublic": {
+        "properties": {
+          "admin_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "handled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "letter": {
+            "$ref": "#/components/schemas/AdminReportLetterBrief"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reporter_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reporter User Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          }
+        },
+        "required": [
+          "id",
+          "letter",
+          "reason",
+          "status",
+          "created_at"
+        ],
+        "title": "AdminReportPublic",
+        "type": "object"
+      },
+      "AdminReportUpdate": {
+        "description": "举报处置：改状态和/或写备注。处置=下架信件由前端另行调信件状态机。",
+        "properties": {
+          "admin_note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AdminReportUpdate",
+        "type": "object"
+      },
+      "AdminSeedLetterUpdate": {
+        "additionalProperties": false,
+        "description": "种子信编辑：blocks/文案/落点/天气可改；theme 绑定红线不给改。\n\ndelivery_mode=stay 时 lat/lon 必填（校验在 service 层，与写信同口径）。",
+        "properties": {
+          "addressee": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressee"
+          },
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "photo": "#/components/schemas/PhotoBlock",
+                  "text": "#/components/schemas/TextBlock"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoBlock"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "delivery_mode": {
+            "$ref": "#/components/schemas/DeliveryMode"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "music_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "poem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poem"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Tags",
+            "type": "array"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "blocks",
+          "delivery_mode"
+        ],
+        "title": "AdminSeedLetterUpdate",
+        "type": "object"
+      },
+      "AdminStats": {
+        "description": "概览聚合（GET /v1/admin/stats）。",
+        "properties": {
+          "letters_30d": {
+            "title": "Letters 30D",
+            "type": "integer"
+          },
+          "letters_7d": {
+            "title": "Letters 7D",
+            "type": "integer"
+          },
+          "letters_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/LetterStatus"
+            },
+            "title": "Letters By Status",
+            "type": "object"
+          },
+          "pool": {
+            "$ref": "#/components/schemas/AdminPoolHealth"
+          },
+          "todo": {
+            "$ref": "#/components/schemas/AdminTodoCounts"
+          },
+          "users_total": {
+            "title": "Users Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "letters_by_status",
+          "users_total",
+          "letters_7d",
+          "letters_30d",
+          "pool",
+          "todo"
+        ],
+        "title": "AdminStats",
+        "type": "object"
+      },
+      "AdminTodoCounts": {
+        "description": "待办角标三源。",
+        "properties": {
+          "open_feedbacks": {
+            "title": "Open Feedbacks",
+            "type": "integer"
+          },
+          "open_reports": {
+            "title": "Open Reports",
+            "type": "integer"
+          },
+          "pending_letters": {
+            "title": "Pending Letters",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending_letters",
+          "open_reports",
+          "open_feedbacks"
+        ],
+        "title": "AdminTodoCounts",
+        "type": "object"
+      },
+      "AdminTokenResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token"
+        ],
+        "title": "AdminTokenResponse",
+        "type": "object"
+      },
       "Body_upload_image_v1_uploads_images_post": {
         "properties": {
           "file": {
@@ -39,6 +872,97 @@
         ],
         "title": "DeviceAuthRequest",
         "type": "object"
+      },
+      "FeedbackCategory": {
+        "description": "反馈类型：问题反馈或改进建议。",
+        "enum": [
+          "bug",
+          "suggestion"
+        ],
+        "title": "FeedbackCategory",
+        "type": "string"
+      },
+      "FeedbackCreateRequest": {
+        "description": "设置页反馈表单：类型单选 + 正文。版本/平台由客户端自动附带，服务端仅截断落库。",
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "category": {
+            "$ref": "#/components/schemas/FeedbackCategory"
+          },
+          "content": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          }
+        },
+        "required": [
+          "category",
+          "content"
+        ],
+        "title": "FeedbackCreateRequest",
+        "type": "object"
+      },
+      "FeedbackPublic": {
+        "description": "提交确认。用户侧最小回显，不含管理字段。",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/FeedbackCategory"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FeedbackStatus"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "status",
+          "created_at"
+        ],
+        "title": "FeedbackPublic",
+        "type": "object"
+      },
+      "FeedbackStatus": {
+        "description": "反馈处理状态：待处理 → 已处理（管理端流转）。",
+        "enum": [
+          "open",
+          "resolved"
+        ],
+        "title": "FeedbackStatus",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -241,7 +1165,7 @@
         "type": "object"
       },
       "LetterOwned": {
-        "description": "本人视角，仅 /v1/me/* 路径返回。\n\n比 LetterPublic 多出状态与自己的落点坐标。**仍不含 owner_user_id**——\n自己不需要看自己的 id。",
+        "description": "本人视角，仅 /v1/me/* 路径返回。\n\n比 LetterPublic 多出 status。坐标继承自 LetterPublic 的落点反解；\n**仍不含 owner_user_id**——自己不需要看自己的 id。",
         "properties": {
           "addressee": {
             "anyOf": [
@@ -420,7 +1344,7 @@
         "type": "object"
       },
       "LetterPublic": {
-        "description": "对外信件响应——**唯一允许返回给读者的信件形状**。\n\n刻意缺席的字段：\n- owner_user_id / 任何作者标识（匿名铁律）\n- lat / lon 精确坐标（只给 place_label，避免反查作者活动位置，PRD §8.1）\n- status（读者只会看到 public 的信）",
+        "description": "对外信件响应——**唯一允许返回给读者的信件形状**。\n\n刻意缺席的字段：\n- owner_user_id / 任何作者标识（匿名铁律）\n- status（读者只会看到 public 的信）\n\n落点坐标（lat/lon）按 2026-08 裁决对外下发：落点坐标是公开的创作\n元素（写信时作者主动选定的位置），读者用它计算与自己的直线距离；\nlocation 原始列与作者标识仍然缺席。drift 信 / 无落点信为 null。",
         "properties": {
           "addressee": {
             "anyOf": [
@@ -469,6 +1393,28 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
           },
           "me_resonated": {
             "default": false,
@@ -684,6 +1630,18 @@
             "title": "Letter Id",
             "type": "string"
           },
+          "parent_letter_date": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Letter Date"
+          },
           "parent_letter_id": {
             "format": "uuid",
             "title": "Parent Letter Id",
@@ -722,6 +1680,87 @@
         ],
         "title": "NotificationType",
         "type": "string"
+      },
+      "Page_AdminFeedbackPublic_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminFeedbackPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[AdminFeedbackPublic]",
+        "type": "object"
+      },
+      "Page_AdminLetterSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLetterSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[AdminLetterSummary]",
+        "type": "object"
+      },
+      "Page_AdminReportPublic_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReportPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[AdminReportPublic]",
+        "type": "object"
       },
       "Page_LetterOwned_": {
         "properties": {
@@ -913,6 +1952,16 @@
         ],
         "title": "ReportRequest",
         "type": "object"
+      },
+      "ReportStatus": {
+        "description": "举报处理状态（运营控制台，见 docs/ADMIN_CONSOLE.md）：\n待处理 → 驳回 / 已处置（下架信件等联动由管理端另行操作信件状态机）。",
+        "enum": [
+          "open",
+          "dismissed",
+          "actioned"
+        ],
+        "title": "ReportStatus",
+        "type": "string"
       },
       "ResonanceRequest": {
         "properties": {
@@ -1225,6 +2274,699 @@
         ]
       }
     },
+    "/v1/admin/feedbacks": {
+      "get": {
+        "description": "反馈列表，created_at DESC，可按状态/类型筛选。",
+        "operationId": "list_feedbacks_v1_admin_feedbacks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FeedbackStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FeedbackCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminFeedbackPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Feedbacks",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/feedbacks/{feedback_id}": {
+      "patch": {
+        "description": "标注反馈：改状态（open↔resolved，联动 handled_at）和/或写备注。",
+        "operationId": "update_feedback_v1_admin_feedbacks__feedback_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Feedback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminFeedbackUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeedbackPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Feedback",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/letters": {
+      "get": {
+        "description": "信件列表（含非 public），created_at DESC。owner=seed|user 区分种子信/有主信。",
+        "operationId": "list_letters_v1_admin_letters_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LetterStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delivery_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DeliveryMode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(seed|user)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminLetterSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Letters",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/letters/{letter_id}": {
+      "get": {
+        "description": "信件详情（全状态可见 + owner_user_id，仅管理端可见）。",
+        "operationId": "get_letter_v1_admin_letters__letter_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLetterDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Letter",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/letters/{letter_id}/status": {
+      "patch": {
+        "description": "审核/下架/恢复/赦免。状态机见 admin_service._ALLOWED_TRANSITIONS，表外 409。",
+        "operationId": "transition_letter_status_v1_admin_letters__letter_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLetterStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLetterDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Transition Letter Status",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/login": {
+      "post": {
+        "description": "用户名密码换 admin token（12h 短时效）。凭据错误一律 401。",
+        "operationId": "admin_login_v1_admin_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Login",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/reports": {
+      "get": {
+        "description": "举报列表（JOIN 涉事信摘要），created_at DESC。默认只看 open。",
+        "operationId": "list_reports_v1_admin_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportStatus",
+              "default": "open"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminReportPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Reports",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/reports/{report_id}": {
+      "patch": {
+        "description": "举报处置：dismissed / actioned（置已处理回写 handled_at，回退 open 清空）。",
+        "operationId": "update_report_v1_admin_reports__report_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminReportUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Report",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/seed-letters": {
+      "get": {
+        "description": "种子信列表（owner IS NULL，含被下架的），created_at DESC。",
+        "operationId": "list_seed_letters_v1_admin_seed_letters_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminLetterSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Seed Letters",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "新建种子信：复用写信校验，owner=NULL、直接 public 入池（跳过机审）。",
+        "operationId": "create_seed_letter_v1_admin_seed_letters_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LetterCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLetterDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Seed Letter",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/seed-letters/{letter_id}": {
+      "patch": {
+        "description": "编辑种子信：blocks/文案/落点/天气可改；theme 绑定不给改；仅限无主信。",
+        "operationId": "update_seed_letter_v1_admin_seed_letters__letter_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSeedLetterUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLetterDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Seed Letter",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/stats": {
+      "get": {
+        "description": "概览聚合：状态分布 / 用户数 / 7·30 日新增 / 池健康 / 待办角标。",
+        "operationId": "get_stats_v1_admin_stats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStats"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Stats",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/ai/poem": {
       "post": {
         "description": "从正文提取意象生成俳句（默认体裁），与正文同屏展示。",
@@ -1476,6 +3218,52 @@
         "summary": "Next Letter",
         "tags": [
           "drift"
+        ]
+      }
+    },
+    "/v1/feedback": {
+      "post": {
+        "operationId": "submit_feedback_v1_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit Feedback",
+        "tags": [
+          "feedback"
         ]
       }
     },
@@ -2002,6 +3790,48 @@
         ]
       }
     },
+    "/v1/me/letters/{letter_id}/hide": {
+      "post": {
+        "description": "不再显示自己的信（F6 后续）：deleted_at 软删位，/v1/me/letters 不再返回。\n\n处置决定而非视图筛选：仅已退场（taken_down / rejected）的信可隐藏，\n公开中/审核中须先下架（409 letter_not_retired）。非硬删，回信链与计数保留。",
+        "operationId": "hide_letter_v1_me_letters__letter_id__hide_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "letter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Letter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Hide Letter",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/v1/me/notifications": {
       "get": {
         "description": "回信告知列表。P0 只做拉取，不做推送（前端：开页拉取 + 回前台拉 unread_only）。",
@@ -2287,7 +4117,7 @@
     },
     "/v1/uploads/images": {
       "post": {
-        "description": "上传单张图片，返回可公开访问的 URL。\n\n存储不可用时降级为本地磁盘——图片失败不应阻断写信主流程。",
+        "description": "上传单张图片，返回可公开访问的 URL。\n\n存储不可用时降级为本地磁盘——图片失败不应阻断写信主流程。\n身份放宽为 user 或 admin JWT 均可（运营控制台传图，2026-08-29 裁决）。",
         "operationId": "upload_image_v1_uploads_images_post",
         "requestBody": {
           "content": {

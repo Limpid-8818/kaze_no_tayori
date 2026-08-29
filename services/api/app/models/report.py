@@ -4,13 +4,18 @@ PRD §9 未列此实体，但 8.2 要求提供举报入口，故按最小实现�
 偏差已记录在 docs/API_CONTRACT.md §5。
 """
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, text
+from sqlalchemy import (
+    Enum as SAEnum,
+)
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampCreated, UUIDPrimaryKey
+from app.models.enums import ReportStatus
 
 
 class Report(Base, UUIDPrimaryKey, TimestampCreated):
@@ -25,6 +30,22 @@ class Report(Base, UUIDPrimaryKey, TimestampCreated):
     )
     reason: Mapped[str] = mapped_column(String(32), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # ---------- 运营控制台处置位（2026-08-29 设计，镜像 feedbacks 模式）----------
+    status: Mapped[ReportStatus] = mapped_column(
+        SAEnum(
+            ReportStatus,
+            name="report_status",
+            native_enum=True,
+            values_callable=lambda e: [i.value for i in e],
+        ),
+        nullable=False,
+        server_default=text("'open'"),
+    )
+    admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (Index("ix_reports_status_created", "status", "created_at"),)
 
 
 class AdminAccount(Base, UUIDPrimaryKey, TimestampCreated):

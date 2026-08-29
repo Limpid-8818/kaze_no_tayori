@@ -41,3 +41,13 @@ class FeedbackStatus(StrEnum):
 
     OPEN = "open"
     RESOLVED = "resolved"
+
+
+class ReportStatus(StrEnum):
+    """举报处理状态（运营控制台，见 docs/ADMIN_CONSOLE.md）：
+    待处理 → 驳回 / 已处置（下架信件等联动由管理端另行操作信件状态机）。
+    """
+
+    OPEN = "open"
+    DISMISSED = "dismissed"
+    ACTIONED = "actioned"
