@@ -160,6 +160,18 @@ void main() {
       ),
     );
   });
+  test('就地发掘：种子信以查询坐标为锚带落点坐标（距离槽可算）', () async {
+    final body = await _decode(
+      _dio().get('/v1/discover', queryParameters: {'lat': 30.0, 'lon': 120.0}),
+    );
+    final items = List<Map<String, dynamic>>.from(body['items'] as List);
+    expect(items, hasLength(2));
+    // 落点都在查询坐标的小偏移内（~230m / ~1.2km），前端距离标签真实可见
+    for (final item in items) {
+      expect((item['lat'] as num) - 30.0, closeTo(0, 0.02));
+      expect((item['lon'] as num) - 120.0, closeTo(0, 0.02));
+    }
+  });
   test('未覆盖的路由 404 且带统一错误体（不静默成功）', () async {
     final dio = _dio();
     await expectLater(

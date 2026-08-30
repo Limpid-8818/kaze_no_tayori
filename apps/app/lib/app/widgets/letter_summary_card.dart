@@ -8,9 +8,9 @@
 /// 小档）；有 AI 短诗时在其下追加一行注记：三行诗以空格压成一行、
 /// 缩号灰字，起注脚作用而不喧宾夺主。
 ///
-/// meta 行左侧是「位置信息槽」：距离 `distanceLabel`（「230m」）在前、
-/// 地点名在后（发掘列表由 discover 的落点坐标 × 读者坐标算出；我的信/
-/// 抄本暂不传，槽位自动收起）。
+/// meta 行左侧是「位置信息槽」：地点与距离 `distanceLabel`（「230m」）
+/// 以「地点 · 距离」同排灰字呈现（发掘列表由 discover 的落点坐标 ×
+/// 读者坐标算出；我的信/抄本暂不传，距离自动收起）。
 /// `statusLabel`（F6 我的信）贴右、时间左侧，用设计系统 NatsuTag(sm)
 /// 呈现；F6 后续起启用语义色点 `statusDot`（状态徽标专用 6px 点，
 /// 令牌 NatsuColors.status*），取代早前「状态不配点」的裁决——
@@ -49,7 +49,7 @@ class LetterSummaryCard extends StatelessWidget {
   /// 地点名（现阶段位置信息槽的占位内容）。
   final String? placeLabel;
 
-  /// 距离（如「230m」）——后端补齐 discover 距离字段后接线。
+  /// 距离（如「230m」），以「地点 · 距离」接在地点灰字右侧；null = 不渲染。
   final String? distanceLabel;
 
   /// 状态徽标文案（我的信：审核中/公开/…）；null = 不渲染（发掘列表不受影响）。
@@ -114,15 +114,12 @@ class LetterSummaryCard extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              if (distanceLabel != null) ...[
-                Icon(Icons.my_location, size: 12, color: KazeColors.inkFaint),
-                const SizedBox(width: KazeSpacing.xs),
-                Text(distanceLabel!, style: metaStyle),
-              ],
-              if (placeLabel != null && placeLabel!.isNotEmpty) ...[
-                if (distanceLabel != null)
-                  const SizedBox(width: KazeSpacing.sm),
-                Expanded(
+              // 地点在前、距离紧随其右，用「·」分隔成同一行灰字：
+              // 地点用 Flexible（loose）而非 Expanded，距离才不会被推到
+              // 行尾贴着时间；地点过长时仍占满剩余空间省略，距离作为
+              // 非弹性子节点保住自身宽度。
+              if (placeLabel != null && placeLabel!.isNotEmpty)
+                Flexible(
                   child: Text(
                     placeLabel!,
                     style: metaStyle,
@@ -130,6 +127,13 @@ class LetterSummaryCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+              if (distanceLabel != null) ...[
+                if (placeLabel != null && placeLabel!.isNotEmpty) ...[
+                  const SizedBox(width: KazeSpacing.xs),
+                  Text('·', style: metaStyle),
+                  const SizedBox(width: KazeSpacing.xs),
+                ],
+                Text(distanceLabel!, style: metaStyle),
               ],
             ],
           ),

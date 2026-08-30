@@ -79,6 +79,13 @@ void main() {
     expect(find.text('上海 · 武康路'), findsOneWidget);
     expect(find.text('3天前'), findsOneWidget);
 
+    // 距离以「地点 · 距离」接在地点灰字右边：x 坐标必须大于地点文本，
+    // 且不再出现定位图标（同排统一灰字，靠「·」分隔）。
+    final placeX = tester.getTopLeft(find.text('上海 · 武康路')).dx;
+    final distanceX = tester.getTopLeft(find.text('230m')).dx;
+    expect(distanceX, greaterThan(placeX));
+    expect(find.byIcon(Icons.my_location), findsNothing);
+
     await tester.tap(find.text('上海 · 武康路'));
     expect(tapped, isTrue);
   });

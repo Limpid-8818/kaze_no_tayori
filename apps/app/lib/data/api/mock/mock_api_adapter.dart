@@ -80,10 +80,18 @@ class MockApiAdapter implements HttpClientAdapter {
               },
             });
     }
-    // 就地发掘：不校验坐标，回一封带诗 + 一封无诗；已拆封的不再出现
+    // 就地发掘：不校验坐标，回一封带诗 + 一封无诗；已拆封的不再出现。
+    // 种子信以查询坐标为锚点小偏移出落点，mock 模式下距离槽可见；
+    // 无查询坐标时锚点落上海武康路一带。
     if (method == 'GET' && path == '/v1/discover') {
+      final baseLat =
+          (num.tryParse('${options.queryParameters['lat']}') ?? 31.2077)
+              .toDouble();
+      final baseLon =
+          (num.tryParse('${options.queryParameters['lon']}') ?? 121.4374)
+              .toDouble();
       final items = [
-        for (final letter in _staySeeds)
+        for (final letter in _staySeeds(baseLat, baseLon))
           if (!_openedIds.contains(letter['id'])) letter,
       ];
       return _json(200, {'items': items, 'next_cursor': null});
@@ -331,6 +339,8 @@ class MockApiAdapter implements HttpClientAdapter {
     required Map<String, Object?> weather,
     String signature = '不具名',
     String? parentLetterId,
+    double? lat,
+    double? lon,
   }) {
     return {
       'id': id,
@@ -346,6 +356,8 @@ class MockApiAdapter implements HttpClientAdapter {
       'tags': const <String>[],
       'delivery_mode': deliveryMode,
       'parent_letter_id': parentLetterId,
+      'lat': lat,
+      'lon': lon,
       'counts': const {
         'read': 0,
         'resonance': 1,
@@ -391,7 +403,12 @@ class MockApiAdapter implements HttpClientAdapter {
   ];
 
   /// 发掘结果：一封带诗 + 一封无诗（无诗走两行手写预览位）。
-  List<Map<String, Object?>> get _staySeeds => [
+  /// 以读者查询坐标为锚点偏移出两处落点（约 230m / 1.2km），无论设备
+  /// 定位在哪，距离槽都能算出真实感标签；其他展示场景用默认锚点。
+  List<Map<String, Object?>> _staySeeds([
+    double baseLat = 31.2077,
+    double baseLon = 121.4374,
+  ]) => [
     _seedLetter(
       id: 'mock_stay_1',
       deliveryMode: 'stay',
@@ -399,6 +416,8 @@ class MockApiAdapter implements HttpClientAdapter {
       placeLabel: '浙江 · 杭州',
       signature: '西湖边写生的人',
       weather: const {'text': '晴', 'temp_c': 29.0, 'icon': 'clear'},
+      lat: baseLat + 0.002,
+      lon: baseLon + 0.0005,
       blocks: const [
         {'type': 'text', 'text': '把这张便条压在长椅底下的人说，坐下来歇脚的你辛苦了。'},
       ],
@@ -409,6 +428,8 @@ class MockApiAdapter implements HttpClientAdapter {
       ago: const Duration(minutes: 40),
       placeLabel: '上海 · 武康路',
       weather: const {'text': '多云', 'temp_c': 28.0, 'icon': 'cloudy'},
+      lat: baseLat + 0.009,
+      lon: baseLon + 0.006,
       blocks: const [
         {'type': 'text', 'text': '风从梧桐树叶间穿过的时候，整条街都在轻轻摇晃。'},
         {'type': 'text', 'text': '陪你走路的那个人先别急着道别。'},
@@ -538,7 +559,7 @@ class MockApiAdapter implements HttpClientAdapter {
   /// 最新收进的排最前（added_at DESC）。
   late final List<Map<String, Object?>> _scripbookSeeds = [
     {..._driftSeeds.first},
-    {..._staySeeds.first},
+    {..._staySeeds().first},
   ];
 
   /// 回信列表种子（F5）：最新在前；两条各指向一封可读的种子回信。
@@ -582,7 +603,7 @@ class MockApiAdapter implements HttpClientAdapter {
   }
 
   DateTime? _parentWrittenAt(String parentId) {
-    for (final seed in [..._driftSeeds, ..._staySeeds]) {
+    for (final seed in [..._driftSeeds, ..._staySeeds()]) {
       if (seed['id'] == parentId) {
         return DateTime.tryParse(seed['created_at']! as String);
       }
@@ -600,7 +621,7 @@ class MockApiAdapter implements HttpClientAdapter {
     if (owned.isNotEmpty) {
       return owned.single['status'] == 'public' ? owned.single : null;
     }
-    return [..._driftSeeds, ..._staySeeds, ..._replySeeds]
+    return [..._driftSeeds, ..._staySeeds(), ..._replySeeds]
         .cast<Map<String, Object?>?>()
         .firstWhere((json) => json!['id'] == id, orElse: () => null);
   }
