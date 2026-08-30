@@ -13,4 +13,7 @@ abstract final class Env {
 
   /// 列表默认分页上限（契约 ≤50）。
   static const int pageSize = 50;
+
+  /// 整封正文上限（与 apps/app 同口径：种子信编辑也按信件标准写）。
+  static const int letterMaxChars = 800;
 }

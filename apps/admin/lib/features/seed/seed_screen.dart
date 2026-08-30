@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/env.dart';
 import '../../core/result.dart';
 import '../../data/api/providers.dart';
 import '../../data/models/admin.dart';
@@ -17,6 +18,21 @@ import '../../shared/widgets.dart' show confirmAction, showNotice;
 import 'image_picker_gateway.dart';
 
 enum SeedPhase { loading, ready, empty, error }
+
+/// AI 辅助类型（与 apps/app 写信页同款语义：候选预览，采纳才生效）。
+enum AiAssistKind { polish, poem }
+
+/// 短诗候选校验：压成非空行列表；行数超过 4（俳句体裁上限）视为废稿。
+/// 返回 null = 不可采纳。
+List<String>? validatePoemCandidate(String raw) {
+  final lines = raw
+      .split('\n')
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .toList();
+  if (lines.isEmpty || lines.length > 4) return null;
+  return lines;
+}
 
 class SeedListState {
   const SeedListState({
@@ -59,6 +75,7 @@ class SeedDraft {
     this.placeLabel = '',
     this.weatherText = '',
     this.createdAtText = '',
+    this.poem,
   }) : textBlocks = textBlocks ?? [''],
        photoRefs = photoRefs ?? [];
 
@@ -84,7 +101,13 @@ class SeedDraft {
       placeLabel: d.placeLabel ?? '',
       weatherText: d.weather?.text ?? '',
       createdAtText: _formatCreatedAt(d.createdAt),
+      poem: _nonBlank(d.poem),
     );
+  }
+
+  static String? _nonBlank(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   final String? id;
@@ -95,6 +118,9 @@ class SeedDraft {
   String lon;
   String placeLabel;
   String weatherText;
+
+  /// 已采纳的 AI 短诗（null = 无诗；编辑态从详情装载，随保存提交）。
+  String? poem;
 
   /// 落款时间原文（YYYY-MM-DD HH:mm；空 = 现在落笔）。
   String createdAtText;
@@ -196,6 +222,7 @@ class SeedController extends Notifier<SeedListState> {
     required List<String> textBlocks,
     required String placeLabel,
     required String weatherText,
+    String? poem,
     DateTime? createdAt,
   }) async {
     final photos = draft.photoRefs.length;
@@ -216,9 +243,10 @@ class SeedController extends Notifier<SeedListState> {
         for (final ref in draft.photoRefs) {'type': 'photo', 'ref': ref},
       ],
       'delivery_mode': draft.deliveryMode.name,
-      // 地名/天气由编辑器 controller 传入（draft 上的同名字段不随输入更新）
+      // 地名/天气/短诗由编辑器 controller 传入（draft 上的同名字段不随输入更新）
       'place_label': placeLabel.isEmpty ? null : placeLabel,
       'weather': weatherText.isEmpty ? null : {'text': weatherText},
+      'poem': (poem == null || poem.trim().isEmpty) ? null : poem.trim(),
       if (draft.deliveryMode == DeliveryMode.stay) 'lat': double.parse(lat),
       if (draft.deliveryMode == DeliveryMode.stay) 'lon': double.parse(lon),
       if (createdAt != null) 'created_at': _toIsoWithOffset(createdAt),
@@ -452,10 +480,16 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
   final _createdAtController = TextEditingController();
   bool _uploading = false;
 
+  // AI 辅助（采纳制）：候选只在预览弹窗里，采纳才写回正文/短诗。
+  String? _poem;
+  AiAssistKind? _aiBusy;
+  bool _aiUnavailable = false;
+
   @override
   void initState() {
     super.initState();
     _draft = widget.draft;
+    _poem = _draft.poem;
     for (final text in _draft.textBlocks) {
       _blockControllers.add(TextEditingController(text: text));
     }
@@ -479,6 +513,177 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
 
   void _onMetaChanged() {
     if (mounted) setState(() {});
+  }
+
+  // ---------- AI 辅助（采纳制，与 apps/app 写信页同款语义） ----------
+
+  /// 非空文本块（下标 → 原文），润色按块独立请求，采纳时逐块替换。
+  Map<int, String> get _nonEmptyTexts => {
+    for (var i = 0; i < _blockControllers.length; i++)
+      if (_blockControllers[i].text.trim().isNotEmpty)
+        i: _blockControllers[i].text,
+  };
+
+  String get _plainText =>
+      _nonEmptyTexts.values.map((t) => t.trim()).join('\n\n');
+
+  Future<void> _suggestPolish() async {
+    if (_aiBusy != null || _aiUnavailable) return;
+    final texts = _nonEmptyTexts;
+    if (texts.isEmpty) {
+      showNotice(context, '先写一点正文，再请 AI 帮忙润色');
+      return;
+    }
+    final total = texts.values.fold<int>(0, (sum, t) => sum + t.length);
+    if (total > Env.letterMaxChars) {
+      showNotice(context, '正文太长了，精简到 ${Env.letterMaxChars} 字以内再润色');
+      return;
+    }
+
+    setState(() => _aiBusy = AiAssistKind.polish);
+    final polished = <int, String>{};
+    try {
+      final api = ref.read(adminApiProvider);
+      for (final entry in texts.entries) {
+        final value = (await api.polish(entry.value)).trim();
+        if (value.isEmpty || value.length > Env.letterMaxChars) {
+          if (mounted) showNotice(context, '这次润色没有得到可采纳的结果');
+          return;
+        }
+        polished[entry.key] = value;
+      }
+    } on ApiFailure catch (e) {
+      if (mounted) _handleAiFailure(e);
+      return;
+    } finally {
+      if (mounted) setState(() => _aiBusy = null);
+    }
+
+    final totalPolished = polished.values.fold<int>(
+      0,
+      (sum, value) => sum + value.length,
+    );
+    if (totalPolished > Env.letterMaxChars) {
+      if (mounted) showNotice(context, '这次润色后的正文太长了，没有采纳');
+      return;
+    }
+    if (!mounted) return;
+    await _showAiSuggestion(
+      title: '润色后的正文',
+      content: polished.values.join('\n\n'),
+      onAdopt: () {
+        // 采纳前校验原文未被改动，改过则整体作废（不把半封润色混进原文）。
+        final unchanged = polished.entries.every(
+          (entry) => _blockControllers[entry.key].text == texts[entry.key],
+        );
+        if (!unchanged) {
+          showNotice(context, '正文已经改过了，请重新润色');
+          return;
+        }
+        setState(() {
+          for (final entry in polished.entries) {
+            _blockControllers[entry.key].text = entry.value;
+          }
+        });
+        showNotice(context, '已采纳润色，仍可以继续修改');
+      },
+    );
+  }
+
+  Future<void> _suggestPoem() async {
+    if (_aiBusy != null || _aiUnavailable) return;
+    final source = _plainText;
+    if (source.isEmpty) {
+      showNotice(context, '先写一点正文，再从里面找一首短诗');
+      return;
+    }
+    if (source.length > Env.letterMaxChars) {
+      showNotice(context, '正文太长了，精简到 ${Env.letterMaxChars} 字以内再生成短诗');
+      return;
+    }
+
+    setState(() => _aiBusy = AiAssistKind.poem);
+    List<String>? lines;
+    try {
+      final raw = await ref.read(adminApiProvider).poem(source);
+      lines = validatePoemCandidate(raw);
+      if (lines == null && mounted) {
+        showNotice(context, '这次没有找到合适的短诗');
+      }
+    } on ApiFailure catch (e) {
+      lines = null;
+      if (mounted) _handleAiFailure(e);
+    } finally {
+      if (mounted) setState(() => _aiBusy = null);
+    }
+    if (lines == null || !mounted) return;
+    final poemText = lines.join('\n');
+
+    await _showAiSuggestion(
+      title: '从信里找到的短诗',
+      content: poemText,
+      poem: true,
+      onAdopt: () {
+        if (_plainText != source) {
+          showNotice(context, '正文已经改过了，请重新生成短诗');
+          return;
+        }
+        setState(() => _poem = poemText);
+        showNotice(context, '短诗已夹进信里');
+      },
+    );
+  }
+
+  void _clearPoem() {
+    setState(() => _poem = null);
+    showNotice(context, '已移除短诗');
+  }
+
+  void _handleAiFailure(ApiFailure error) {
+    if (error.isDegradable) {
+      setState(() => _aiUnavailable = true);
+      showNotice(context, 'AI 暂时没有回应，继续手写就好');
+      return;
+    }
+    showNotice(context, error.message);
+  }
+
+  Future<void> _showAiSuggestion({
+    required String title,
+    required String content,
+    required VoidCallback onAdopt,
+    bool poem = false,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 360, maxWidth: 480),
+          child: SingleChildScrollView(
+            child: Text(
+              content,
+              style: poem
+                  ? const TextStyle(height: 1.8, fontStyle: FontStyle.italic)
+                  : null,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('保留原稿'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              onAdopt();
+            },
+            child: const Text('采纳'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -569,6 +774,15 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('加一块'),
                     ),
+                  ),
+                  _AiAssistRow(
+                    hasContent: _nonEmptyTexts.isNotEmpty,
+                    hasPoem: _poem != null,
+                    unavailable: _aiUnavailable,
+                    busy: _aiBusy,
+                    onPolish: _suggestPolish,
+                    onPoem: _suggestPoem,
+                    onRemovePoem: _clearPoem,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -685,6 +899,7 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
     final lat = double.tryParse(_latController.text);
     final lon = double.tryParse(_lonController.text);
     final weatherText = _weatherController.text.trim();
+    final poem = _poem?.trim();
     return AdminLetterDetail(
       id: _draft.id ?? 'preview',
       blocks: [
@@ -704,6 +919,7 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
       status: LetterStatus.public,
       lat: lat,
       lon: lon,
+      poem: (poem == null || poem.isEmpty) ? null : poem,
     );
   }
 
@@ -749,7 +965,86 @@ class _SeedEditorState extends ConsumerState<SeedEditor> {
           textBlocks: [for (final c in _blockControllers) c.text],
           placeLabel: _placeController.text.trim(),
           weatherText: _weatherController.text.trim(),
+          poem: _poem,
           createdAt: _tryParseCreatedAt(),
         );
+  }
+}
+
+/// 种子信编辑器的 AI 辅助入口（与 apps/app 写信页 _AiAssistBar 同款语义：
+/// 候选先预览、用户明确采纳；这里只呈现状态与动作，不直接调接口）。
+class _AiAssistRow extends StatelessWidget {
+  const _AiAssistRow({
+    required this.hasContent,
+    required this.hasPoem,
+    required this.unavailable,
+    required this.busy,
+    required this.onPolish,
+    required this.onPoem,
+    required this.onRemovePoem,
+  });
+
+  final bool hasContent;
+  final bool hasPoem;
+  final bool unavailable;
+  final AiAssistKind? busy;
+  final VoidCallback onPolish;
+  final VoidCallback onPoem;
+  final VoidCallback onRemovePoem;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (unavailable) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Text('AI 暂时没有回应，继续手写就好', style: theme.textTheme.bodySmall),
+      );
+    }
+
+    final enabled = hasContent && busy == null;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            onPressed: enabled ? onPolish : null,
+            icon: busy == AiAssistKind.polish
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_fix_high_outlined, size: 18),
+            label: Text(busy == AiAssistKind.polish ? '正在润色…' : 'AI 润色'),
+          ),
+          OutlinedButton.icon(
+            onPressed: enabled ? onPoem : null,
+            icon: busy == AiAssistKind.poem
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.format_quote_outlined, size: 18),
+            label: Text(
+              busy == AiAssistKind.poem
+                  ? '正在找诗…'
+                  : hasPoem
+                  ? '重写短诗'
+                  : '生成短诗',
+            ),
+          ),
+          if (hasPoem)
+            TextButton(
+              onPressed: busy == null ? onRemovePoem : null,
+              child: const Text('移除短诗'),
+            ),
+        ],
+      ),
+    );
   }
 }

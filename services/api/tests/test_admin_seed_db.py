@@ -252,3 +252,51 @@ async def test_admin_token_can_upload(db_client, db_session) -> None:  # type: i
         files={"file": ("x.txt", b"not-an-image", "text/plain")},
     )
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+async def test_admin_token_can_call_ai(db_client, db_session, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """admin JWT 打 /v1/ai/*：双身份（ActorId）可调——种子信编辑共用 AI 辅助。
+
+    FEATURE_AI=false → 503（降级非错误）；开启后 mock LLM → 200 出候选。
+    """
+    from app.core.config import get_settings
+
+    await _make_account(db_session, _ADMIN_USERNAME, "admin")
+    admin_token = await _login(db_client, _ADMIN_USERNAME)
+
+    # 对照：无 token 一律 401（身份层先于功能开关）
+    resp = await db_client.post("/v1/ai/polish", json={"content": "正文"})
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # FEATURE_AI=false → 503
+    monkeypatch.setattr(get_settings(), "feature_ai", False)
+    resp = await db_client.post(
+        "/v1/ai/polish", json={"content": "正文"}, headers=_auth(admin_token)
+    )
+    assert resp.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+
+    # 开启 AI + mock LLM → 200 出候选
+    monkeypatch.setattr(get_settings(), "feature_ai", True)
+    monkeypatch.setattr(get_settings(), "openai_api_key", "test-key")
+    monkeypatch.setattr(get_settings(), "openai_base_url", "https://llm.example.com/v1")
+    monkeypatch.setattr(get_settings(), "openai_model", "test-model")
+
+    async def _fake(messages, max_tokens):  # type: ignore[no-untyped-def]
+        return "晚风掠过海面\n灯塔独自亮着\n想你"
+
+    monkeypatch.setattr("app.services.ai_service.chat_completion", _fake)
+
+    resp = await db_client.post(
+        "/v1/ai/polish", json={"content": "风很大"}, headers=_auth(admin_token)
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["polished"].strip()
+
+    resp = await db_client.post(
+        "/v1/ai/poem", json={"content": "风很大"}, headers=_auth(admin_token)
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert len(resp.json()["poem"].split("\n")) == 3
+
+    await db_session.execute(delete(AdminAccount).where(AdminAccount.username == _ADMIN_USERNAME))
+    await db_session.commit()

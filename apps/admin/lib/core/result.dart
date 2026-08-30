@@ -35,6 +35,11 @@ class ApiFailure implements Exception {
   final String? code;
   final int? statusCode;
 
+  /// 是否属于「该降级而非报错」的情况（与 apps/app 同款）。
+  bool get isDegradable =>
+      kind == ApiErrorKind.featureDisabled ||
+      kind == ApiErrorKind.serviceUnavailable;
+
   @override
   String toString() => 'ApiFailure($kind, $message)';
 }

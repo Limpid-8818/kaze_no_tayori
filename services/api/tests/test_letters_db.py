@@ -181,9 +181,7 @@ async def test_poem_submitted_persisted_verbatim(  # type: ignore[no-untyped-def
     # 建信响应回显客户端提交的短诗
     assert resp.json()["poem"] == poem
     # 数据库原样持久化（含换行，逐字节一致）
-    stored = await db_session.scalar(
-        select(Letter.poem).where(Letter.id == uuid.UUID(letter_id))
-    )
+    stored = await db_session.scalar(select(Letter.poem).where(Letter.id == uuid.UUID(letter_id)))
     assert stored == poem
     # 公开读 round-trip 同样逐字回显
     got = await db_client.get(f"/v1/letters/{letter_id}")
@@ -222,9 +220,7 @@ async def test_poem_absent_stays_null_even_with_ai_on(  # type: ignore[no-untype
     assert body["status"] == "public"
     assert body["poem"] is None
 
-    stored = await db_session.scalar(
-        select(Letter.poem).where(Letter.id == uuid.UUID(body["id"]))
-    )
+    stored = await db_session.scalar(select(Letter.poem).where(Letter.id == uuid.UUID(body["id"])))
     assert stored is None
     # 全程零 LLM 调用
     assert calls["n"] == 0

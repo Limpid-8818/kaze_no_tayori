@@ -3,11 +3,14 @@
 **AI 是桥不是枪手**：润色保留原意、用户可选采纳；整体可关闭且不影响主流程。
 FEATURE_AI=false 时返回 503 feature_disabled，前端据此降级为纯手动写信——
 这是降级，不是错误。
+
+身份：ActorId（user 或 admin JWT 均可）——管理端种子信编辑共用同一组
+AI 端点（与 uploads 双身份先例一致）；AI 只读正文不落库，双身份无风险。
 """
 
 from fastapi import APIRouter
 
-from app.core.deps import CurrentUser
+from app.core.deps import ActorId
 from app.schemas.common import PoemResponse, PolishRequest, PolishResponse
 from app.services import ai_service
 
@@ -20,14 +23,14 @@ def _blocks_from_content(content: str) -> list[dict]:
 
 
 @router.post("/polish", response_model=PolishResponse)
-async def polish(payload: PolishRequest, user_id: CurrentUser) -> PolishResponse:
+async def polish(payload: PolishRequest, actor_id: ActorId) -> PolishResponse:
     """润色正文，保留原意。用户可选采纳。"""
     polished = await ai_service.polish(_blocks_from_content(payload.content))
     return PolishResponse(polished=polished)
 
 
 @router.post("/poem", response_model=PoemResponse)
-async def poem(payload: PolishRequest, user_id: CurrentUser) -> PoemResponse:
+async def poem(payload: PolishRequest, actor_id: ActorId) -> PoemResponse:
     """从正文提取意象生成俳句（默认体裁），与正文同屏展示。"""
     poem = await ai_service.compose_poem(_blocks_from_content(payload.content))
     return PoemResponse(poem=poem)

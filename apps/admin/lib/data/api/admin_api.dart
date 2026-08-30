@@ -156,6 +156,38 @@ class AdminApi {
     return _client.decode(() => AdminLetterDetail.fromJson(resp));
   }
 
+  // ---------- AI 辅助（采纳制：返回候选，不直接落库） ----------
+
+  /// 润色正文，保留原意。FEATURE_AI=false → 503 feature_disabled（可降级）。
+  Future<String> polish(String content) async {
+    final body = await _client.postJson(
+      '/v1/ai/polish',
+      body: {'content': content},
+    );
+    return _client.decode(() {
+      final polished = body['polished'];
+      if (polished is! String) {
+        throw const FormatException('polished 应为字符串');
+      }
+      return polished;
+    });
+  }
+
+  /// 从正文提取意象生成俳句（默认体裁）。候选 ≤4 行的校验在 UI 层。
+  Future<String> poem(String content) async {
+    final body = await _client.postJson(
+      '/v1/ai/poem',
+      body: {'content': content},
+    );
+    return _client.decode(() {
+      final poem = body['poem'];
+      if (poem is! String) {
+        throw const FormatException('poem 应为字符串');
+      }
+      return poem;
+    });
+  }
+
   // ---------- 上传（种子信配图） ----------
 
   Future<String> uploadImage({

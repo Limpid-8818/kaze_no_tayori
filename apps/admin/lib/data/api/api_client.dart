@@ -179,6 +179,7 @@ class ApiClient {
       'admin_forbidden' => ApiErrorKind.forbidden,
       'validation_error' => ApiErrorKind.validation,
       'service_unavailable' => ApiErrorKind.serviceUnavailable,
+      'feature_disabled' => ApiErrorKind.featureDisabled,
       _ => switch (status) {
         401 => ApiErrorKind.unauthorized,
         403 => ApiErrorKind.forbidden,

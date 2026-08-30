@@ -20,20 +20,48 @@ class LetterPreviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final view = AdminLetterView.from(detail);
+    final poem = detail.poem?.trim();
+    final hasPoem = poem != null && poem.isNotEmpty;
     return Container(
       color: const Color(0xFFE8F1F7),
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
-          child: natsu.LetterReading(
-            blocks: view.blocks,
-            photoResolver: adminPhotoResolver,
-            width: 432,
-            place: view.place,
-            time: view.timeLabel,
-            dayPeriod: view.dayPeriod,
-            weather: view.weatherText,
-            signature: view.signature,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              natsu.LetterReading(
+                blocks: view.blocks,
+                photoResolver: adminPhotoResolver,
+                width: 432,
+                place: view.place,
+                time: view.timeLabel,
+                dayPeriod: view.dayPeriod,
+                weather: view.weatherText,
+                signature: view.signature,
+              ),
+              // 短诗与正文同屏（读信页 LetterContent 同款结构：正文纸下
+              // 挂一张小卡）；管理端用 Material 卡片近似，不引信件天色。
+              if (hasPoem) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: 432,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Text(
+                    poem,
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(height: 1.8, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

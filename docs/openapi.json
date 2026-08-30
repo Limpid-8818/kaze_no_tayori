@@ -2847,7 +2847,7 @@
     },
     "/v1/admin/reports": {
       "get": {
-        "description": "举报列表（JOIN 涉事信摘要），created_at DESC。默认只看 open。",
+        "description": "举报列表（JOIN 涉事信摘要），created_at DESC。\n\nstatus 缺省 = 全部（含已处理）；「默认只看待处理」由前端显式传 open。",
         "operationId": "list_reports_v1_admin_reports_get",
         "parameters": [
           {
@@ -2855,8 +2855,15 @@
             "name": "status",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ReportStatus",
-              "default": "open"
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReportStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           },
           {

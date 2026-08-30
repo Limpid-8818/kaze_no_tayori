@@ -208,6 +208,7 @@ UNIQUE `(letter_id, user_id)` —— 同一人只能共鸣一次。
 | POST | `/v1/ai/polish` | `{content}` → `{polished}`。保留原意，用户可选采纳 |
 | POST | `/v1/ai/poem` | `{content}` → `{poem}`。从正文提取意象生成俳句（默认体裁），≤4 行，与正文同屏展示 |
 
+身份：user 或 admin JWT 均可（ActorId）——管理端种子信编辑共用同一组端点。
 `FEATURE_AI=false` 时返回 `503 {"error":{"code":"ai_disabled"}}`，前端降级为纯手动，**不阻断写信**。
 AI 返回值只是候选；只有用户明确采纳后，客户端才把润色结果写回正文或将短诗随
 `LetterCreate.poem` 提交。服务端不自动补诗，拒绝候选或 AI 不可用时信件保持无诗。
