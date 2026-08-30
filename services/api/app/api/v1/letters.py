@@ -12,6 +12,14 @@ from app.schemas.common import ReportRequest
 from app.schemas.letter import LetterCreate, LetterOwned, LetterPublic
 from app.services import letter_service, resonance_service
 
+# 【停用】后台自动写诗链路保留未启用（短诗现为客户端采纳制：用户预览
+# 并采纳后才随 payload.poem 提交）。恢复步骤：
+# 1) 取消下方 import；2) fastapi 导入改为 `from fastapi import APIRouter, BackgroundTasks`；
+# 3) 补 `from app.core.config import get_settings`；4) create_letter 加
+# `background_tasks: BackgroundTasks` 参数；5) 取消 create_letter 内注释。
+# from app.models.enums import LetterStatus
+# from app.services import poem_service
+
 router = APIRouter(tags=["letters"])
 
 
@@ -28,6 +36,16 @@ async def create_letter(
     客户端随 payload.poem 提交；拒绝候选或 AI 关闭时保持为空。
     """
     letter = await letter_service.create_letter(session, payload, owner_user_id=user_id)
+    # 【停用】寄出后自动补写 AI 短诗（原后台任务方案，方案未定先保留）。
+    # 注意：后台任务用独立连接读库，必须先把信提交落库
+    # （get_session 的统一 commit 在响应发送后才执行，那时后台任务可能已在跑）。
+    # await session.commit()
+    # if (
+    #     letter.status == LetterStatus.PUBLIC
+    #     and payload.poem is None
+    #     and get_settings().feature_ai
+    # ):
+    #     background_tasks.add_task(poem_service.generate_and_save_poem, letter.id)
     return LetterOwned.from_letter(letter, lat=payload.lat, lon=payload.lon)
 
 
